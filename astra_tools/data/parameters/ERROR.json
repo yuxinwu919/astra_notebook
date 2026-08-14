@@ -1,0 +1,407 @@
+{
+ "namelist": "ERROR",
+ "section": "6.5",
+ "title": "The namelist ERROR",
+ "n_params": 57,
+ "params": [
+  {
+   "name": "Loop",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "LError",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if false, no errors will be generated."
+  },
+  {
+   "name": "ErrorS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true an output file will be generated. See chapter 4.12."
+  },
+  {
+   "name": "Log_Error",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true an additional log file will be generated which contains the actual element and bunch settings, i.e. including the variation due to the errors for each run. Note that module errors are added to the module setting and not to the individual parameter settings. See chapter 4.12."
+  },
+  {
+   "name": "LExtend",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true an already existing error output file will be extended rather than overwritten."
+  },
+  {
+   "name": "Suppress_output",
+   "type": "Logical",
+   "unit": "",
+   "default": "TRUE",
+   "desc": "if true any generation of output other than the error file is suppressed."
+  },
+  {
+   "name": "FOM()",
+   "type": "Character*40 array",
+   "unit": "",
+   "default": null,
+   "desc": "specifies the output to be found in the error file. Valid keywords are listed in the description of the namelist SCAN in chapter 6.3."
+  },
+  {
+   "name": "Err_cutoff",
+   "type": "Real*8",
+   "unit": "",
+   "default": "3.0",
+   "desc": "cut off for Gaussian distributed errors in units of sigma. Applies to all errors."
+  },
+  {
+   "name": "Err_Qbunch",
+   "type": "Real*8",
+   "unit": "nC",
+   "default": "0.0",
+   "desc": "error of the bunch charge."
+  },
+  {
+   "name": "Err_Xoff",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "error of the initial bunch position in x."
+  },
+  {
+   "name": "Err_Yoff",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "error of the initial bunch position in y."
+  },
+  {
+   "name": "Err_Toff",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "error of the initial bunch timing."
+  },
+  {
+   "name": "Err_Xrms",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "error of the initial bunch size in x."
+  },
+  {
+   "name": "Err_Yrms",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "error of the initial bunch size in y."
+  },
+  {
+   "name": "Err_XYrms",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "error of the initial bunch size in x and y. The parameter Err_XYrms has priority over the parameters Err_Xrms and Err_Yrms."
+  },
+  {
+   "name": "Err_Zrms",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "error of the initial bunch length."
+  },
+  {
+   "name": "Err_Trms",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "error of the bunch emission time."
+  },
+  {
+   "name": "Err_A_xoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the aperture offset in x."
+  },
+  {
+   "name": "Err_A_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the aperture offset in y."
+  },
+  {
+   "name": "Err_A_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the aperture rotation around the y-axis."
+  },
+  {
+   "name": "Err_A_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the aperture rotation around the x-axis."
+  },
+  {
+   "name": "Err_A_zrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the aperture rotation around the z-axis."
+  },
+  {
+   "name": "Err_C_xoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the cavity offset in x."
+  },
+  {
+   "name": "Err_C_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the cavity offset in y."
+  },
+  {
+   "name": "Err_C_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the cavity rotation around the y-axis."
+  },
+  {
+   "name": "Err_C_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the cavity rotation around the x-axis."
+  },
+  {
+   "name": "Err_C_zrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the cavity rotation around the z-axis."
+  },
+  {
+   "name": "Err_phi()",
+   "type": "Real*8 array",
+   "unit": "degree",
+   "default": "0.0",
+   "desc": "error of the cavity phase."
+  },
+  {
+   "name": "Err_MaxE()",
+   "type": "Real*8 array",
+   "unit": "MV/m",
+   "default": "0.0",
+   "desc": "error of the cavity gradient."
+  },
+  {
+   "name": "Err_S_xoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the solenoid offset in x."
+  },
+  {
+   "name": "Err_S_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the solenoid offset in y."
+  },
+  {
+   "name": "Err_S_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the solenoid rotation around the y-axis."
+  },
+  {
+   "name": "Err_S_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the solenoid rotation around the x-axis."
+  },
+  {
+   "name": "Err_MaxB()",
+   "type": "Real*8 array",
+   "unit": "T",
+   "default": "0.0",
+   "desc": "error of the solenoid strength."
+  },
+  {
+   "name": "Err_Q_xoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the quadrupole offset in x."
+  },
+  {
+   "name": "Err_Q_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the quadrupole offset in y."
+  },
+  {
+   "name": "Err_Q_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the quadrupole rotation around the y-axis."
+  },
+  {
+   "name": "Err_Q_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the quadrupole rotation around the x-axis."
+  },
+  {
+   "name": "Err_Q_zrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the of the quadrupole rotation around the z-axis."
+  },
+  {
+   "name": "Err_Q_Grad()",
+   "type": "Real*8 array",
+   "unit": "T/m",
+   "default": "0.0",
+   "desc": "error of the quadrupole gradient."
+  },
+  {
+   "name": "Err_Q_K()",
+   "type": "Real*8 array",
+   "unit": "m^-2",
+   "default": "0.0",
+   "desc": "error of the quadrupole strength."
+  },
+  {
+   "name": "Err_D_xoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the dipole offset in x."
+  },
+  {
+   "name": "Err_D_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the dipole offset in y."
+  },
+  {
+   "name": "Err_D_zoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the dipole offset in z."
+  },
+  {
+   "name": "Err_D_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the dipole rotation around the y-axis."
+  },
+  {
+   "name": "Err_D_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the dipole rotation around the x-axis."
+  },
+  {
+   "name": "Err_D_zrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the dipole rotation around the z-axis."
+  },
+  {
+   "name": "Err_D_Strength()",
+   "type": "Real*8 array",
+   "unit": "T",
+   "default": "0.0",
+   "desc": "error of the dipole strength."
+  },
+  {
+   "name": "Err_D_Radius()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the dipole bending radius."
+  },
+  {
+   "name": "Err_Mod_xoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the module offset in x."
+  },
+  {
+   "name": "Err_Mod_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "error of the module offset in y."
+  },
+  {
+   "name": "Err_Mod_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the module rotation around the y-axis."
+  },
+  {
+   "name": "Err_Mod_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the module rotation around the x-axis."
+  },
+  {
+   "name": "Err_Mod_zrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "error of the module rotation around the z-axis."
+  },
+  {
+   "name": "Err_Mod_Efield",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "relative error of the electric field strength of a module."
+  },
+  {
+   "name": "Err_Mod_phase",
+   "type": "Real*8 array",
+   "unit": "degree",
+   "default": "0.0",
+   "desc": "error of the RF phase of a module."
+  },
+  {
+   "name": "Err_Mod_Bfield",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "relative error of the magnetic field strength of a module."
+  }
+ ]
+}

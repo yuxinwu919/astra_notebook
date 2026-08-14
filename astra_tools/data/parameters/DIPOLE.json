@@ -1,0 +1,85 @@
+{
+ "namelist": "DIPOLE",
+ "section": "6.13",
+ "title": "The namelist DIPOLE",
+ "n_params": 11,
+ "params": [
+  {
+   "name": "LOOP",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "LDipole",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if false all dipoles are turned off."
+  },
+  {
+   "name": "D_Type()",
+   "type": "Character*10 array",
+   "unit": "",
+   "default": null,
+   "desc": "besides horizontal dipoles which bend in the x-plane vertical dipoles can be specified to bend the beam in the y-plane. coordinates of the first corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The first number defines the horizontal or vertical (if D_type = ‘vertical’) coordinate, the second number defines the longitudinal coordinate. coordinates of the second corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The first number defines the horizontal or vertical (if D_type = ‘vertical’) coordinate, the second number defines the longitudinal coordinate. coordinates of the third corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The first number defines the horizontal or vertical (if D_type = ‘vertical’) coordinate, the second number defines the longitudinal coordinate. coordinates of the fourth corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The first number defines the horizontal or vertical (if D_type = ‘vertical’) coordinate, the second number defines the longitudinal coordinate. taper parameter for the dipole fringe field. The first index of the array is 1 or 2 for the first and second dipole edge, while the second index refers to the dipole number."
+  },
+  {
+   "name": "D_strength()",
+   "type": "Real*8 array",
+   "unit": "T",
+   "default": "0.0",
+   "desc": "the dipole magnet strength."
+  },
+  {
+   "name": "D_radius()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "if a bending radius is defined the magnet strength is set during the tracking of the reference particle in accordance to the beam energy. If D_radius and D_strength are specified, D_radius has a higher priority."
+  },
+  {
+   "name": "D_xoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse offset of the dipole in x."
+  },
+  {
+   "name": "D_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse offset of the dipole in y."
+  },
+  {
+   "name": "D_zoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "longitudinal offset of the dipole in z."
+  },
+  {
+   "name": "D_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the dipole in the x-z plane, i.e. around the y-axis."
+  },
+  {
+   "name": "D_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the dipole in the y-z plane, i.e. around the x-axis."
+  },
+  {
+   "name": "D_zrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the dipole around the z-axis, i.e. in the x-y plane."
+  }
+ ]
+}

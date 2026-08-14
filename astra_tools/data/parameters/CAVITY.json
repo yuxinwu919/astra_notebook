@@ -1,0 +1,330 @@
+{
+ "namelist": "CAVITY",
+ "section": "6.9",
+ "title": "The namelist CAVITY",
+ "n_params": 46,
+ "params": [
+  {
+   "name": "LOOP",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "LEfield",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if false, all cavity fields are turned off."
+  },
+  {
+   "name": "File_Efield()",
+   "type": "Character*150 array",
+   "unit": "",
+   "default": null,
+   "desc": "user specified file name for field tables, or maps, or key wordplasma."
+  },
+  {
+   "name": "C_noscale()",
+   "type": "Logical array",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the cavity field will not be scaled, but the file values will be taken as field values in MV/m (TM modes), or T (Te modes)."
+  },
+  {
+   "name": "C_smooth()",
+   "type": "Integer array",
+   "unit": "",
+   "default": "0",
+   "desc": "controls the number of iterations of a soft, iterative procedure for smoothing field tables. Since the transverse field components are based on derivatives of the field table and can be noisy if the table is not precise, smoothing is recommended. Use fieldplot to check that the longitudinal field component remains basically unchanged and that the transverse components get smooth. Not applicable for 3D maps."
+  },
+  {
+   "name": "Com_grid()",
+   "type": "Character array",
+   "unit": "",
+   "default": null,
+   "desc": "either 'E,B' if the E and B components of a 3D map are given on common grids or 'all' if all six components of a 3D map are given on a common grid."
+  },
+  {
+   "name": "C_higher_order()",
+   "type": "Logical array",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the field expansion extends to 3^rd order, if false the field expansion extends only to 1^st order. If true stronger smoothing of the field might be required. Not applicable to TWS structures."
+  },
+  {
+   "name": "Nue()",
+   "type": "Real*8 array",
+   "unit": "GHz",
+   "default": null,
+   "desc": "frequency of the RF field."
+  },
+  {
+   "name": "K_wave()",
+   "type": "Real*8 array",
+   "unit": "m^-1",
+   "default": null,
+   "desc": "wave number of the field, only for β matched traveling wave structures."
+  },
+  {
+   "name": "MaxE()",
+   "type": "Real*8 array",
+   "unit": "MV/m or T",
+   "default": null,
+   "desc": "the absolute maximum, on-axis, longitudinal electric (TM mode) or magnetic (TE mode) field amplitude of the RF field is scaled to this value."
+  },
+  {
+   "name": "Ex_stat()",
+   "type": "Logical array",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "redirects parameter MaxE() to the transverse electric component in x direction, for DC fields only."
+  },
+  {
+   "name": "Ey_stat()",
+   "type": "Logical array",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "redirects parameter MaxE() to the transverse electric component in y direction, for DC fields only."
+  },
+  {
+   "name": "Bx_stat()",
+   "type": "Logical array",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "redirects parameter MaxE() to the transverse magnetic component in x, for static magnetic fields only."
+  },
+  {
+   "name": "By_stat()",
+   "type": "Logical array",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "redirects parameter MaxE() to the transverse magnetic component in y, for static magnetic fields only."
+  },
+  {
+   "name": "Bz_stat()",
+   "type": "Logical array",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "redirects parameter MaxE() to the transverse magnetic component in z, for static magnetic fields only."
+  },
+  {
+   "name": "Flatness()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "modifies the field flatness by multiplying the longitudinal field component with a linear slope; applied after scaling to MaxE. Not applicable for 3D and TWS structures."
+  },
+  {
+   "name": "Phi()",
+   "type": "Real*8 array",
+   "unit": "degree",
+   "default": null,
+   "desc": "phase of the RF field. Phi(0) defines a global phase shift of all cavities. See section 4.30."
+  },
+  {
+   "name": "C_pos()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "shifts the longitudinal cavity position. C_pos is added to the position defined in File_Efield()."
+  },
+  {
+   "name": "C_numb()",
+   "type": "Integer array",
+   "unit": "",
+   "default": "1 (3 in ASTRA Vers. 1)",
+   "desc": "number of cells excluding the input and output cell for traveling wave structures, or number of periods for 3D maps."
+  },
+  {
+   "name": "T_dependence()",
+   "type": "Character array",
+   "unit": "",
+   "default": null,
+   "desc": "either ‘fill’ or ‘decay’ in order to activate filling or decaying of the cavity field, respectively."
+  },
+  {
+   "name": "T_null()",
+   "type": "Real*8 array",
+   "unit": "ns",
+   "default": null,
+   "desc": "for cavity filling: time between start of the filling of the cavity and start of the particle tracking; for decay: time between start of decay and start of particle tracking."
+  },
+  {
+   "name": "C_Tau()",
+   "type": "Real*8 array",
+   "unit": "ns",
+   "default": null,
+   "desc": "filling time of the cavity."
+  },
+  {
+   "name": "E_stored()",
+   "type": "Real*8 array",
+   "unit": "J · m^2/MV^2",
+   "default": null,
+   "desc": "stored field energy of the cavity. If specified beam loading is taken into account."
+  },
+  {
+   "name": "C_xoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse offset of the cavity in x."
+  },
+  {
+   "name": "C_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse offset of the cavity in y."
+  },
+  {
+   "name": "C_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the cavity in the x-z plane, i.e. around the y-axis."
+  },
+  {
+   "name": "C_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the cavity in the y-z plane, i.e. around the x-axis."
+  },
+  {
+   "name": "C_zrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the cavity around the z-axis, i.e. in the x-y plane."
+  },
+  {
+   "name": "C_zkickmin( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "start of local field offset."
+  },
+  {
+   "name": "C_zkickmax( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "end of local field offset."
+  },
+  {
+   "name": "C_Xkick( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "local transverse field offset in x."
+  },
+  {
+   "name": "C_Ykick( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "local transverse field offset in y."
+  },
+  {
+   "name": "File_A0( )",
+   "type": "Character*150 array",
+   "unit": "",
+   "default": null,
+   "desc": "for plasma wakefield: user specified file name for the normalized vector potential a_0^2(x,y,z) of a drive laser, file format defined like 3D field maps. If C_noscale( ) = False, values from File_A0 are normalized and scaled to E_a0. If no File_A0 is defined, the driver spot size evolves according to the parameters E_sig, E_Z0, and E_Zr or E_eps."
+  },
+  {
+   "name": "P_Z1( )",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": "effective longitudinal start point of the plasma field. Used if only the key word plasma and no table is provided in File_Efield."
+  },
+  {
+   "name": "P_R1( )",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": "ramp parameter for the entrance of the plasma field. Field calculation starts at P_Z1-2.5·P_R1. Used if only the key word plasma and no table is provided in File_Efield."
+  },
+  {
+   "name": "P_Z2( )",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": "effective longitudinal end point of a plasma field. Used if only the key word plasma and no table is provided in File_Efield."
+  },
+  {
+   "name": "P_R2( )",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": "ramp parameter for the exit of the plasma field. Field calculation ends at P_Z2+2.5·P_R2. Used if only the key word plasma and no table is provided in File_Efield."
+  },
+  {
+   "name": "P_n",
+   "type": "Real*8",
+   "unit": "cm^-3",
+   "default": null,
+   "desc": "peak plasma density. In the entrance and exit region the plasma density is scaled as described above, or P_n is used to scale the normalized profile defined in File_Efield( )."
+  },
+  {
+   "name": "E_a0",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.0",
+   "desc": "peak normalized vector potential E\\_a_0 = eA/(m_e c^2) of the generating driver laser beam or charge density."
+  },
+  {
+   "name": "E_Z0",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "position of the focus of the generating beam. Used if no File_A0 is defined."
+  },
+  {
+   "name": "E_sig",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.001",
+   "desc": "rms transverse beam size at the focus of the generating beam intensity. Used if no File_A0 is defined."
+  },
+  {
+   "name": "E_sigz",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.001",
+   "desc": "rms longitudinal beam size of the generating beam intensity."
+  },
+  {
+   "name": "E_Zr",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "Rayleigh length of the generating beam. Alternative parameter to E_eps. It is possible to specify E_Zr independently of E_sig. Used if no File_A0 is defined."
+  },
+  {
+   "name": "E_Eps",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "emittance of the generating beam. Alternative parameter to E_Zr. Used if no File_A0 is defined."
+  },
+  {
+   "name": "E_lam",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "wavelength of the driving laser. If no wavelength is specified no correction for the group velocity in the plasma is applied."
+  },
+  {
+   "name": "zeta",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "1.0",
+   "desc": "distance between driving laser (or electron beam) and electron beam at the plasma start. Alternative to phase, active if < 0."
+  }
+ ]
+}

@@ -1,0 +1,197 @@
+{
+ "namelist": "CHARGE",
+ "section": "6.6",
+ "title": "The namelist CHARGE",
+ "n_params": 27,
+ "params": [
+  {
+   "name": "LOOP",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "LSPCH",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if false, space charge fields are not taken into account."
+  },
+  {
+   "name": "LSPCH3D",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true space 3D charge fields are calculated with an FFT algorithm, if false the standard calculation on a cylindrical grid is used, see chapter 4.5."
+  },
+  {
+   "name": "L2D_3D",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true a transition of 2D to 3D space charge calculation is made at position z_trans. See chapter 4.6."
+  },
+  {
+   "name": "Lmirror",
+   "type": "Logical",
+   "unit": "",
+   "default": "TRUE",
+   "desc": "if true, mirror charges at the cathode are taken into account. Only for cylindrical grid algorithm, see section 4.4.4."
+  },
+  {
+   "name": "L_Curved_Cathode",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the mirror charge will be corrected for a non-planar cathode. Only for cylindrical grid algorithm, see section 4.4.5."
+  },
+  {
+   "name": "Cathode_Contour",
+   "type": "Character*150 array",
+   "unit": "",
+   "default": null,
+   "desc": "file name of the table describing the cathode contour."
+  },
+  {
+   "name": "R_zero",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.0",
+   "desc": "on-axis curvature of a curved cathode."
+  },
+  {
+   "name": "Nrad",
+   "type": "Integer",
+   "unit": "",
+   "default": "10",
+   "desc": "number of grid cells in radial direction up to the bunch radius. Only for cylindrical grid algorithm."
+  },
+  {
+   "name": "Cell_var",
+   "type": "Real*8",
+   "unit": "",
+   "default": "2.0",
+   "desc": "variation of the cell height in radial direction. The innermost cell is cell_var times higher than the outermost cell. Only for cylindrical grid algorithm."
+  },
+  {
+   "name": "Nlong_in",
+   "type": "Integer",
+   "unit": "",
+   "default": "10",
+   "desc": "maximum number of grid cells in longitudinal direction within the bunch length. During the emission process the number is reduced, according to the specification of the minimum cell length min_grid. Only for cylindrical grid algorithm."
+  },
+  {
+   "name": "N_min",
+   "type": "Real*8",
+   "unit": "",
+   "default": "30",
+   "desc": "average number of particles to be emitted in one step during the emission from a cathode. N_min is needed to set H_min automatically during emission. Only for cylindrical grid algorithm."
+  },
+  {
+   "name": "min_grid",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": ""
+  },
+  {
+   "name": "z_trans",
+   "type": "Real",
+   "unit": "",
+   "default": null,
+   "desc": ""
+  },
+  {
+   "name": "min_grid_trans",
+   "type": "Real",
+   "unit": "",
+   "default": null,
+   "desc": ""
+  },
+  {
+   "name": "Nxf",
+   "type": "Integer",
+   "unit": "",
+   "default": "8",
+   "desc": ""
+  },
+  {
+   "name": "Nx0",
+   "type": "Integer",
+   "unit": "",
+   "default": "2",
+   "desc": ""
+  },
+  {
+   "name": "Nyf",
+   "type": "Integer",
+   "unit": "",
+   "default": "8",
+   "desc": ""
+  },
+  {
+   "name": "Ny0",
+   "type": "Integer",
+   "unit": "",
+   "default": "2",
+   "desc": ""
+  },
+  {
+   "name": "Nzf",
+   "type": "Integer",
+   "unit": "",
+   "default": "8",
+   "desc": ""
+  },
+  {
+   "name": "Nz0",
+   "type": "Integer",
+   "unit": "",
+   "default": "2",
+   "desc": ""
+  },
+  {
+   "name": "Smooth_x",
+   "type": "Integer",
+   "unit": "",
+   "default": "0",
+   "desc": ""
+  },
+  {
+   "name": "Smooth_y",
+   "type": "Integer",
+   "unit": "",
+   "default": "0",
+   "desc": "smoothing parameter for y-direction. Only for 3D FFT algorithm."
+  },
+  {
+   "name": "Smooth_z",
+   "type": "Integer",
+   "unit": "",
+   "default": "0",
+   "desc": "smoothing parameter for z-direction. Only for 3D FFT algorithm."
+  },
+  {
+   "name": "Max_scale",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.05",
+   "desc": "if one of the space charge scaling factors exceeds the limit 1± max_scale a new space charge calculation is initiated."
+  },
+  {
+   "name": "Max_count",
+   "type": "Integer",
+   "unit": "",
+   "default": "40",
+   "desc": "if the space charge field has been scaled max_count times a new space charge calculation is initiated."
+  },
+  {
+   "name": "Exp_control",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.1",
+   "desc": "specifies the maximum tolerable variation of the bunch extensions relative to the gird cell size within one time step (see section 4.4.6)."
+  }
+ ]
+}

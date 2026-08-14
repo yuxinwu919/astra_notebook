@@ -1,0 +1,470 @@
+{
+ "namelist": "INPUT",
+ "section": "7",
+ "title": "Input namelist for generator",
+ "n_params": 66,
+ "params": [
+  {
+   "name": "FNAME",
+   "type": "Character*150",
+   "unit": "",
+   "default": "rfgun.ini",
+   "desc": "file name for initial particle distribution; recommended extensions are .ini or .zpos.run, respectively."
+  },
+  {
+   "name": "Add",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true the input list has to be specified N_add times and N_add different distributions will be added."
+  },
+  {
+   "name": "N_add",
+   "type": "Integer",
+   "unit": "",
+   "default": "0",
+   "desc": "number of distributions to be added."
+  },
+  {
+   "name": "Ipart",
+   "type": "Integer",
+   "unit": "",
+   "default": "100",
+   "desc": "number of particles to be generated."
+  },
+  {
+   "name": "Species",
+   "type": "Character*80",
+   "unit": "",
+   "default": "Electrons",
+   "desc": "species of particles to be generated. Valid are:electrons,positrons,protonshydrogen.The key wordionallows to generate particles with user defined ratio of mass to charge state. In addition to the keyword ion a number between 1 and 10 has to be specified, e.g. ‘ion 1’. The number is used as index in the ion_mass specification. The parameter ion_mass needs to be specified in generator and again in the namelist NEWRUN of Astra.To adopt the graphics programpostproadditional specifications in the Plot_steering.par file are optional (see chapter 5.6)."
+  },
+  {
+   "name": "ion_mass( )",
+   "type": "Real*8 Array",
+   "unit": "eV/c2",
+   "default": "0.0",
+   "desc": "the mass divided by the charge state of user defined particles. The index number corresponds to the number specified together with the keyword ions in the Species definition. Negatively charged particles are defined by a negative value of the ion_mass parameter. Ion_mass(1) – (10) is mapped onto particle index 5 – 14 in the saved particle distribution file."
+  },
+  {
+   "name": "Probe",
+   "type": "Logical",
+   "unit": "",
+   "default": "TRUE",
+   "desc": "if true, 6 probe particles are generated at locations:(0.5σx, 0.5σz), (1.0σx, 1.0σz), (1.5σx, 1.5σz),(0.5σy, -0.5σz), (1.0σy, -1.0σz), (1.5σy, -1.5σz)."
+  },
+  {
+   "name": "Passive",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true only passive particles will be generated."
+  },
+  {
+   "name": "Noise_reduc",
+   "type": "Logical",
+   "unit": "",
+   "default": "TRUE",
+   "desc": "if true, particle coordinates are generated quasi-randomly following a Hammersley sequence."
+  },
+  {
+   "name": "Cathode",
+   "type": "Logical",
+   "unit": "",
+   "default": "TRUE",
+   "desc": "if true the particles will be generated with a time spread rather than with a spread in the longitudinal position, i.e. sig_z, Lz and rz are set to zero and sig_clock, Lt and rt have to be specified. See chapter 7.2 to chapter 7.4. Status flags will be set accordingly."
+  },
+  {
+   "name": "R_Cathode",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "radius in case of a curved, i.e. non planar cathode. Active if R_cathode is not zero. See section 7.5.2."
+  },
+  {
+   "name": "High_res",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the particle distribution is saved with increased accuracy. See Table 4."
+  },
+  {
+   "name": "Binary",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the particle distributions is saved in binary format."
+  },
+  {
+   "name": "Q_total",
+   "type": "Real*8",
+   "unit": "nC",
+   "default": "1.0",
+   "desc": "total charge of the particles. The total charge is equally distributed on the Npart particles. (Astra would allow also particles with varying macro charge in one distribution.)"
+  },
+  {
+   "name": "Type",
+   "type": "Character*80",
+   "unit": "",
+   "default": "standard",
+   "desc": "defines the type of the distribution. Valid are standard and ring."
+  },
+  {
+   "name": "Rad",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "radius of ring type distributions."
+  },
+  {
+   "name": "Tau",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "exponential delay time of the emission. Active if Tau ≠ 0.0. The delay is added to any distribution in time, i.e. to any distribution starting at the cathode. Note that the delay time is random and might interfere with the quasi random nature of an input distribution."
+  },
+  {
+   "name": "Ref_zpos",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "z position of the reference particle, i.e the longitudinal bunch position."
+  },
+  {
+   "name": "Ref_clock",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "initial clock value of the reference particle, can in general be set to zero."
+  },
+  {
+   "name": "Ref_Ekin",
+   "type": "Real*8",
+   "unit": "MeV",
+   "default": "0.0",
+   "desc": "initial kinetic energy of the reference particle."
+  },
+  {
+   "name": "Dist_z",
+   "type": "Character*80",
+   "unit": "",
+   "default": "uniform",
+   "desc": "specifies the longitudinal particle distribution. For valid keywords and related parameters see chapter 7.2 to chapter 7.4."
+  },
+  {
+   "name": "sig_z",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "rms value of the bunch length."
+  },
+  {
+   "name": "C_sig_z",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.0",
+   "desc": "cuts off a Gaussian longitudinal distribution at C_sig_z times sig_z. Active if ≠ 0.0."
+  },
+  {
+   "name": "Lz",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "length of the bunch."
+  },
+  {
+   "name": "rz",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "rising of the bunch distribution; only for plateau distribution."
+  },
+  {
+   "name": "sig_clock",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "1.0D-3",
+   "desc": "rms value of the emission time, i.e. the bunch length if generated from a cathode."
+  },
+  {
+   "name": "C_sig_clock",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.0",
+   "desc": "cuts off a Gaussian longitudinal distribution at C_sig_clock times sig_clock. Active if ≠ 0.0."
+  },
+  {
+   "name": "Lt",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "length of the bunch; only for plateau distribution."
+  },
+  {
+   "name": "rt",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "rise time of the bunch; only for plateau distribution."
+  },
+  {
+   "name": "Dist_pz",
+   "type": "Character*80",
+   "unit": "",
+   "default": "uniform",
+   "desc": "specifies the longitudinal energy and momentum distribution, respectively. For valid keywords and related parameters see chapter 7.2 to chapter 7.4."
+  },
+  {
+   "name": "sig_Ekin",
+   "type": "Real*8",
+   "unit": "keV",
+   "default": "0.0",
+   "desc": "rms value of the energy spread."
+  },
+  {
+   "name": "C_sig_Ekin",
+   "type": "Real*8",
+   "unit": "",
+   "default": "100.0",
+   "desc": "cuts off a Gaussian energy and momentum distribution at C_sig_Ekin times sig_Ekin. Active if ≠ 0.0."
+  },
+  {
+   "name": "LE",
+   "type": "Real*8",
+   "unit": "keV",
+   "default": "0.0",
+   "desc": "width of the energy distribution."
+  },
+  {
+   "name": "rE",
+   "type": "Real*8",
+   "unit": "keV",
+   "default": "0.0",
+   "desc": "rising of the energy distribution, only for plateau distribution."
+  },
+  {
+   "name": "emit_z",
+   "type": "Real*8",
+   "unit": "π keV mm",
+   "default": "0.0",
+   "desc": "longitudinal particle emittance. Can be specified instead of the energy spread. If an energy spread and an emittance is specified the energy spread has priority."
+  },
+  {
+   "name": "cor_Ekin",
+   "type": "Real*8",
+   "unit": "keV",
+   "default": "0.0",
+   "desc": "correlated energy spread."
+  },
+  {
+   "name": "E_photon",
+   "type": "Real*8",
+   "unit": "eV",
+   "default": "0.0",
+   "desc": "photon energy for Fermi-Dirac distribution."
+  },
+  {
+   "name": "phi_eff",
+   "type": "Real*8",
+   "unit": "eV",
+   "default": "0.0",
+   "desc": "effective work function for Fermi-Dirac distribution."
+  },
+  {
+   "name": "Dist_x",
+   "type": "Character*80",
+   "unit": "",
+   "default": "Gaussian",
+   "desc": "specifies the transverse particle distribution in the horizontal direction. For valid keywords and related parameters see chapter 7.2 to chapter 7.4."
+  },
+  {
+   "name": "sig_x",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "1.0",
+   "desc": "rms bunch size in the horizontal direction. Also the vertical bunch size if Dist_x = radial."
+  },
+  {
+   "name": "C_sig_x",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.0",
+   "desc": "cuts off a Gaussian horizontal distribution at C_sig_x times sig_x. Active if ≠ 0.0."
+  },
+  {
+   "name": "Lx",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "width of the horizontal particle distribution."
+  },
+  {
+   "name": "rx",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "rising of the horizontal particle distribution; only for plateau distribution."
+  },
+  {
+   "name": "x_off",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "horizontal offset of the particle distribution."
+  },
+  {
+   "name": "Disp_x",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "horizontal dispersion; a horizontal offset is added to all particles according to: x = x + Disp\\_x (Δ P)/(P); increases the calculated bunch emittance."
+  },
+  {
+   "name": "Dist_px",
+   "type": "Character*80",
+   "unit": "",
+   "default": "Gaussian",
+   "desc": "specifies the transverse momentum distribution in the horizontal direction. For valid keywords and related parameters see chapter 7.2 to chapter 7.4."
+  },
+  {
+   "name": "Nemit_x",
+   "type": "Real*8",
+   "unit": "π mrad mm",
+   "default": "0.0",
+   "desc": "normalized transverse emittance in the horizontal direction. Can be specified instead of a transverse momentum spread. If a momentum spread and an emittance is specified the emittance has priority. Also the normalized vertical emittance if Dist_px = radial."
+  },
+  {
+   "name": "sig_px",
+   "type": "Real*8",
+   "unit": "eV/c",
+   "default": "0.0",
+   "desc": "rms value of the horizontal momentum distribution."
+  },
+  {
+   "name": "C_sig_px",
+   "type": "Real*8",
+   "unit": "",
+   "default": "100.0",
+   "desc": "cuts off the horizontal momentum distribution at C_sig_px times sig_px."
+  },
+  {
+   "name": "Lpx",
+   "type": "Real*8",
+   "unit": "eV/c",
+   "default": "0.0",
+   "desc": "width of the horizontal momentum distribution; only for plateau distribution."
+  },
+  {
+   "name": "rpx",
+   "type": "Real*8",
+   "unit": "eV/c",
+   "default": "0.0",
+   "desc": "rising of the horizontal momentum distribution; only for plateau distribution."
+  },
+  {
+   "name": "cor_px",
+   "type": "Real*8",
+   "unit": "mrad",
+   "default": "0.0",
+   "desc": "correlated beam divergence in the horizontal direction = -(α)/(β[m]) x_rms[mm].For extreme settings of cor_px the correlated beam divergence cannot be set correctly and the beam energy will be increased by generator. A warning will be given in this case."
+  },
+  {
+   "name": "Dist_y",
+   "type": "Character*80",
+   "unit": "",
+   "default": "Gaussian",
+   "desc": "specifies the transverse particle distribution in the vertical direction. For valid keywords and related parameters see chapter 7.2 to chapter 7.4."
+  },
+  {
+   "name": "sig_y",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "1.0",
+   "desc": "rms bunch size in the vertical direction. Not significant if Dist_x = radial."
+  },
+  {
+   "name": "C_sig_y",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.0",
+   "desc": "cuts off a Gaussian vertical distribution at C_sig_y times sig_py. Active if ≠ 0.0."
+  },
+  {
+   "name": "Ly",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "width of the vertical particle distribution."
+  },
+  {
+   "name": "ry",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "rising of the vertical particle distribution; only for plateau distribution."
+  },
+  {
+   "name": "y_off",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "the vertical offset of the particle distribution."
+  },
+  {
+   "name": "Disp_y",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "vertical dispersion; a vertical offset is added to all particles according to: y = y + Disp_y ΔP/P; increases the calculated bunch emittance."
+  },
+  {
+   "name": "Dist_py",
+   "type": "Character*80",
+   "unit": "",
+   "default": "Gaussian",
+   "desc": "specifies the transverse momentum distribution in the vertical direction. For valid keywords and related parameters see chapter 7.2 to chapter 7.4."
+  },
+  {
+   "name": "Nemit_y",
+   "type": "Real*8",
+   "unit": "π mrad mm",
+   "default": "0.0",
+   "desc": "normalized transverse emittance in the vertical direction. Can be specified instead of a transverse momentum spread. If a momentum spread and an emittance is specified the emittance has priority. Not significant if Dist_px = radial."
+  },
+  {
+   "name": "sig_py",
+   "type": "Real*8",
+   "unit": "eV/c",
+   "default": "0.0",
+   "desc": "rms value of the horizontal momentum distribution."
+  },
+  {
+   "name": "C_sig_py",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.0",
+   "desc": "cuts off a Gaussian vertical momentum distribution at C_sig_py times sig_py. Active if ≠ 0.0."
+  },
+  {
+   "name": "Lpy",
+   "type": "Real*8",
+   "unit": "eV/c",
+   "default": "0.0",
+   "desc": "width of the vertical momentum distribution; only for plateau distribution."
+  },
+  {
+   "name": "rpy",
+   "type": "Real*8",
+   "unit": "eV/c",
+   "default": "0.0",
+   "desc": "rising of the vertical momentum distribution; only for plateau distribution."
+  },
+  {
+   "name": "cor_py",
+   "type": "Real*8",
+   "unit": "mrad",
+   "default": "0.0",
+   "desc": "correlated beam divergence in the vertical direction = -α/β[m]y_rms[mm]. For extreme settings of cor_py the correlated beam divergence cannot be set correctly and the beam energy will be increased by generator. A warning will be given in this case."
+  }
+ ]
+}

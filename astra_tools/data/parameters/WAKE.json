@@ -1,0 +1,162 @@
+{
+ "namelist": "WAKE",
+ "section": "6.8",
+ "title": "The namelist WAKE",
+ "n_params": 22,
+ "params": [
+  {
+   "name": "Loop",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "LWAKE",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if false all WAKE definitions will be ignored."
+  },
+  {
+   "name": "Wk_Type()",
+   "type": "Character*40 array",
+   "unit": "",
+   "default": "undefined",
+   "desc": "specifies the type or method of a wake field calculation. Valid keywords are Monopole_Method_F, Dipole_Method_F and Taylor_Method_F for wake field and Monopole_Method_P and Dipole_Method_P for wake potential input types."
+  },
+  {
+   "name": "Wk_filename()",
+   "type": "Character*150 array",
+   "unit": "",
+   "default": null,
+   "desc": "specifies the name of a file containing tabulated wake field or potential coefficients."
+  },
+  {
+   "name": "Wk_testfile()",
+   "type": "Character*150 array",
+   "unit": "",
+   "default": null,
+   "desc": "specifies the name of a file for test output. Output is only written if a file name is defined. The 3 columns of the file refer to the longitudinal position in the bunch [m], the local current [A] and the resulting longitudinal wake potential [V/C]"
+  },
+  {
+   "name": "Wk_screen()",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true the phase space distribution will be saved right after the wake kick has been applied."
+  },
+  {
+   "name": "Wk_scaling",
+   "type": "Real*8",
+   "unit": "",
+   "default": "1.0",
+   "desc": "scaling factor for wake kick."
+  },
+  {
+   "name": "Wk_x()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse origin of a wake field in x."
+  },
+  {
+   "name": "Wk_y()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse origin of a wake field in y."
+  },
+  {
+   "name": "Wk_z()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "1.0",
+   "desc": "longitudinal origin of a wake field in z."
+  },
+  {
+   "name": "Wk_ex()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "x-component of the longitudinal direction vector."
+  },
+  {
+   "name": "Wk_ey()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "y-component of the longitudinal direction vector."
+  },
+  {
+   "name": "Wk_ez()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "1.0",
+   "desc": "z-component of the lonogitudinal direction vector."
+  },
+  {
+   "name": "Wk_hx()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "1.0",
+   "desc": "x-component of the horizontal direction vector."
+  },
+  {
+   "name": "Wk_hy()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "y-component of the horizontal direction vector."
+  },
+  {
+   "name": "Wk_hz()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "z-component of the horizontal direction vector."
+  },
+  {
+   "name": "Wk_equi_grid()",
+   "type": "Real*8",
+   "unit": "",
+   "default": "1.0",
+   "desc": "if 1.0 an equidistant grid is set up, if 0.0 a grid with equal charge per grid cell is employed. Values between 1.0 and 0.0 result in intermediate binning based on a linear combination of the two methods."
+  },
+  {
+   "name": "Wk_N_bin()",
+   "type": "Integer array",
+   "unit": "",
+   "default": "10",
+   "desc": "number of bins."
+  },
+  {
+   "name": "Wk_ip_method()",
+   "type": "Integer array",
+   "unit": "",
+   "default": "2",
+   "desc": "interpolation method: 0 = rectangular, 1 = triangular, 2 = Gaussian."
+  },
+  {
+   "name": "Wk_smooth()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.5",
+   "desc": "smoothing parameter for Gaussian interpolation."
+  },
+  {
+   "name": "Wk_sigma_min()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "minimal sigma for Gaussian interpolation"
+  },
+  {
+   "name": "Wk_sub()",
+   "type": "Integer array",
+   "unit": "",
+   "default": "1",
+   "desc": "sub binning parameter."
+  }
+ ]
+}

@@ -1,0 +1,239 @@
+{
+ "namelist": "OUTPUT",
+ "section": "6.2",
+ "title": "The namelist OUTPUT",
+ "n_params": 33,
+ "params": [
+  {
+   "name": "ZSTART",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "minimal z position for the generation of output, tracking may start at z ≠ ZSTART according to the definition of the initial particle distribution."
+  },
+  {
+   "name": "ZSTOP",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.3",
+   "desc": "tracking will stop when the bunch center passes ZSTOP."
+  },
+  {
+   "name": "Zemit",
+   "type": "Integer",
+   "unit": "",
+   "default": "100",
+   "desc": "the interval ZSTOP-ZSTART is divided into Zemit subintervals. At the end of each subinterval output of line-typ is generated."
+  },
+  {
+   "name": "Zphase",
+   "type": "Integer",
+   "unit": "",
+   "default": "1",
+   "desc": "the interval ZSTOP-ZSTART is divided into Zphase subintervals. At the end of each subinterval a complete particle distribution is saved. It is recommended to set Zemit = n·Zphase, n ∈ N ."
+  },
+  {
+   "name": "Screen( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "additional position for the generation of output."
+  },
+  {
+   "name": "Scr_xrot( )",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the screen in the x-z plane. Active if Scr_xrot( ) ≠ 0.0 and only in combination with Local_emit. The angles are measured relative to the z-axis, i. e. the standard position corresponds to Scr_xrot( ) = π/2."
+  },
+  {
+   "name": "Scr_yrot( )",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the screen in the y-z plane. Active if Scr_yrot( ) ≠ 0.0 and only in combination with Local_emit. The angles are measured relative to the z-axis, i. e. the standard position corresponds to Scr_yrot( ) = π/2."
+  },
+  {
+   "name": "Step_width",
+   "type": "Integer",
+   "unit": "",
+   "default": "0",
+   "desc": "output generation based on time steps rather than on positions. Output is generated every Step_width · time step."
+  },
+  {
+   "name": "Step_max",
+   "type": "Integer",
+   "unit": "",
+   "default": "0",
+   "desc": "terminates output based on Step_width. Run may continue if Max_step > Step_max."
+  },
+  {
+   "name": "Lproject_emit",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the transverse particle positions of all particles will be projected into a common plane at the longitudinal bunch center position prior to the calculation of the emittance, spot size etc. See section 4.13.3."
+  },
+  {
+   "name": "Local_emit",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the transverse particle positions of all particles will be recorded when passing the output position plane prior to the calculation of the emittance, spot size etc. The longitudinal particle coordinates in output files are recalculated based on times and velocities and are only approximate. Hence distributions saved with this option should not be used as input distributions for further tracking! The distance between subsequent output positions has to be larger than the bunch length, or they will be skipped. See section 4.13.3."
+  },
+  {
+   "name": "Lsub_Larmor",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "Lsub_coup",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "Rot_ang",
+   "type": "Real*8",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": ""
+  },
+  {
+   "name": "Lsub_cor",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "RefS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "EmitS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "C_EmitS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "C99_EmitS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "Tr_EmitS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "Sub_EmitS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "Cross_start",
+   "type": "Real",
+   "unit": "",
+   "default": "0.0",
+   "desc": ""
+  },
+  {
+   "name": "Cross_end",
+   "type": "Real",
+   "unit": "",
+   "default": "0.0",
+   "desc": "end point for detecting cross over particles (Sub_EmitS = False). See section 4.13.7."
+  },
+  {
+   "name": "PhaseS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, output files according to Table 3 and Table 4 are generated."
+  },
+  {
+   "name": "T_PhaseS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, output files according to Table 3 and Table 4 are generated."
+  },
+  {
+   "name": "High_res",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, particle distributions are saved with increased accuracy. See Table 4."
+  },
+  {
+   "name": "Binary",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the particle distributions is saved in binary format."
+  },
+  {
+   "name": "TrackS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, output files according to Table 3 and Table 4 are generated."
+  },
+  {
+   "name": "TcheckS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, output files according to Table 3 and Table 4 are generated."
+  },
+  {
+   "name": "SigmaS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, output files according to Table 3 and Table 4 are generated."
+  },
+  {
+   "name": "CathodeS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, output files according to Table 3 and Table 4 are generated."
+  },
+  {
+   "name": "LandFS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, output files according to Table 3 and Table 4 are generated."
+  },
+  {
+   "name": "LarmorS",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, output files according to Table 3 and Table 4 are generated."
+  }
+ ]
+}

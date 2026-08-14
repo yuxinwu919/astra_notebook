@@ -1,0 +1,92 @@
+{
+ "namelist": "MODULES",
+ "section": "6.4",
+ "title": "The namelist MODULES",
+ "n_params": 12,
+ "params": [
+  {
+   "name": "Loop",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "LModule",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if false all module definitions will be ignored. specifies the elements of a module."
+  },
+  {
+   "name": "Mod_Xoff( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse offset of a module in x."
+  },
+  {
+   "name": "Mod_Yoff( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse offset of a module in y."
+  },
+  {
+   "name": "Mod_Zoff( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "longitudinal offset of a module."
+  },
+  {
+   "name": "Mod_Xrot( )",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation of a module in the x-z plane, i.e. around the y-axis."
+  },
+  {
+   "name": "Mod_Yrot( )",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation of a module in the y-z plane, i.e. around the x-axis."
+  },
+  {
+   "name": "Mod_Zrot( )",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation of a module in the x-y plane, i.e. around the z-axis."
+  },
+  {
+   "name": "Mod_Zpos( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "longitudinal position of a module. Rotations are defined with respect to this position. Note, that Mod_zpos is not affected by a shift introduced with the parameter Mod_zoff"
+  },
+  {
+   "name": "Mod_Efield( )",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "1.0",
+   "desc": "scaling strength for electric field of a module."
+  },
+  {
+   "name": "Mod_phase( )",
+   "type": "Real*8 array",
+   "unit": "degree",
+   "default": "0.0",
+   "desc": "phase offset of the RF fields of a module."
+  },
+  {
+   "name": "Mod_Bfield( )",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "1.0",
+   "desc": "scaling strength for magnetic fields of a module."
+  }
+ ]
+}

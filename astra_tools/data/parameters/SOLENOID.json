@@ -1,0 +1,92 @@
+{
+ "namelist": "SOLENOID",
+ "section": "6.10",
+ "title": "The namelist SOLENOID",
+ "n_params": 12,
+ "params": [
+  {
+   "name": "LOOP",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "LBfield",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if false, all solenoid fields are turned off."
+  },
+  {
+   "name": "File_Bfield()",
+   "type": "Character*150 array",
+   "unit": "",
+   "default": null,
+   "desc": "user specified file name."
+  },
+  {
+   "name": "S_noscale()",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the solenoid field will not be scaled, but the file values will be taken as field values in T."
+  },
+  {
+   "name": "S_smooth()",
+   "type": "Integer array",
+   "unit": "",
+   "default": "0",
+   "desc": "controls the number of iterations of a soft, iterative procedure for smoothing field tables. Since the transverse field components are based on derivatives of the field table and can be noisy if the table is not precise, smoothing is recommended. Use fieldplot to check that the longitudinal field component remains basically unchanged and that the transverse components get smooth."
+  },
+  {
+   "name": "S_higher_order()",
+   "type": "Logical array",
+   "unit": "",
+   "default": "TRUE",
+   "desc": "if true, the field expansion extends to 3^rd order, if false the field expansion extends only to 1^st order. If true stronger smoothing of the field might be required."
+  },
+  {
+   "name": "MaxB()",
+   "type": "Real*8 array",
+   "unit": "T",
+   "default": "0.0",
+   "desc": "maximum field value of the solenoid field. The field is scaled to this value."
+  },
+  {
+   "name": "S_pos()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "shifts the longitudinal solenoid position. S_pos is added to the position defined in File_Bfield()."
+  },
+  {
+   "name": "S_xoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "horizontal offset of the solenoid."
+  },
+  {
+   "name": "S_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "vertical offset of the solenoid."
+  },
+  {
+   "name": "S_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the solenoid in the x-z plane, i.e. around the y-axis."
+  },
+  {
+   "name": "S_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the solenoid in the y-z plane, i.e. around the x-axis."
+  }
+ ]
+}

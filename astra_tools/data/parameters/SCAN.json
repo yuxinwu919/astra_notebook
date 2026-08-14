@@ -1,0 +1,134 @@
+{
+ "namelist": "SCAN",
+ "section": "6.3",
+ "title": "The namelist SCAN",
+ "n_params": 18,
+ "params": [
+  {
+   "name": "LOOP",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "LScan",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true a scan will be performed."
+  },
+  {
+   "name": "LExtend",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true an already existing scan output file will be extended rather than overwritten."
+  },
+  {
+   "name": "Scan_para",
+   "type": "Character*40",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to be scanned. Valid are all parameters that are written in italic letters in the namelist tables of chapter 6."
+  },
+  {
+   "name": "S_min",
+   "type": "Real*8",
+   "unit": "",
+   "default": null,
+   "desc": "minimal set point of the scanning parameter."
+  },
+  {
+   "name": "S_max",
+   "type": "Real*8",
+   "unit": "",
+   "default": null,
+   "desc": "maximal set point of the scanning parameter."
+  },
+  {
+   "name": "S_numb",
+   "type": "Integer",
+   "unit": "",
+   "default": null,
+   "desc": "number of scanning points."
+  },
+  {
+   "name": "O_min",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true the minimum of the parameter FOM(1) is searched with decreasing interval size around the minimum."
+  },
+  {
+   "name": "O_max",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true the maximum of the parameter FOM(1) is searched with decreasing interval size around the maximum."
+  },
+  {
+   "name": "O_match",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true the match of the parameter FOM(1) to the match_value is searched with decreasing interval size around the optimum."
+  },
+  {
+   "name": "match_value",
+   "type": "Real*8",
+   "unit": "",
+   "default": null,
+   "desc": "value to which FOM(1) has to be matched if O_match = true."
+  },
+  {
+   "name": "O_depth",
+   "type": "Integer",
+   "unit": "",
+   "default": null,
+   "desc": "optimization depth if one of O_min, O_max or O_match is true. The total number of runs is about S_numb · O_depth."
+  },
+  {
+   "name": "L_min",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "L_max",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "S_zmin",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": "minimum position for the search of an optimum of FOM(1)"
+  },
+  {
+   "name": "S_zmax",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": "maximum position for the search of an optimum of FOM(1)"
+  },
+  {
+   "name": "S_dz",
+   "type": "Integer",
+   "unit": "",
+   "default": null,
+   "desc": "the interval S_zmin to S_zmax is divided into S_dz equal intervals. At the end of each interval emittances etc. are calculated."
+  },
+  {
+   "name": "FOM( )",
+   "type": "Character*40 array",
+   "unit": "",
+   "default": null,
+   "desc": ""
+  }
+ ]
+}

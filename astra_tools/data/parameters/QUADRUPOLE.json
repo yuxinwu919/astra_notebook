@@ -1,0 +1,120 @@
+{
+ "namelist": "QUADRUPOLE",
+ "section": "6.11",
+ "title": "The namelist QUADRUPOLE",
+ "n_params": 16,
+ "params": [
+  {
+   "name": "LOOP",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "Lquad",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if false, all quadrupole fields are turned off."
+  },
+  {
+   "name": "Q_type()",
+   "type": "Character*150 array",
+   "unit": "",
+   "default": null,
+   "desc": "besides standard quadrupoles (w. o. type specification) skew quadrupoles, doublets and triplets and field data can be specified. Doublets have the same field amplitude with reversed sign in the two magnets. For triplets the field amplitude has the same magnitude for all magnets but opposite sign of the outer magnets as compared to the inner one. The inner magnet is twice as long as the outer ones."
+  },
+  {
+   "name": "Q_grad()",
+   "type": "Real*8 array",
+   "unit": "T/m",
+   "default": null,
+   "desc": "quadrupole gradient. Refers to the first quadrupole in case of doublets and triplets. A positive gradient focusses negatively charged particles traveling into positive z-direction in the x plane."
+  },
+  {
+   "name": "Q_K()",
+   "type": "Real*8 array",
+   "unit": "m^-2",
+   "default": null,
+   "desc": "focusing strength of the quadrupole. The gradient is set during the tracking of the reference particle in dependence of the reference particle momentum. Refers to the first quadrupole in case of doublets and triplets. A positive quadrupole strength focusses negatively charged particles traveling into positive z-direction in the x plane. If Q_K and Q_grad are specified, Q_K has a higher priority."
+  },
+  {
+   "name": "Q_noscale()",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the field profile will not be scaled, but the file values will be taken as gradients in T/m or as focusing strength in m^-2."
+  },
+  {
+   "name": "Q_length()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "effective length of the quadrupole."
+  },
+  {
+   "name": "Q_smooth()",
+   "type": "Integer array",
+   "unit": "",
+   "default": "0",
+   "desc": "controls the number of iterations of a soft, iterative procedure for smoothing field profile tables."
+  },
+  {
+   "name": "Q_bore()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.035",
+   "desc": "taper parameter for the quadrupole field edge."
+  },
+  {
+   "name": "Q_dist()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "distance between magnets in case of doublets and triplets. skew multipole coefficients. normal multipole coefficients."
+  },
+  {
+   "name": "Q_pos()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "longitudinal quadrupole position. Refers to the center of the magnet(s) also in case of doublets and triplets."
+  },
+  {
+   "name": "Q_xoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "horizontal offset of the quadrupole, the doublet or the triplet."
+  },
+  {
+   "name": "Q_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "vertical offset of the quadrupole, the doublet or the triplet."
+  },
+  {
+   "name": "Q_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the quadrupole in the x-z plane, i.e. around the y-axis."
+  },
+  {
+   "name": "Q_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the quadrupole in the y-z plane, i.e. around the x-axis."
+  },
+  {
+   "name": "Q_zrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the quadrupole around the z-axis, i.e. in the x-y plane."
+  }
+ ]
+}

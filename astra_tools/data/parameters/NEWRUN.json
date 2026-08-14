@@ -1,0 +1,274 @@
+{
+ "namelist": "NEWRUN",
+ "section": "6.1",
+ "title": "The namelist NEWRUN",
+ "n_params": 38,
+ "params": [
+  {
+   "name": "Head",
+   "type": "Character*150",
+   "unit": "",
+   "default": null,
+   "desc": "header line for protocol."
+  },
+  {
+   "name": "RUN",
+   "type": "Integer",
+   "unit": "",
+   "default": "1",
+   "desc": "the RUN number is used as extension for all output files (see Table 3). It is automatically incremented if a LOOP is specified."
+  },
+  {
+   "name": "LOOP",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "NLoop",
+   "type": "Integer",
+   "unit": "",
+   "default": null,
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "Distribution",
+   "type": "Character*150",
+   "unit": "",
+   "default": null,
+   "desc": "name of the initial particle distribution, see chapters 2 and 3."
+  },
+  {
+   "name": "ion_mass( )",
+   "type": "Real*8 Array",
+   "unit": "eV/c2",
+   "default": "0.0",
+   "desc": "the mass divided by the charge state of user defined particles. Negatively charged particles are defined by a negative value of the ion_mass parameter. Particle index 5 – 14 in the input distribution file refer to ion_mass(1) – (10). See also the corresponding generator definitions (7). Mass proportional results (energy and momenta) are normalized to the charge state!"
+  },
+  {
+   "name": "N_red",
+   "type": "Integer",
+   "unit": "",
+   "default": "1",
+   "desc": "if >1 only every N_redthparticle of the distribution is used. The charge of the particles is scaled accordingly."
+  },
+  {
+   "name": "Xoff",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "horizontal offset of the input distribution. Active if Xoff ≠ 0.0."
+  },
+  {
+   "name": "Yoff",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "0.0",
+   "desc": "vertical offset of the input distribution. Active if Yoff ≠ 0.0."
+  },
+  {
+   "name": "xp",
+   "type": "Real*8",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "horizontal trajectory angle, additive to input distribution."
+  },
+  {
+   "name": "yp",
+   "type": "Real*8",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "vertical trajectory angle, additive to input distribution."
+  },
+  {
+   "name": "Zoff",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "longitudinal offset of the input distribution. Active if Zoff ≠ 0.0."
+  },
+  {
+   "name": "Toff",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "timing offset of the input distribution. Active if Toff ≠ 0.0."
+  },
+  {
+   "name": "Xrms",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "-1.0",
+   "desc": "horizontal rms beam size. Scaling is active if Xrms >0.0."
+  },
+  {
+   "name": "Yrms",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "-1.0",
+   "desc": "vertical rms beam size. Scaling is active if Yrms > 0.0."
+  },
+  {
+   "name": "XYrms",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "-1.0",
+   "desc": "horizontal and vertical rms beam size. The parameter XYrms has priority over the parameters Xrms and Yrms."
+  },
+  {
+   "name": "Zrms",
+   "type": "Real*8",
+   "unit": "mm",
+   "default": "-1.0",
+   "desc": "rms bunch length. Scaling is active if Zrms > 0.0."
+  },
+  {
+   "name": "Trms",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "-1.0",
+   "desc": "emission time of the bunch. Scaling is active if Trms > 0.0."
+  },
+  {
+   "name": "Tau",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "exponential delay time of the emission. Active if Tau ≠ 0.0. Note that the delay time is random and might interfere with the quasi random nature of an input distribution."
+  },
+  {
+   "name": "cor_px",
+   "type": "Real*8",
+   "unit": "mrad",
+   "default": "0.0",
+   "desc": "correlated divergence of the bunch. Scaling is active if cor_px ≠ 0.0."
+  },
+  {
+   "name": "cor_py",
+   "type": "Real*8",
+   "unit": "mrad",
+   "default": "0.0",
+   "desc": "correlated divergence of the bunch. Scaling is active if cor_py ≠ 0.0."
+  },
+  {
+   "name": "Qbunch",
+   "type": "Real*8",
+   "unit": "nC",
+   "default": "0.0",
+   "desc": "bunch charge. Scaling is active if Qbunch ≠ 0.0."
+  },
+  {
+   "name": "SRT_Q_Schottky",
+   "type": "Real*8",
+   "unit": "nC · (m/MV)^1/2",
+   "default": "0.0",
+   "desc": "variation of the bunch charge with the square root of the field on the cathode. Scaling is active if SRT_Q_Schottky ≠ 0.0."
+  },
+  {
+   "name": "Q_Schottky",
+   "type": "Real*8",
+   "unit": "nC·m/MV",
+   "default": "0.0",
+   "desc": "linear variation of the bunch charge with the field on the cathode. Scaling is active if Q_Schottky ≠ 0.0."
+  },
+  {
+   "name": "debunch",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.0",
+   "desc": "‘debunched’ particles, i.e. particles with a distance to the bunch center exceeding debunch·σz are passivated, i.e. their status will be set to 0 or 1. Debunch is defined relative to the rms bunch length, hence it should not be used close to the cathode where σz can be zero. The procedure is active when debunch is ≠ 0.0"
+  },
+  {
+   "name": "Track_All",
+   "type": "Logical",
+   "unit": "",
+   "default": "TRUE",
+   "desc": "if false, only the reference particle will be tracked. The ref file contains the off-axis results in this case."
+  },
+  {
+   "name": "Track_On_Axis",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, the reference particle will be tracked only on axis. The ref file contains the on-axis results in this case."
+  },
+  {
+   "name": "Auto_Phase",
+   "type": "Logical",
+   "unit": "",
+   "default": "TRUE",
+   "desc": "if true, the RF phases will be set relative to the phase with maximum energy gain."
+  },
+  {
+   "name": "Phase_Scan",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "check_ref_part",
+   "type": "Logical",
+   "unit": "",
+   "default": "TRUE",
+   "desc": ""
+  },
+  {
+   "name": "L_rm_back",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "Z_min",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": ""
+  },
+  {
+   "name": "Z_Cathode",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": ""
+  },
+  {
+   "name": "H_max",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.001",
+   "desc": ""
+  },
+  {
+   "name": "H_min",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": ""
+  },
+  {
+   "name": "Max_step",
+   "type": "Integer",
+   "unit": "",
+   "default": "100 000",
+   "desc": ""
+  },
+  {
+   "name": "Lmonitor",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": ""
+  },
+  {
+   "name": "Lprompt",
+   "type": "Logical",
+   "unit": "",
+   "default": "TRUE",
+   "desc": ""
+  }
+ ]
+}

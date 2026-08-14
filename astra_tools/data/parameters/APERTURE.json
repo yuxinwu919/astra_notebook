@@ -1,0 +1,155 @@
+{
+ "namelist": "APERTURE",
+ "section": "6.7",
+ "title": "The namelist APERTURE",
+ "n_params": 21,
+ "params": [
+  {
+   "name": "LOOP",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "LApert",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true apertures will be included."
+  },
+  {
+   "name": "File_Aperture( )",
+   "type": "Character*150 array",
+   "unit": "",
+   "default": null,
+   "desc": "user specified file name of an aperture table or keyword. Allowed keywords are:RAD for a simple circular aperture, i.e. a hole or a cylindrical plug.Cir for a circular grid. Secondary emission does ot work for a circular grid.Scr_X and Scr_Y for a single sided planar scraper in x or y, respectively.Col_X and Col_Y for a double sided planar collimator in x or y, respectively."
+  },
+  {
+   "name": "Ap_Z1( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "longitudinal start position of an aperture. Only in combination with keyword input."
+  },
+  {
+   "name": "Ap_Z2( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": null,
+   "desc": "longitudinal end position of an aperture. Only in combination with keyword input."
+  },
+  {
+   "name": "Ap_R( )",
+   "type": "Real*8 array",
+   "unit": "mm",
+   "default": null,
+   "desc": "keyword RAD: Radius of the aperture. If Ap_R( ) is negative a cylindrical plug rather than a hole is generated sponsor words Scr_X and Scr_Y: Distance of the scraper to the z-axis. If Ap_R( ) is positive particles with positions larger than Ap_R( ) are scrapped off. If Ap_R( ) is negative particles with position smaller than Ap_R( ) are scrapped offKeywords Col_X and Col_Y: Half gap of a double sided planar collimator. radii of grid elements in combination with keyword Cir. The first index is the element number, the second a radius. Odd indices define the lower radius and even indices define the upper radius of a grid element. The maximum number of grid elements is 20."
+  },
+  {
+   "name": "A_pos( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "shifts the longitudinal aperture position. A_pos is added to the position defined in File_Aperture( ) or to Ap_Z1( ) and Ap_Z2( ), respectively."
+  },
+  {
+   "name": "A_xoff( )",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "horizontal offset of the aperture."
+  },
+  {
+   "name": "A_yoff()",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "vertical offset of the aperture."
+  },
+  {
+   "name": "A_xrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the aperture in the x-z plane, i.e. around the y-axis."
+  },
+  {
+   "name": "A_yrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the aperture in the y-z plane, i.e. around the x-axis."
+  },
+  {
+   "name": "A_zrot()",
+   "type": "Real*8 array",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the aperture in the x-y plane, i.e. around the z-axis."
+  },
+  {
+   "name": "SE_d0()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "maximum secondary electron emission yield."
+  },
+  {
+   "name": "SE_Epm()",
+   "type": "Real*8 array",
+   "unit": "keV",
+   "default": "10.0",
+   "desc": "kinetic electron impact energy which yields the maximum secondary electron yield."
+  },
+  {
+   "name": "SE_fs()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "parameter describing the functional dependence of the secondary electron yield on the kinetic impact energy."
+  },
+  {
+   "name": "SE_Tau()",
+   "type": "Real*8 array",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "exponential delay time of the emission. Active if Tau ≠ 0.0."
+  },
+  {
+   "name": "SE_Esc()",
+   "type": "Real*8 array",
+   "unit": "eV",
+   "default": "0.0",
+   "desc": "mean kinetic energy of the secondary electrons. If the sum of the kinetic energies of all secondaries produced in one event exceeds the kinetic energy of the primary electron the kinetic energy of the secondaries is reduced accordingly."
+  },
+  {
+   "name": "SE_ff1()",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "factor for field enhanced secondary emission. See section 4.11.1"
+  },
+  {
+   "name": "SE_ff2()",
+   "type": "Real*8 array",
+   "unit": "eV/m",
+   "default": "0.0",
+   "desc": "factor for field enhanced secondary emission. See section 4.11.1"
+  },
+  {
+   "name": "Max_Secondary",
+   "type": "Integer",
+   "unit": "",
+   "default": "500,000",
+   "desc": "maximum number of particles (primaries + secondaries) that can be held on the stack during a run. The program is aborted if the particle number exceeds Max_Secondary."
+  },
+  {
+   "name": "LClean_Stack",
+   "type": "Logical",
+   "unit": "",
+   "default": ".FALSE.",
+   "desc": "Option to reduce the required memory space in combination with secondary emission. If true lost particles will be taken from the stack, i.e. they don’t appear anymore in saved particle distributions and in the particle statistics. The particle coordinates of lost particles are printed to a file named ‘project.Lost_Part.run’ before they are taken from the stack. The file structure of the Lost_Part file is equivalent to a standard particle distribution file, but all coordinates are in absolute values and not relative to a reference particle. The option TrackS cannot be used in combination with LClean_Stack."
+  }
+ ]
+}

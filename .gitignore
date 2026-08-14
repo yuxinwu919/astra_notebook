@@ -20,9 +20,9 @@ Thumbs.db
 ASTRA/
 !ASTRA/*/readme.md
 
-# Runtime working directories
+# Runtime working directories (root level only)
 simulation_files/
-data/
+/data/
 
 # Virtual environments
 venv/

@@ -1,0 +1,190 @@
+{
+ "namelist": "LASER",
+ "section": "6.14",
+ "title": "The namelist LASER",
+ "n_params": 26,
+ "params": [
+  {
+   "name": "LOOP",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "see chapter 4.9."
+  },
+  {
+   "name": "LLaser",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if false, all laser fields are turned off."
+  },
+  {
+   "name": "L_Type()",
+   "type": "Character*150 array",
+   "unit": "",
+   "default": null,
+   "desc": "type of laser beam. Valid keywords are: CW = cw Gaussian laser beam GLB = short pulse Gaussian Laser Beam RPL = short pulse Radially Polarized Laser beam"
+  },
+  {
+   "name": "L_Z1()",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": "start position of the interaction region with the laser field."
+  },
+  {
+   "name": "L_Z2()",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": "end position of the interaction region with the laser field."
+  },
+  {
+   "name": "L_H()",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "local time step setting, active if ≠ 0.0."
+  },
+  {
+   "name": "L_F()",
+   "type": "Real*8",
+   "unit": "m",
+   "default": null,
+   "desc": "longitudinal position of the focus."
+  },
+  {
+   "name": "L_zstart()",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "longitudinal start position of the laser beam."
+  },
+  {
+   "name": "L_tstart()",
+   "type": "Real*8",
+   "unit": "ns",
+   "default": "0.0",
+   "desc": "start time of the laser beam."
+  },
+  {
+   "name": "L_xoff()",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse offset of the laser field in x."
+  },
+  {
+   "name": "L_yoff()",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse offset of the laser field in y."
+  },
+  {
+   "name": "L_xrot()",
+   "type": "Real*8",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the laser field in the x-z plane, i.e. around the y-axis."
+  },
+  {
+   "name": "L_yrot()",
+   "type": "Real*8",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the laser field in the y-z plane, i.e. around the x-axis."
+  },
+  {
+   "name": "L_zrot()",
+   "type": "Real*8",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "rotation angle of the laser field around the z-axis, i.e. in the x-y plane."
+  },
+  {
+   "name": "L_E0()",
+   "type": "Real*8",
+   "unit": "J",
+   "default": "0.0",
+   "desc": "pulse energy of the laser."
+  },
+  {
+   "name": "L_Pow()",
+   "type": "Real*8",
+   "unit": "W",
+   "default": "0.0",
+   "desc": "pulse power of the laser."
+  },
+  {
+   "name": "L_a0()",
+   "type": "Real*8",
+   "unit": "",
+   "default": "0.0",
+   "desc": "normalized vector potential of the laser in the focus."
+  },
+  {
+   "name": "L_Epeak()",
+   "type": "Real*8",
+   "unit": "V/m",
+   "default": "0.0",
+   "desc": "electric field amplitude of the laser in the focus."
+  },
+  {
+   "name": "L_tau()",
+   "type": "Real*8",
+   "unit": "s",
+   "default": "0.0",
+   "desc": "temporal 1/e pulse width of the laser field."
+  },
+  {
+   "name": "L_phi()",
+   "type": "Real*8",
+   "unit": "rad",
+   "default": "0.0",
+   "desc": "carrier envelope phase."
+  },
+  {
+   "name": "L_lam()",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "wave length of the laser radiation."
+  },
+  {
+   "name": "L_sig0()",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse rms size of the laser intensity at the focus position (σ_x = σ_y = σ)."
+  },
+  {
+   "name": "L_w0()",
+   "type": "Real*8",
+   "unit": "m",
+   "default": "0.0",
+   "desc": "transverse size of the laser intensity at the focus position = 2·L_sig0(). If L_sig0() and L_w0() are specified L_sig0() has priority,"
+  },
+  {
+   "name": "L_delta()",
+   "type": "Real*8",
+   "unit": "",
+   "default": "1.0",
+   "desc": "polarization factor; Abs(L_delta()) ≤1L_delta() = ±1.0 linear polarization in x directionL_delta() = 0.0 linear polarization in y directionL_delta() = 1/2 circularly polarized laser beam."
+  },
+  {
+   "name": "L_window()",
+   "type": "Character*150 array",
+   "unit": "",
+   "default": null,
+   "desc": "defines a window type for cw Gaussian laser beam. The window is applied over the interaction range. Valid types are:Blackman: a standard Blackman windowTukey: a Tukey window with taper parameter L_alpha()"
+  },
+  {
+   "name": "L_alpha()",
+   "type": "Real*8",
+   "unit": "",
+   "default": "1.0",
+   "desc": "Taper parameter for Tukey window; 0 < L_alpha() ≤ 1."
+  }
+ ]
+}
