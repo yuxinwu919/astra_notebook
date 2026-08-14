@@ -18,9 +18,19 @@ from __future__ import annotations
 from typing import Optional
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from ..constants import kinetic_energy_from_momentum
 from ..io.astra_emit import EmitSet, RefData, SigmaData
+
+
+def _xvals(e, x_axis: str):
+    """x 轴取值: 'z' -> z [m], 't' -> t [ns] (postpro 三视图的时间变体)."""
+    if x_axis == "t":
+        return e.t * 1e9, "t [ns]"
+    if x_axis != "z":
+        raise ValueError("x_axis must be 'z' or 't'")
+    return e.z, "z [m]"
 
 
 def plot_envelope_evolution(
@@ -28,15 +38,17 @@ def plot_envelope_evolution(
     ax=None,
     figsize=(8, 5),
     title: Optional[str] = None,
+    x_axis: str = "z",
 ) -> plt.Figure:
-    """Beam envelope sigma_x, sigma_y [mm] vs z [m]."""
+    """Beam envelope sigma_x, sigma_y [mm] vs z [m] or t [ns]."""
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
-    ax.plot(emit.x.z, emit.x.rms * 1e3, label="$\\sigma_x$")
-    ax.plot(emit.y.z, emit.y.rms * 1e3, label="$\\sigma_y$")
-    ax.set_xlabel("z [m]")
+    xvals, xlab = _xvals(emit.x, x_axis)
+    ax.plot(xvals, emit.x.rms * 1e3, label="$\\sigma_x$")
+    ax.plot(xvals, emit.y.rms * 1e3, label="$\\sigma_y$")
+    ax.set_xlabel(xlab)
     ax.set_ylabel("RMS beam size [mm]")
     ax.set_title(title or "beam envelope evolution")
     ax.legend()
@@ -49,15 +61,17 @@ def plot_divergence_evolution(
     ax=None,
     figsize=(8, 5),
     title: Optional[str] = None,
+    x_axis: str = "z",
 ) -> plt.Figure:
-    """RMS divergence sigma_x', sigma_y' [mrad] vs z."""
+    """RMS divergence sigma_x', sigma_y' [mrad] vs z [m] or t [ns]."""
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
-    ax.plot(emit.x.z, emit.x.rmsprime * 1e3, label="$\\sigma_{x'}$")
-    ax.plot(emit.y.z, emit.y.rmsprime * 1e3, label="$\\sigma_{y'}$")
-    ax.set_xlabel("z [m]")
+    xvals, xlab = _xvals(emit.x, x_axis)
+    ax.plot(xvals, emit.x.rmsprime * 1e3, label="$\\sigma_{x'}$")
+    ax.plot(xvals, emit.y.rmsprime * 1e3, label="$\\sigma_{y'}$")
+    ax.set_xlabel(xlab)
     ax.set_ylabel("RMS divergence [mrad]")
     ax.set_title(title or "beam divergence evolution")
     ax.legend()
@@ -70,8 +84,9 @@ def plot_emittance_evolution(
     ax=None,
     figsize=(8, 5),
     title: Optional[str] = None,
+    x_axis: str = "z",
 ) -> plt.Figure:
-    """Normalized emittance evolution vs z.
+    """Normalized emittance evolution vs z [m] or t [ns].
 
     Display unit [pi mm.mrad]: value = eps_n in mm.mrad, identical to
     the number ASTRA prints in Xemit/Yemit column 6.
@@ -80,9 +95,10 @@ def plot_emittance_evolution(
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
-    ax.plot(emit.x.z, emit.x.emit * 1e6, label="$\\varepsilon_{nx}$")
-    ax.plot(emit.y.z, emit.y.emit * 1e6, label="$\\varepsilon_{ny}$")
-    ax.set_xlabel("z [m]")
+    xvals, xlab = _xvals(emit.x, x_axis)
+    ax.plot(xvals, emit.x.emit * 1e6, label="$\\varepsilon_{nx}$")
+    ax.plot(xvals, emit.y.emit * 1e6, label="$\\varepsilon_{ny}$")
+    ax.set_xlabel(xlab)
     ax.set_ylabel("normalized emittance [$\\pi$ mm mrad]")
     ax.set_title(title or "emittance evolution")
     ax.legend()
@@ -95,17 +111,19 @@ def plot_energy_evolution(
     ax=None,
     figsize=(8, 5),
     title: Optional[str] = None,
+    x_axis: str = "z",
 ) -> plt.Figure:
     """Mean kinetic energy [MeV] (left) and sigma_E [keV] (right)."""
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
-    ax.plot(emit.z.z, emit.z.avg * 1e-6, label="$E_{kin}$", color="C0")
-    ax.set_xlabel("z [m]")
+    xvals, xlab = _xvals(emit.z, x_axis)
+    ax.plot(xvals, emit.z.avg * 1e-6, label="$E_{kin}$", color="C0")
+    ax.set_xlabel(xlab)
     ax.set_ylabel("mean kinetic energy [MeV]", color="C0")
     ax2 = ax.twinx()
-    ax2.plot(emit.z.z, emit.z.rmsprime * 1e-3, label="$\\sigma_E$",
+    ax2.plot(xvals, emit.z.rmsprime * 1e-3, label="$\\sigma_E$",
              color="C1", lw=1.2)
     ax2.set_ylabel("$\\sigma_E$ [keV]", color="C1")
     ax.set_title(title or "energy evolution")
@@ -120,14 +138,16 @@ def plot_bunch_length_evolution(
     ax=None,
     figsize=(8, 5),
     title: Optional[str] = None,
+    x_axis: str = "z",
 ) -> plt.Figure:
-    """RMS bunch length [mm] vs z."""
+    """RMS bunch length [mm] vs z [m] or t [ns]."""
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
-    ax.plot(emit.z.z, emit.z.rms * 1e3, label="$\\sigma_z$")
-    ax.set_xlabel("z [m]")
+    xvals, xlab = _xvals(emit.z, x_axis)
+    ax.plot(xvals, emit.z.rms * 1e3, label="$\\sigma_z$")
+    ax.set_xlabel(xlab)
     ax.set_ylabel("RMS bunch length [mm]")
     ax.set_title(title or "bunch length evolution")
     ax.legend()
@@ -140,14 +160,16 @@ def plot_energy_spread_evolution(
     ax=None,
     figsize=(8, 5),
     title: Optional[str] = None,
+    x_axis: str = "z",
 ) -> plt.Figure:
-    """RMS energy spread [keV] vs z."""
+    """RMS energy spread [keV] vs z [m] or t [ns]."""
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
-    ax.plot(emit.z.z, emit.z.rmsprime * 1e-3, label="$\\sigma_E$")
-    ax.set_xlabel("z [m]")
+    xvals, xlab = _xvals(emit.z, x_axis)
+    ax.plot(xvals, emit.z.rmsprime * 1e-3, label="$\\sigma_E$")
+    ax.set_xlabel(xlab)
     ax.set_ylabel("RMS energy spread [keV]")
     ax.set_title(title or "energy spread evolution")
     ax.legend()
@@ -211,6 +233,59 @@ def plot_eigen_emittances(
     ax.set_xlabel("z [m]")
     ax.set_ylabel("eigen-emittance [$\\pi$ mm mrad] (experimental)")
     ax.set_title(title or "eigen-emittances (Sigma)")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_velocity_evolution(
+    ref: RefData,
+    ax=None,
+    figsize=(8, 5),
+    title: Optional[str] = None,
+) -> plt.Figure:
+    """参考粒子速度 beta = v/c 与 gamma vs z (lineplot 粒子速度曲线)."""
+    from ..constants import gamma_from_momentum, beta_from_gamma
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    else:
+        fig = ax.figure
+    gamma = gamma_from_momentum(ref.pz)
+    beta = beta_from_gamma(gamma)
+    ax.plot(ref.z, beta, label="$\\beta = v/c$")
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel("velocity $\\beta$")
+    ax.set_title(title or "reference particle velocity")
+    ax2 = ax.twinx()
+    ax2.plot(ref.z, gamma, color="C1", ls="--", label="$\\gamma$")
+    ax2.set_ylabel("$\\gamma$", color="C1")
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax.legend(h1 + h2, l1 + l2, fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def plot_step_size_evolution(
+    ref: RefData,
+    ax=None,
+    figsize=(8, 5),
+    title: Optional[str] = None,
+) -> plt.Figure:
+    """平均积分步长 vs z (lineplot 平均步长曲线).
+
+    ref 文件每行是一个 Runge-Kutta 步; 相邻行的 z 间距即步长。
+    """
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    else:
+        fig = ax.figure
+    dz = np.diff(ref.z)
+    zm = 0.5 * (ref.z[1:] + ref.z[:-1])
+    ax.plot(zm, dz * 1e3, label="RK step size")
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel("step size [mm]")
+    ax.set_title(title or "average step size evolution")
     ax.legend()
     fig.tight_layout()
     return fig

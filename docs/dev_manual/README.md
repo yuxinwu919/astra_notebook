@@ -49,13 +49,20 @@ git 历史 /tmp/parse_manual_params.py); 手册更新时重跑该脚本。
 examples/<name>/golden/ 由本地真跑生成 (data/golden_runs/, gitignore);
 期望值在 examples/golden_expected.json; 重跑后须重新生成期望值并核对差异。
 
-## 已知边界 (手册第 5 章的展示类末梢, 数据层均已支持)
+## 已知边界 (第 5 章展示类末梢)
 
-主体功能已全部覆盖; 以下纯展示变体未实现, 数据源 (对应文件读取器)
-均已就绪, 需要时按 plot/ 现有模式补充即可:
+已实现:
+* postpro: 三视图 vs 时间 (所有演化图的 x_axis='t' 参数)、核心束长/
+  发射度 vs 电荷分数 (plot_core_fraction_curves, 自算)、含孔径几何
+  叠加 (plot_envelope_with_aperture + aperture_elements);
+* lineplot: 粒子速度曲线 (plot_velocity_evolution)、平均步长曲线
+  (plot_step_size_evolution);
+* fieldplot: 阴极表面场 (plot_cathode_emission include_spch)、激光
+  3D 图轴上剖面 vs z/t (plot_laser_on_axis)、等离子体密度剖面
+  (plot_plasma_profile)。
 
-* postpro: 三视图 vs 时间 (t 轴变体)、核心束长 vs 电荷、含孔径几何
-  叠加、3D 椭圆的交互旋转;
-* lineplot: 粒子速度曲线 (可由 beta 推出)、平均步长曲线;
-* fieldplot: 阴极表面场、激光场/等离子体场 vs z/zeta 的专用图
-  (3D 场图截面已可查看相应数据)。
+剩余 (刻意不做或留待后续):
+* 3D 椭圆的交互旋转 —— 项目约定静态图优先, 已提供多角度静态视图
+  (plot_slice_ellipses_3d);
+* PScan/Scan/Error 已有真实数据交叉验证 (test_batch_c_fixes.py),
+  但 Error 文件尚无真实 golden (无 ErrorS 算例)。

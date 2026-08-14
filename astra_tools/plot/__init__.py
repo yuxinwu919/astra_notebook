@@ -17,6 +17,8 @@ from .emit_plots import (
     plot_bunch_length_evolution,
     plot_energy_spread_evolution,
     plot_ref_trajectory,
+    plot_velocity_evolution,
+    plot_step_size_evolution,
     plot_eigen_emittances,
     plot_emit_dashboard,
     plot_lineplot_overview,
@@ -38,7 +40,8 @@ __all__ = [
     "plot_envelope_evolution", "plot_divergence_evolution",
     "plot_emittance_evolution", "plot_energy_evolution",
     "plot_bunch_length_evolution", "plot_energy_spread_evolution",
-    "plot_ref_trajectory", "plot_eigen_emittances",
+    "plot_ref_trajectory", "plot_velocity_evolution", "plot_step_size_evolution",
+    "plot_eigen_emittances",
     "plot_emit_dashboard", "plot_lineplot_overview",
     "plot_current_profile", "plot_slice_emittance",
     "plot_energy_chirp", "plot_slice_dashboard",
@@ -55,6 +58,10 @@ __all__ = [
     "plot_pscan_dedz", "plot_pscan_compression", "plot_tcheck_scaling",
     "plot_z_plot", "plot_field_profile", "plot_curved_cathode_contour",
     "plot_core_brightness", "plot_slice_ellipses_3d",
+    # Batch C: 手册第5章末梢 (t 轴变体在 emit_plots 的 x_axis 参数)
+    "plot_envelope_with_aperture", "aperture_elements",
+    "plot_laser_on_axis", "plot_plasma_profile",
+    "plot_core_fraction_curves",
 ]
 
 from .advanced_plots import (
@@ -70,4 +77,6 @@ from .advanced_plots import (
     plot_pscan_dedz, plot_pscan_compression, plot_tcheck_scaling,
     plot_z_plot, plot_field_profile, plot_curved_cathode_contour,
     plot_core_brightness, plot_slice_ellipses_3d,
+    plot_envelope_with_aperture, aperture_elements,
+    plot_laser_on_axis, plot_plasma_profile, plot_core_fraction_curves,
 )

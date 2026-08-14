@@ -235,13 +235,18 @@ def plot_space_charge_fields(path, component="Ez", ax=None, figsize=(8, 5), titl
     return fig
 
 
-def plot_cathode_emission(path, ax=None, figsize=(8, 5), title=None):
-    """阴极发射: Ez(阴极中心) 与发射电荷 vs 时间 (Cathode 文件, 菜单 4 项 15/16)."""
+def plot_cathode_emission(path, ax=None, figsize=(8, 5), title=None,
+                           include_spch: bool = True):
+    """阴极发射: 加速场 + 空间电荷场(阴极表面) 与发射电荷 vs 时间
+    (Cathode 文件, 菜单 4 项 15/16 与 fieldplot 阴极表面场)."""
     c = read_cathode_file(path) if not isinstance(path, dict) else path
     fig, ax = _ax(ax, figsize)
     ax.plot(c["t"] * 1e9, c["E_acc"], label="$E_{acc}$ on cathode")
+    if include_spch and "E_spch" in c:
+        ax.plot(c["t"] * 1e9, c["E_spch"], color="C2", ls="--",
+                label="$E_{spch}$ on cathode")
     ax.set_xlabel("t [ns]")
-    ax.set_ylabel("accelerating field [V/m]")
+    ax.set_ylabel("cathode field [V/m]")
     ax2 = ax.twinx()
     ax2.plot(c["t"] * 1e9, c["q"], color="C1", label="emitted charge")
     ax2.set_ylabel("charge [nC]")
@@ -504,3 +509,157 @@ def plot_slice_ellipses_3d(dist, n_slices=10, figsize=(9, 6), title=None):
     ax.set_title(title or "3D slice emittance ellipses")
     fig.tight_layout()
     return fig
+def aperture_elements(namelist: dict, base_dir=None) -> list:
+    """从 &APERTURE namelist (parse_namelists 输出) 提取孔径元素列表.
+
+    返回 [{'z1','z2','r','xoff','yoff','file'}] (单位 m)。Ap_R 单位 mm
+    (手册 6.2), 负值 = 圆柱堵块 (beam stop); 文件型孔径取几何表
+    (z, R[mm]) 的最大半径。
+    """
+    import re as _re
+    from pathlib import Path as _Path
+    z1 = np.atleast_1d(namelist.get("Ap_Z1", []))
+    z2 = np.atleast_1d(namelist.get("Ap_Z2", []))
+    r = np.atleast_1d(namelist.get("Ap_R", []))
+    xoff = np.atleast_1d(namelist.get("A_xoff", np.zeros(len(z1))))
+    yoff = np.atleast_1d(namelist.get("A_yoff", np.zeros(len(z1))))
+    if len(xoff) < len(z1):
+        xoff = np.pad(xoff, (0, len(z1) - len(xoff)), constant_values=0.0)
+    if len(yoff) < len(z1):
+        yoff = np.pad(yoff, (0, len(z1) - len(yoff)), constant_values=0.0)
+    files = namelist.get("File_Aperture", [])
+    if isinstance(files, str):
+        files = [files]
+    els = []
+    for i in range(len(z1)):
+        el = {
+            "z1": float(z1[i]), "z2": float(z2[i]),
+            "r": float(r[i]) * 1e-3,          # mm -> m
+            "xoff": float(xoff[i]),           # m
+            "yoff": float(yoff[i]),
+            "file": str(files[i]) if i < len(files) else "",
+        }
+        if el["file"] and not _re.fullmatch(r"(?i)rad|cir|scr_x|scr_y|col_x|col_y", el["file"]):
+            if base_dir is not None:
+                gp = _Path(base_dir) / el["file"]
+                if gp.exists():
+                    g = np.loadtxt(gp)
+                    el["r"] = float(np.max(np.abs(g[:, 1]))) * 1e-3  # mm -> m
+        els.append(el)
+    return els
+
+
+def plot_envelope_with_aperture(emit, apertures, ax=None, figsize=(9, 5),
+                                title=None, plane: str = "x"):
+    """束包络 + 孔径几何叠加 (postpro 含孔径显示).
+
+    Args:
+        emit: EmitSet (Xemit/Yemit)。
+        apertures: aperture_elements() 输出的元素列表 (SI)。
+        plane: 'x' 或 'y' (y 视图下孔径带按 yoff 平移)。
+    """
+    from matplotlib.patches import Rectangle
+    fig, ax = _ax(ax, figsize)
+    e = emit.x if plane == "x" else emit.y
+    ax.plot(e.z, e.rms * 1e3, label="$\\sigma_%s$" % plane)
+    ax.plot(e.z, -e.rms * 1e3, alpha=0.35, ls="--", label="-$\\sigma_%s$" % plane)
+    for ap in apertures:
+        z1, z2, r = ap["z1"], ap["z2"], ap["r"]
+        if r < 0:  # beam stop / plug
+            ax.axvspan(z1, z2, color="k", alpha=0.25, label="beam stop")
+            continue
+        off = ap["yoff"] if plane == "x" else ap["xoff"]
+        ax.add_patch(Rectangle(
+            (z1, (off - r) * 1e3), z2 - z1, 2 * r * 1e3,
+            fill=False, edgecolor="r", lw=1.5, label="aperture"))
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel("beam size / aperture [mm]")
+    ax.set_title(title or "beam envelope with aperture geometry")
+    handles, labels = ax.get_legend_handles_labels()
+    by = dict(zip(labels, handles))
+    ax.legend(by.values(), by.keys(), fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def plot_laser_on_axis(path, unit="a.u.", figsize=(11, 4), title=None):
+    """激光 3D 图 (File_A0 格式) 的轴上剖面 vs z 与 vs t (fieldplot 8 章).
+
+    取 x=0, y=0 网格点; 右图为随光运动的观察者时间 t = (z - z0)/c。
+    数值原样 (归一化到 E_a0 由 ASTRA 负责)。
+    """
+    from ..io.field_map import read_3d_field_map
+    x, y, z, f = read_3d_field_map(path)
+    ix0 = int(np.argmin(np.abs(x)))
+    iy0 = int(np.argmin(np.abs(y)))
+    onax = f[ix0, iy0, :]
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
+    axes[0].plot(z * 1e3, onax)
+    axes[0].set_xlabel("z [mm]")
+    axes[0].set_ylabel("on-axis value [%s]" % unit)
+    axes[0].set_title("on-axis profile vs z")
+    t_ps = (z - z[0]) / C_LIGHT * 1e12
+    axes[1].plot(t_ps, onax)
+    axes[1].set_xlabel("t = (z - z0)/c [ps]")
+    axes[1].set_ylabel("on-axis value [%s]" % unit)
+    axes[1].set_title("co-moving time profile")
+    if title:
+        fig.suptitle(title)
+    fig.tight_layout()
+    return fig
+
+
+def plot_plasma_profile(path, peak_density_cm3=None, ax=None, figsize=(8, 5),
+                        title=None):
+    """等离子体密度剖面 (File_Efield='Plasma...' 两列表, 手册 6.7).
+
+    文件: z [m], n [arb. u.]; ASTRA 归一化到峰值 P_n。若给出
+    peak_density_cm3 (=P_n), 右轴显示物理密度 [cm^-3]。
+    """
+    fig, ax = _ax(ax, figsize)
+    d = np.loadtxt(path, ndmin=2)
+    z, n = d[:, 0], d[:, 1]
+    ax.plot(z * 1e3, n, label="profile (normalized)")
+    ax.set_xlabel("z [mm]")
+    ax.set_ylabel("plasma density [arb. u.]")
+    ax.set_title(title or "plasma density profile")
+    if peak_density_cm3:
+        ax2 = ax.twinx()
+        ax2.plot(z * 1e3, n / np.max(np.abs(n)) * peak_density_cm3,
+                 color="C1", ls="--", label="scaled to P_n")
+        ax2.set_ylabel("density [cm$^{-3}$]", color="C1")
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax2.get_legend_handles_labels()
+        ax.legend(h1 + h2, l1 + l2, fontsize=9)
+    else:
+        ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_core_fraction_curves(dist, fractions=(0.1, 0.25, 0.5, 0.75, 0.9, 1.0),
+                              figsize=(10, 4), title=None):
+    """核心束长/发射度 vs 电荷分数 (postpro 核心曲线, 自算)."""
+    from ..analysis.core import compute_core_fraction_curves
+    c = compute_core_fraction_curves(dist, fractions=fractions)
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
+    axes[0].plot(c["fractions"] * 100, c["sig_z"] * 1e3, "o-", label="$\\sigma_z$")
+    axes[0].plot(c["fractions"] * 100, c["sig_x"] * 1e3, "s-", label="$\\sigma_x$")
+    axes[0].plot(c["fractions"] * 100, c["sig_y"] * 1e3, "^-", label="$\\sigma_y$")
+    axes[0].set_xlabel("core charge fraction [%]")
+    axes[0].set_ylabel("RMS size [mm]")
+    axes[0].set_title("core bunch length / sizes")
+    axes[0].legend(fontsize=9)
+    axes[1].plot(c["fractions"] * 100, c["emit_xn"] * 1e6, "o-",
+                 label="$\\varepsilon_{nx}$")
+    axes[1].plot(c["fractions"] * 100, c["emit_yn"] * 1e6, "s-",
+                 label="$\\varepsilon_{ny}$")
+    axes[1].set_xlabel("core charge fraction [%]")
+    axes[1].set_ylabel("norm. emittance [$\\pi$ mm mrad]")
+    axes[1].set_title("core emittance")
+    axes[1].legend(fontsize=9)
+    if title:
+        fig.suptitle(title)
+    fig.tight_layout()
+    return fig
+
