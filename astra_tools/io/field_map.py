@@ -279,11 +279,11 @@ def read_3d_field_map(path):
     """读取 ASTRA 3D 场图 (如 3D_test.ex / 3D_Dipole.bx).
 
     格式: 3 个网格行 (n 与 n 个网格值, 自由格式), 随后为数据值,
-    顺序为 x 最快、y 次之、z 最慢。
+    顺序为 x 最快、y 次之、z 最慢 (Fortran 序)。
 
     Returns:
-        (x, y, z, F) — F 为 (nx, ny, nz) 数组, SI 单位按文件名约定
-        (ex/ey/ez: V/m; bx/by/bz: T; 数值原样返回)。
+        (x, y, z, F) — F 为 (nx, ny, nz) 数组, 按 F[ix, iy, iz] 索引,
+        SI 单位按文件名约定 (ex/ey/ez: V/m; bx/by/bz: T; 数值原样返回)。
     """
     path = Path(path)
     toks = path.read_text().split()
@@ -305,5 +305,5 @@ def read_3d_field_map(path):
     data = np.array(vals[idx:idx + nx * ny * nz], dtype=float)
     if len(data) < nx * ny * nz:
         raise ValueError("3D map data truncated: " + str(path))
-    f = data.reshape(nx, ny, nz)
+    f = data.reshape(nx, ny, nz, order="F")  # x fastest -> F[ix, iy, iz]
     return x, y, z, f

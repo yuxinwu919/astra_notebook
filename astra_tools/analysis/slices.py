@@ -9,10 +9,15 @@ Binning strategies follow the ASTRA Manual V3.2, section 6.8:
 
 Physics notes (audited):
   * slices are taken from active particles (status > 1) only
-  * each slice's normalized emittance uses the slice's own mean
-    momentum for beta*gamma
-  * current: I = Q/dt with dt = dz/(beta*c) using the per-slice beta
+  * slice divergence uses the canonical momentum (manual 4.13.1)
+    normalized by the global reference momentum, u' = p~u / p_ref, and
+    the normalized emittance is beta*gamma(p_ref) * eps_geom - the
+    same convention as the Xemit/Yemit files
+  * current: I = Q/dt with dt = dz/(beta*c); the per-slice beta/gamma
+    used for the current come from the slice mean momentum
   * per-slice energy: E_kin = sqrt(pz^2 + m^2) - m (per particle)
+  * equi_charge binning uses |q| (mixed-sign safe); slice charge stays
+    signed internally (sign is conventional, |Q| at display)
 """
 
 from __future__ import annotations
@@ -62,6 +67,7 @@ def compute_slice_analysis(
     n_slices: int = 20,
     binning: str = "equi_spaced",
     ref_momentum_eVc: Optional[float] = None,
+    bz_on_axis_T: float = 0.0,
 ) -> SliceAnalysis:
     """Compute slice-by-slice beam parameters.
 
@@ -69,8 +75,10 @@ def compute_slice_analysis(
         dist: particle distribution (active particles used).
         n_slices: number of longitudinal slices.
         binning: 'equi_spaced' or 'equi_charge'.
-        ref_momentum_eVc: global reference momentum [eV/c] for fallback
-            when a slice has too few particles.
+        ref_momentum_eVc: global reference momentum [eV/c] used for the
+            slice divergences and normalized emittances (Xemit convention).
+        bz_on_axis_T: on-axis solenoid field at the bunch center [T] for
+            the canonical momentum (manual 4.13.1).
     """
     if binning not in ("equi_spaced", "equi_charge"):
         raise ValueError("binning must be 'equi_spaced' or 'equi_charge'")
@@ -96,7 +104,7 @@ def compute_slice_analysis(
         sort_idx = np.argsort(z)
         z_sorted = z[sort_idx]
         q_sorted = q[sort_idx]
-        q_cumsum = np.cumsum(q_sorted)
+        q_cumsum = np.cumsum(np.abs(q_sorted))  # |q|: sign cannot break bins
         q_total = float(q_cumsum[-1])
         if q_total == 0:
             # degenerate: fall back to equi-spaced
@@ -147,28 +155,36 @@ def compute_slice_analysis(
         pxi, pyi, pzi = d.px[idx], d.py[idx], d.pz[idx]
         qi = q[idx]
 
-        charge_s[i] = float(np.sum(qi))
+        charge_s[i] = float(np.sum(qi))   # signed (internal); display uses |Q|
         mean_x[i] = float(np.mean(xi))
         mean_y[i] = float(np.mean(yi))
-        sig_x[i] = float(np.std(xi - mean_x[i], ddof=1))
-        sig_y[i] = float(np.std(yi - mean_y[i], ddof=1))
+        sig_x[i] = float(np.std(xi - mean_x[i]))   # ddof=0, matches ASTRA
+        sig_y[i] = float(np.std(yi - mean_y[i]))
         mean_pz[i] = float(np.mean(pzi))
         e_i = kinetic_energy_from_momentum(pzi)
         mean_e[i] = float(np.mean(e_i))
         sig_ee[i] = float(np.std(e_i) / mean_e[i]) if mean_e[i] else 0.0
 
-        pz_abs = np.abs(pzi)
-        xp = (pxi - np.mean(pxi)) / pz_abs
-        yp = (pyi - np.mean(pyi)) / pz_abs
-        ex = compute_geometric_emittance(xi - mean_x[i], xp, weights=qi)
-        ey = compute_geometric_emittance(yi - mean_y[i], yp, weights=qi)
+        # Canonical momentum (manual 4.13.1), centered per slice, divided
+        # by the global reference momentum - the Xemit convention.
+        ptx = pxi + 0.5 * C_LIGHT * bz_on_axis_T * yi
+        pty = pyi - 0.5 * C_LIGHT * bz_on_axis_T * xi
+        xp = (ptx - np.mean(ptx)) / ref_momentum_eVc
+        yp = (pty - np.mean(pty)) / ref_momentum_eVc
+        wq = np.abs(qi)
+        ex = compute_geometric_emittance(xi - mean_x[i], xp, weights=wq)
+        ey = compute_geometric_emittance(yi - mean_y[i], yp, weights=wq)
+
+        # Normalized emittance w.r.t. the reference momentum (Xemit
+        # convention); the per-slice gamma below is only for the current.
+        g_ref = gamma_from_momentum(ref_momentum_eVc)
+        bg = float(np.sqrt(max(g_ref**2 - 1.0, 0.0)))
+        emit_xn[i] = bg * ex
+        emit_yn[i] = bg * ey
 
         g_i = gamma_from_momentum(mean_pz[i])
         gamma_s[i] = g_i
         beta_s[i] = beta_from_gamma(g_i)
-        bg = float(np.sqrt(max(g_i**2 - 1.0, 0.0)))
-        emit_xn[i] = bg * ex
-        emit_yn[i] = bg * ey
 
     # -- Current: I = Q/dt, dt = dz/(beta c) --
     current = np.zeros(n_slices)

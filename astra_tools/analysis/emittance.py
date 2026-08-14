@@ -61,7 +61,8 @@ def compute_geometric_emittance(
     Args:
         u:  position coordinates [m], centered.
         up: divergence coordinates [rad], centered.
-        weights: optional macro-particle charge weights [nC].
+        weights: optional macro-particle charge weights [nC]; taken in
+            magnitude (|q|) so mixed-sign bunches stay weighted.
         method: 'svd' (robust, default) or 'det'.
     """
     u = np.asarray(u, dtype=float)
@@ -69,8 +70,8 @@ def compute_geometric_emittance(
     if len(u) < 2:
         return 0.0
 
-    if weights is not None and np.sum(weights) > 0:
-        w = np.asarray(weights, dtype=float)
+    if weights is not None and np.sum(np.abs(weights)) > 0:
+        w = np.abs(np.asarray(weights, dtype=float))
         w = w / np.sum(w)
         w_eff = 1.0 / (1.0 - np.sum(w**2))  # Kish effective sample size
         u2 = float(np.sum(w * u**2) * w_eff)
@@ -117,8 +118,8 @@ def compute_twiss_parameters(
     up = np.asarray(up, dtype=float)
     eps = compute_geometric_emittance(u, up, weights, method="svd")
 
-    if weights is not None and np.sum(weights) > 0:
-        w = np.asarray(weights, dtype=float)
+    if weights is not None and np.sum(np.abs(weights)) > 0:
+        w = np.abs(np.asarray(weights, dtype=float))
         w = w / np.sum(w)
         w_eff = 1.0 / (1.0 - np.sum(w**2))
         u2 = float(np.sum(w * u**2) * w_eff)
@@ -153,8 +154,8 @@ def compute_emittance_ellipse_params(
         return {"a": 0.0, "b": 0.0, "theta": 0.0, "eps": 0.0,
                 "beta": 0.0, "alpha": 0.0, "gamma_t": 0.0}
 
-    if weights is not None and np.sum(weights) > 0:
-        w = np.asarray(weights, dtype=float)
+    if weights is not None and np.sum(np.abs(weights)) > 0:
+        w = np.abs(np.asarray(weights, dtype=float))
         w = w / np.sum(w)
         w_eff = 1.0 / (1.0 - np.sum(w**2))
         u2 = float(np.sum(w * u**2) * w_eff)

@@ -169,7 +169,9 @@ def compute_statistics(
             the canonical-momentum emittance (manual 4.13.1). Set to the
             value of the solenoid field at the bunch position if the
             emittance should be comparable to ASTRA's Xemit output.
-        use_weights: charge-weighted moments (Kish effective sample size).
+        use_weights: charge-weighted moments (|q| weights, Kish effective
+            sample size). The charge sign never silently disables the
+            weighting; it only enters total_charge_nC.
         label: optional label.
 
     Returns:
@@ -193,7 +195,7 @@ def compute_statistics(
             else float(np.mean(pz))
         )
 
-    weights = charge if use_weights else None
+    weights = np.abs(charge) if use_weights else None
 
     def _mean(a):
         if weights is not None and np.sum(weights) > 0:
@@ -294,7 +296,9 @@ def print_statistics(stats: BeamStatistics, title: str = "Beam Statistics") -> N
         stats.n_particle, stats.n_active, stats.n_passive))
     print("                  %8d lost, %6d not started" % (
         stats.n_lost, stats.n_not_started))
-    print("  Total charge:    %10.4f nC" % stats.total_charge_nC)
+    q_display = abs(stats.total_charge_nC)
+    q_note = " (|Q| shown; sign kept internally)" if stats.total_charge_nC < 0 else ""
+    print("  Total charge:    %10.4f nC%s" % (q_display, q_note))
     if stats.weighted:
         print("  (charge-weighted statistics enabled)")
     print("-" * 40)

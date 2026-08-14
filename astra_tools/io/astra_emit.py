@@ -6,7 +6,7 @@ on read; the original display units are documented per column.
     Xemit / Yemit   (7 cols): z[m] t[ns] u_avr[mm] u_rms[mm]
                               u'_rms[mrad] eps_n[1e-6 m.rad] <uu'>_avr[mm.mrad]
     Zemit           (7 cols): z[m] t[ns] E_kin[MeV] z_rms[mm]
-                              dE_rms[keV] eps_zn[keV.mm] <z E'>_avr[keV.mm]
+                              dE_rms[keV] eps_zn[keV.mm] <z E'>_avr[keV]
     ref             (9 cols): z[m] t[ns] pz[MeV/c] dE/dz[MeV/m]
                               Larmor[rad] x_off[mm] y_off[mm] px[eV/c] py[eV/c]
     Sigma           (23 cols): z[m] E_kin[MeV] + 21 upper-triangle elements
@@ -76,7 +76,7 @@ class EmitData:
     For Xemit/Yemit: avg=<u> [m], rms=sigma_u [m], rmsprime=sigma_u' [rad],
     emit=eps_n [m.rad], corr=<u u'> [m.rad].
     For Zemit: avg=E_kin [eV], rms=sigma_z [m], rmsprime=sigma_E [eV],
-    emit=eps_zn [eV.m], corr=<z E'> [eV.m].
+    emit=eps_zn [eV.m], corr=<z E'> [eV].
     """
 
     z: np.ndarray          # [m]
@@ -177,7 +177,7 @@ def _read_emit_plane(path: Path, label: str, plane: str, u_is_energy: bool) -> E
         rms = data[:, 3] * MM_TO_M          # z_rms [m]
         rmsprime = data[:, 4] * KEV_TO_EV   # dE_rms [eV]
         emit = data[:, 5] * (KEV_TO_EV * MM_TO_M)  # eps_zn [eV.m]
-        corr = data[:, 6] * (KEV_TO_EV * MM_TO_M)  # cov(z,E)/sigma_z [eV.m]
+        corr = data[:, 6] * KEV_TO_EV  # <z E'>_avr [keV -> eV] (manual Table 4)
     else:
         avg = data[:, 2] * MM_TO_M          # <u> [m]
         rms = data[:, 3] * MM_TO_M          # sigma_u [m]

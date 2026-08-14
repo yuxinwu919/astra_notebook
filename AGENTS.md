@@ -46,7 +46,11 @@ against real ASTRA output; DO NOT change without re-validating)
 6. **Energy spread**: sigma_E/E from per-particle kinetic energies
    E_kin = sqrt(pz^2 + m^2 c^4) - m c^2, NOT sigma_p/p.
 7. **Xemit corr column** = cov(u,u')/sigma_u (mrad), not the raw
-   covariance.
+   covariance. The Zemit counterpart <z E'>_avr is stored in keV and
+   equals cov(z,E_kin)/sigma_z (x1e3 -> eV). Weighted moments use |q|
+   weights so a mixed-sign bunch never silently falls back to
+   unweighted statistics. The charge sign itself is kept internally
+   and only dropped at the display/export boundary (|Q| shown).
 8. All analysis returns SI internally; display-unit conversion happens
    only at the plot/export boundary.
 

@@ -57,8 +57,9 @@ def export_distribution(dist, out_dir, stem: str = "distribution"):
         arrays, out_dir / (stem + ".csv"), units,
         note=("ASTRA particle distribution exported by astra-notebook.\n"
               "reference: time=%.6g ns, p=%.6g eV/c, z=%.6g m, Q=%.6g nC"
+              " (|Q| shown; sign kept internally)"
               % (dist.ref_time_ns, dist.ref_momentum_eVc, dist.ref_z_m,
-                 dist.total_charge_nC)))
+                 abs(dist.total_charge_nC))))
     return {"npz": npz_path, "csv": csv_path}
 
 
@@ -67,6 +68,7 @@ def export_statistics(stats, out_dir, stem: str = "statistics"):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     d = stats.to_dict()
+    d["total_charge_nC"] = abs(d["total_charge_nC"])  # display layer: |Q|
     df_rows = [{"quantity": k, "value": v, "unit": _UNIT_HINTS.get(k, "")}
                for k, v in d.items()]
     import pandas as pd
@@ -76,7 +78,7 @@ def export_statistics(stats, out_dir, stem: str = "statistics"):
 
 
 _UNIT_HINTS = {
-    "n_particle": "1", "n_active": "1", "total_charge_nC": "nC",
+    "n_particle": "1", "n_active": "1", "total_charge_nC": "nC (|Q|)",
     "mean_x_mm": "mm", "mean_y_mm": "mm", "mean_z_mm": "mm",
     "sig_x_mm": "mm", "sig_y_mm": "mm", "sig_z_mm": "mm",
     "mean_pz_MeVc": "MeV/c", "sig_p_over_p_pct": "%",

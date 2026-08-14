@@ -12,7 +12,9 @@ def stats_table_html(stats) -> HTML:
     rows = []
     for k, v in d.items():
         unit = _UNITS.get(k, "")
-        if isinstance(v, float):
+        if k == "total_charge_nC":
+            v = "%.6g (|Q|)" % abs(v)
+        elif isinstance(v, float):
             v = "%.6g" % v
         rows.append("<tr><td>%s</td><td align='right'>%s</td><td>%s</td></tr>"
                     % (k, v, unit))
