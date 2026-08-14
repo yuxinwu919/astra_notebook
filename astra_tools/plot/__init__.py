@@ -48,3 +48,9 @@ from .advanced_plots import (
     plot_cathode_emission, plot_slice_mismatch, plot_3d_map_slices,
     slice_mismatch,
 )
+
+from .advanced_plots import (
+    plot_pscan_dedz, plot_pscan_compression, plot_tcheck_scaling,
+    plot_z_plot, plot_field_profile, plot_curved_cathode_contour,
+    plot_core_brightness, plot_slice_ellipses_3d,
+)

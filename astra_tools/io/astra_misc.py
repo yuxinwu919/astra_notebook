@@ -120,3 +120,14 @@ def read_density(path) -> dict:
     d = _load(path, 12)
     return {"z": d[:, 0], "t": d[:, 1] * NS_TO_S,
             "N": d[:, 2:7], "dens": d[:, 7:12]}
+
+
+def read_tcheck(path) -> dict:
+    """空间电荷缩放诊断 (tcheck 文件, TcheckS=T 时生成):
+    z, t, 5 个缩放因子, 缩放计数器。"""
+    d = _load(path, 8)
+    return {
+        "z": d[:, 0], "t": d[:, 1] * NS_TO_S,
+        "scaling": d[:, 2:7],      # nr(r) nr(z) nr(gamma) nz(r) nz(gamma*z)
+        "counter": d[:, 7].astype(int),
+    }

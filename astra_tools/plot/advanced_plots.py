@@ -352,5 +352,157 @@ def plot_3d_map_slices(path, axis="z", n_slices=3, figsize=(13, 4), title=None,
     fig.colorbar(im, ax=axs, label=unit or "field")
     if title:
         fig.suptitle(title)
+    fig.subplots_adjust(wspace=0.35, bottom=0.15, top=0.88)
+    return fig
+
+
+def plot_pscan_dedz(pscan, ax=None, figsize=(8, 4), title=None):
+    """dE/dz vs 相位 (PScan 数值微分, 菜单 2 项 2; 正比于关联能散)."""
+    fig, ax = _ax(ax, figsize)
+    dedz = np.gradient(pscan["E_kin_eV"], np.radians(pscan["phase_deg"]))
+    ax.plot(pscan["phase_deg"], dedz * 1e-6, label="dE/dphase")
+    ax.set_xlabel("RF phase [deg]")
+    ax.set_ylabel("dE/dphase [MeV/rad]")
+    ax.set_title(title or "dE/dz vs phase (proportional to corr. energy spread)")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_pscan_compression(pscan, ax=None, figsize=(8, 4), title=None):
+    """压缩因子 vs 相位 (PScan 列 3, 菜单 2 项 3)."""
+    fig, ax = _ax(ax, figsize)
+    ax.plot(pscan["phase_deg"], pscan["compression"], label="compression factor")
+    ax.set_xlabel("RF phase [deg]")
+    ax.set_ylabel("compression factor")
+    ax.set_title(title or "bunch compression vs phase")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_tcheck_scaling(tc, ax=None, figsize=(8, 5), title=None):
+    """空间电荷缩放因子 vs z (tcheck 文件, 菜单 2 项 9/10)."""
+    fig, ax = _ax(ax, figsize)
+    names = ["nr(r)", "nr(z)", "nr(gamma)", "nz(r)", "nz(gamma*z)"]
+    for i, nm in enumerate(names):
+        ax.plot(tc["z"], tc["scaling"][:, i], label=nm)
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel("space charge scaling factor")
+    ax.set_title(title or "space charge scaling factors")
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    return fig
+
+
+def plot_z_plot(dist, ax=None, figsize=(8, 5), title=None):
+    """z-plot (postpro 5.6.1 项 10): 所有粒子 (含丢失) 沿束线的位置.
+
+    按粒子序号着色: active 蓝、lost 红、passive 灰。
+    """
+    fig, ax = _ax(ax, figsize)
+    idx = np.arange(dist.n_particle)
+    ax.scatter(idx[dist.lost], dist.z[dist.lost] * 1e3, s=2, c="#CC3311",
+               label="lost (%d)" % int(np.sum(dist.lost)))
+    ax.scatter(idx[dist.passive], dist.z[dist.passive] * 1e3, s=2, c="0.6",
+               label="passive (%d)" % int(np.sum(dist.passive)))
+    ax.scatter(idx[dist.active], dist.z[dist.active] * 1e3, s=2, c="#0077BB",
+               label="active (%d)" % int(np.sum(dist.active)))
+    ax.set_xlabel("particle index")
+    ax.set_ylabel("z [mm]")
+    ax.set_title(title or "z-plot (all particles along the beamline)")
+    ax.legend(markerscale=3, fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def plot_field_profile(path, label="field", unit="", scale=1.0, ax=None,
+                       figsize=(8, 4), title=None):
+    """一维场剖面 (z, F) 表: 四极梯度/二极场等 (fieldplot 菜单 1)."""
+    data = np.loadtxt(path)
+    z, f = data[:, 0], data[:, 1]
+    fig, ax = _ax(ax, figsize)
+    ax.plot(z * 1e3, f * scale, label=label)
+    ax.set_xlabel("z [mm]")
+    ax.set_ylabel(label + (" [" + unit + "]" if unit else ""))
+    ax.set_title(title or (label + " profile"))
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_curved_cathode_contour(path, ax=None, figsize=(8, 5), title=None):
+    """弯曲阴极轮廓 (Contour.dat, fieldplot 菜单 1 项 8).
+
+    表格式 (x, y, z, R) 沿轮廓; 画 R(z) 曲线。
+    """
+    data = np.loadtxt(path)
+    fig, ax = _ax(ax, figsize)
+    ax.plot(data[:, 2] * 1e3, data[:, 3] * 1e3, label="cathode contour")
+    ax.fill_between(data[:, 2] * 1e3, 0, data[:, 3] * 1e3, alpha=0.2)
+    ax.set_xlabel("z [mm]")
+    ax.set_ylabel("r [mm]")
+    ax.set_aspect("equal")
+    ax.set_title(title or "curved cathode contour")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_core_brightness(ce, landf=None, ax=None, figsize=(8, 4), title=None):
+    """横向核心亮度 B = Q / (eps_nx * eps_ny) (postpro 5.6.1 项 8, 近似).
+
+    Q 取 LandF 的束团电荷 (同 z 处); 无 LandF 时用 ce 的归一化亮度。
+    """
+    fig, ax = _ax(ax, figsize)
+    z = ce["mean_z"]
+    epsn = np.maximum(ce["norm_emit_x"] * ce["norm_emit_y"], 1e-30)
+    if landf is not None and "landf_total_charge" in landf:
+        q = np.interp(z, landf["landf_z"], landf["landf_total_charge"])
+        b = np.abs(q) * 1e-9 / epsn
+        ylabel = "brightness B = Q/(eps_nx eps_ny) [C/m^2]"
+    else:
+        b = 1.0 / epsn
+        ylabel = "1/(eps_nx eps_ny) [1/m^2]"
+    ax.plot(z, b, label="brightness")
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title or "transverse core brightness")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_slice_ellipses_3d(dist, n_slices=10, figsize=(9, 6), title=None):
+    """3D RMS slice 椭圆 (postpro 5.6.3 项 6, mplot3d 静态)."""
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+    from ..analysis.emittance import compute_emittance_ellipse_params
+    from ..analysis.slices import compute_slice_analysis
+
+    sa = compute_slice_analysis(dist, n_slices=n_slices)
+    d = dist.filter_active()
+    p_ref = dist.ref_momentum_eVc or float(np.mean(np.abs(d.pz)))
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(111, projection="3d")
+    for i in range(sa.n_slices):
+        if sa.n_particles[i] < 3:
+            continue
+        mask = (d.z >= sa.z_edges[i]) & (d.z < sa.z_edges[i + 1])
+        if i == sa.n_slices - 1:
+            mask = (d.z >= sa.z_edges[i]) & (d.z <= sa.z_edges[i + 1])
+        xi = d.x[mask]
+        xp = (d.px[mask] - np.mean(d.px[mask])) / p_ref
+        par = compute_emittance_ellipse_params(xi - np.mean(xi), xp)
+        th = np.linspace(0, 2 * np.pi, 60)
+        xe = par["a"] * np.cos(th) * 1e3
+        ye = par["b"] * np.sin(th) * 1e3
+        xr = xe * np.cos(par["theta"]) - ye * np.sin(par["theta"])
+        yr = xe * np.sin(par["theta"]) + ye * np.cos(par["theta"])
+        zc = sa.z_centers[i] * 1e3
+        ax.plot(np.full_like(th, zc), xr, yr, lw=1.2)
+    ax.set_xlabel("z [mm]")
+    ax.set_ylabel("x [mm]")
+    ax.set_zlabel("x' [mrad]")
+    ax.set_title(title or "3D slice emittance ellipses")
     fig.tight_layout()
     return fig

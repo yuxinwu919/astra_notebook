@@ -194,3 +194,40 @@ class TestAdvancedPlots:
             PROJECT_ROOT / "examples/Cavity_Example/3D_test.ex")
         assert f.shape == (11, 11, 340)
         assert np.all(np.isfinite(f))
+
+
+class TestCutsAndMisc:
+    def test_cut_window(self):
+        from astra_tools.analysis.cuts import cut_distribution
+        d2, mask = cut_distribution(DIST, x_range=(-5e-4, 5e-4))
+        assert mask.sum() > 0
+        assert d2.n_active == DIST.n_active - mask.sum()
+        assert np.all(d2.status[mask] == -31)
+
+    def test_rotate_phase_space(self):
+        from astra_tools.analysis.cuts import rotate_phase_space
+        d3 = rotate_phase_space(DIST, 90)
+        assert d3.n_particle == DIST.n_particle
+        # 旋转 90 度: x -> y
+        assert np.allclose(d3.x[DIST.active], DIST.y[DIST.active], atol=1e-12)
+
+    def test_z_plot(self):
+        from astra_tools.plot.advanced_plots import plot_z_plot
+        fig = plot_z_plot(DIST)
+        ax = fig.axes[0]
+        assert ax.get_legend() is not None
+        assert ax.get_ylabel() == "z [mm]"
+        plt.close(fig)
+
+    def test_slice_ellipses_3d(self):
+        from astra_tools.plot.advanced_plots import plot_slice_ellipses_3d
+        fig = plot_slice_ellipses_3d(DIST, n_slices=6)
+        assert fig.axes[0].name == "3d"
+        plt.close(fig)
+
+    def test_cathode_contour(self):
+        from astra_tools.plot.advanced_plots import plot_curved_cathode_contour
+        p = PROJECT_ROOT / "examples/Curved_Cathode_Example/Contour.dat"
+        fig = plot_curved_cathode_contour(p)
+        assert any("[mm]" in l for l in _labels(fig))
+        plt.close(fig)
