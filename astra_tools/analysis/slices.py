@@ -98,6 +98,10 @@ def compute_slice_analysis(
             d.ref_momentum_eVc if d.ref_momentum_eVc != 0
             else float(np.mean(d.pz))
         )
+    if ref_momentum_eVc <= 0:
+        raise ValueError(
+            "reference momentum is zero/negative (beam at rest?); "
+            "slice divergences and normalized emittances are undefined")
 
     # -- Binning --
     if binning == "equi_charge":
@@ -117,9 +121,15 @@ def compute_slice_analysis(
                 idx = min(np.searchsorted(q_cumsum, i * q_per_slice), n - 1)
                 z_edges[i] = float(z_sorted[idx])
             z_edges[-1] = z_sorted[-1]
-            for i in range(1, n_slices):
+            # 重复 z 值会使边界塌缩 (尤其最后一条边); 用"平均箱宽
+            # 的 1%" 修复全部 n_slices+1 条边并保持严格递增。delta 函数
+            # 式电荷的真实峰值电流为无穷大, 这里用箱宽正则化给出有界
+            # 数值 (避免 1e-12 m 级别的假 dz 造出 ~1e12 A 的假电流)
+            span = float(z_sorted[-1] - z_sorted[0])
+            eps = max(span / (100.0 * n_slices), 1e-12)
+            for i in range(1, n_slices + 1):
                 if z_edges[i] <= z_edges[i - 1]:
-                    z_edges[i] = z_edges[i - 1] + 1e-12
+                    z_edges[i] = z_edges[i - 1] + eps
     else:
         z_edges = np.linspace(float(np.min(z)), float(np.max(z)), n_slices + 1)
 
@@ -171,9 +181,10 @@ def compute_slice_analysis(
         pty = pyi - 0.5 * C_LIGHT * bz_on_axis_T * xi
         xp = (ptx - np.mean(ptx)) / ref_momentum_eVc
         yp = (pty - np.mean(pty)) / ref_momentum_eVc
-        wq = np.abs(qi)
-        ex = compute_geometric_emittance(xi - mean_x[i], xp, weights=wq)
-        ey = compute_geometric_emittance(yi - mean_y[i], yp, weights=wq)
+        # 群体矩 (无加权), 与 compute_statistics 默认及 ASTRA 一致;
+        # |q| 仅用于 equi_charge 分箱
+        ex = compute_geometric_emittance(xi - mean_x[i], xp)
+        ey = compute_geometric_emittance(yi - mean_y[i], yp)
 
         # Normalized emittance w.r.t. the reference momentum (Xemit
         # convention); the per-slice gamma below is only for the current.

@@ -37,7 +37,7 @@ _NON_PHASE_SUFFIXES = {
     ".xemit", ".yemit", ".zemit", ".cemit", ".c99emit", ".tremit",
     ".xemit2", ".yemit2", ".cr_emit", ".sub_emit", ".sigma", ".ref",
     ".log", ".track", ".cathode", ".larmor", ".density", ".landf",
-    ".pscan", ".scan", ".error", ".tstep", ".zpos", ".fields", ".tcheck",
+    ".pscan", ".scan", ".error", ".tstep", ".fields", ".tcheck",
 }
 
 _PHASE_SUFFIXES = {".ini", ".ast", ".inp", ".zpos"}
@@ -73,9 +73,26 @@ class AstraDistributionReader:
             pass
         try:
             ncols = self._probe_ascii_ncols(path)
-            return ncols is not None and ncols >= 9
+            if ncols is None:
+                return False
+            if ncols >= 9:
+                return True
+            # 5 值头行 + 9/10 列粒子行的 ASCII 文件 (第二行才是粒子行)
+            return ncols == 5 and self._probe_ascii_second_line(path) in (9, 10)
         except Exception:
             return False
+
+    @staticmethod
+    def _probe_ascii_second_line(path: Path):
+        """ASCII 文件第二行 (跳过注释/空行) 的列数; 无则 None。"""
+        with open(path, "rb") as f:
+            head = f.read(8192)
+        text = head.decode("ascii", errors="ignore")
+        rows = [ln.split() for ln in text.splitlines()
+                if ln.strip() and not ln.strip().startswith(("#", "!"))]
+        if len(rows) < 2:
+            return None
+        return len(rows[1])
 
     # -- low-level probes ---------------------------------------------
 

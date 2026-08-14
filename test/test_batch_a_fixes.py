@@ -110,6 +110,25 @@ def test_3d_map_real_bx_symmetries():
 # ---------------------------------------------------------------
 # A5: weighted statistics use |q|
 # ---------------------------------------------------------------
+def test_weighted_uniform_charges_equal_unweighted():
+    """群体矩 (ddof=0) 约定: 均匀电荷的加权结果必须精确等于无加权。
+
+    回归: 早期实现带 Kish 类修正, 均匀权重时与 ddof=0 差 ~0.05%。
+    """
+    rng = np.random.default_rng(3)
+    n = 1000
+    d = Distribution.from_arrays(
+        x=rng.normal(0, 1e-3, n), y=np.zeros(n), z=np.zeros(n),
+        px=rng.normal(0, 50.0, n), py=np.zeros(n),
+        pz=np.full(n, 5e6), clock=np.zeros(n), charge=np.ones(n))
+    s0 = compute_statistics(d, use_weights=False)
+    s1 = compute_statistics(d, use_weights=True)
+    assert s1.sig_x == pytest.approx(s0.sig_x, rel=1e-12)
+    assert s1.sig_px == pytest.approx(s0.sig_px, rel=1e-12)
+    assert s1.emit_x_norm == pytest.approx(s0.emit_x_norm, rel=1e-12)
+    assert s1.total_charge_nC == pytest.approx(s0.total_charge_nC, rel=1e-12)
+
+
 def test_weighted_stats_use_abs_charge():
     rng = np.random.default_rng(0)
     n = 4000

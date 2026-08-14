@@ -38,7 +38,7 @@ def plot_current_profile(
     ax.set_xlabel("z [mm]")
     ax.set_ylabel("current |I| [A]")
     ax.set_title(title or "longitudinal current profile")
-    ax.text(0.02, 0.96, "peak %.1f A, Q = %.3f nC" % (i_peak, np.sum(sa.charge)),
+    ax.text(0.02, 0.96, "peak %.1f A, Q = %.3f nC" % (i_peak, abs(np.sum(sa.charge))),
             transform=ax.transAxes, va="top", fontsize=9)
     fig.tight_layout()
     return fig

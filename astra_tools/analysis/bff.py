@@ -71,7 +71,8 @@ def compute_bff(
         k = np.linspace(kmin, kmax, nk)
 
     q_total = float(np.sum(charge))
-    if q_total == 0 or len(z) == 0:
+    # 近中性束团 (|Σq| << Σ|q|): 归一化发散, 按中性处理返回零
+    if abs(q_total) < 1e-12 * float(np.sum(np.abs(charge))) or len(z) == 0:
         return BFFResult(
             k=k, bff=np.zeros(nk), bff_amplitude=np.zeros(nk),
             wavelength=2.0 * np.pi / k,

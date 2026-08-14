@@ -73,10 +73,10 @@ def compute_geometric_emittance(
     if weights is not None and np.sum(np.abs(weights)) > 0:
         w = np.abs(np.asarray(weights, dtype=float))
         w = w / np.sum(w)
-        w_eff = 1.0 / (1.0 - np.sum(w**2))  # Kish effective sample size
-        u2 = float(np.sum(w * u**2) * w_eff)
-        up2 = float(np.sum(w * up**2) * w_eff)
-        u_up = float(np.sum(w * u * up) * w_eff)
+        # 群体矩 (ddof=0): 均匀权重与无加权分支完全一致
+        u2 = float(np.sum(w * u**2))
+        up2 = float(np.sum(w * up**2))
+        u_up = float(np.sum(w * u * up))
     else:
         u2 = float(np.mean(u**2))
         up2 = float(np.mean(up**2))
@@ -121,10 +121,9 @@ def compute_twiss_parameters(
     if weights is not None and np.sum(np.abs(weights)) > 0:
         w = np.abs(np.asarray(weights, dtype=float))
         w = w / np.sum(w)
-        w_eff = 1.0 / (1.0 - np.sum(w**2))
-        u2 = float(np.sum(w * u**2) * w_eff)
-        up2 = float(np.sum(w * up**2) * w_eff)
-        u_up = float(np.sum(w * u * up) * w_eff)
+        u2 = float(np.sum(w * u**2))
+        up2 = float(np.sum(w * up**2))
+        u_up = float(np.sum(w * u * up))
     else:
         u2 = float(np.mean(u**2))
         up2 = float(np.mean(up**2))
@@ -157,10 +156,9 @@ def compute_emittance_ellipse_params(
     if weights is not None and np.sum(np.abs(weights)) > 0:
         w = np.abs(np.asarray(weights, dtype=float))
         w = w / np.sum(w)
-        w_eff = 1.0 / (1.0 - np.sum(w**2))
-        u2 = float(np.sum(w * u**2) * w_eff)
-        up2 = float(np.sum(w * up**2) * w_eff)
-        u_up = float(np.sum(w * u * up) * w_eff)
+        u2 = float(np.sum(w * u**2))
+        up2 = float(np.sum(w * up**2))
+        u_up = float(np.sum(w * u * up))
     else:
         u2 = float(np.mean(u**2))
         up2 = float(np.mean(up**2))
@@ -186,8 +184,11 @@ def compute_emittance_ellipse_params(
     lam1 = 0.5 * (trace + np.sqrt(disc))
     lam2 = 0.5 * (trace - np.sqrt(disc))
 
-    if abs(gamma_t - beta) > 1e-12:
-        theta = 0.5 * np.arctan2(2.0 * alpha, gamma_t - beta)
+    # 主轴角 (Floettmann): tan(2 theta) = 2<uu'> / (<u^2> - <u'^2>)
+    # 不能用 Twiss 版 0.5*atan2(2*alpha, gamma_t-beta) - 它给出短轴
+    # (相差 90 度), 会让 1-RMS 椭圆横躺
+    if abs(u2 - up2) > 1e-30 or abs(u_up) > 1e-30:
+        theta = 0.5 * np.arctan2(2.0 * u_up, u2 - up2)
     else:
         theta = 0.0
 

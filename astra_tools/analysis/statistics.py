@@ -169,9 +169,10 @@ def compute_statistics(
             the canonical-momentum emittance (manual 4.13.1). Set to the
             value of the solenoid field at the bunch position if the
             emittance should be comparable to ASTRA's Xemit output.
-        use_weights: charge-weighted moments (|q| weights, Kish effective
-            sample size). The charge sign never silently disables the
-            weighting; it only enters total_charge_nC.
+        use_weights: charge-weighted moments (|q| weights, population
+            ddof=0 - uniform charges give exactly the unweighted result,
+            matching ASTRA). The charge sign never silently disables
+            the weighting; it only enters total_charge_nC.
         label: optional label.
 
     Returns:
@@ -194,6 +195,10 @@ def compute_statistics(
             dist.ref_momentum_eVc if dist.ref_momentum_eVc != 0
             else float(np.mean(pz))
         )
+    if ref_momentum_eVc <= 0:
+        raise ValueError(
+            "reference momentum is zero/negative (beam at rest?); "
+            "divergences and normalized emittance are undefined")
 
     weights = np.abs(charge) if use_weights else None
 
@@ -205,8 +210,9 @@ def compute_statistics(
     def _std(a, mu):
         c = a - mu
         if weights is not None and np.sum(weights) > 0:
-            w_sum = float(np.sum(weights))
-            var = float(np.sum(weights * c**2) / (w_sum - np.sum(weights**2) / w_sum))
+            # 群体矩 (ddof=0, 与 ASTRA 一致): 均匀权重时必须与
+            # 无加权分支完全相等 (不用 Kish 类修正)
+            var = float(np.sum(weights * c**2) / np.sum(weights))
             return float(np.sqrt(max(var, 0.0)))
         return float(np.std(c))
 
@@ -225,7 +231,7 @@ def compute_statistics(
     sig_px = _std(px, mean_px)
     sig_py = _std(py, mean_py)
     sig_pz = _std(pz, mean_pz)
-    sig_p_over_p = sig_pz / mean_pz if mean_pz != 0 else 0.0
+    sig_p_over_p = sig_pz / abs(mean_pz) if mean_pz != 0 else 0.0
 
     # -- Energy (from momentum, relativistic) --
     e_kin = kinetic_energy_from_momentum(pz)

@@ -18,7 +18,8 @@
 
 from __future__ import annotations
 
-
+import re
+from pathlib import Path
 
 import numpy as np
 
@@ -129,4 +130,22 @@ def read_tcheck(path) -> dict:
         "z": d[:, 0], "t": d[:, 1] * NS_TO_S,
         "scaling": d[:, 2:7],      # nr(r) nr(z) nr(gamma) nz(r) nz(gamma*z)
         "counter": d[:, 7].astype(int),
+    }
+
+
+def read_lab_file(path) -> dict:
+    """Scan/Error 标签文件 (A80: 每个 FOM 三行 = X轴 / Y轴 / 标题).
+
+    返回 {'xlabel': [...], 'ylabel': [...], 'title': [...]}, 与
+    FOM(1..10) 一一对应; PGPLOT 转义前缀 (\fi \gs \gp) 被剥除,
+    未定义的 FOM 行为空或 "no entry"。
+    """
+    text = Path(path).read_text()
+    lines = [re.sub(r"\\[figsp]+", "", ln).strip()
+             for ln in text.splitlines()]
+    n = min(len(lines) // 3, 10)   # FOM(1..10); 忽略尾部多余行
+    return {
+        "xlabel": lines[0::3][:n],
+        "ylabel": lines[1::3][:n],
+        "title": lines[2::3][:n],
     }

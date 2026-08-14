@@ -47,6 +47,10 @@ def compute_core_fraction_curves(
             d.ref_momentum_eVc if d.ref_momentum_eVc != 0
             else float(np.mean(d.pz))
         )
+    if ref_momentum_eVc <= 0:
+        raise ValueError(
+            "reference momentum is zero/negative (beam at rest?); "
+            "core emittances are undefined")
 
     order = np.argsort(d.z)
     q_abs = np.abs(d.charge[order])

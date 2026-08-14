@@ -124,25 +124,52 @@ def plot_phase_scan(pscan, ax=None, figsize=(8, 5), title=None):
     return fig
 
 
-def plot_scan_fom(scan, i=0, ax=None, figsize=(8, 4), title=None):
-    """参数扫描 FOM(i) (Scan 文件, 菜单 3)."""
+def plot_scan_fom(scan, i=0, ax=None, figsize=(8, 4), title=None, lab=None):
+    """参数扫描 FOM(i) (Scan 文件, 菜单 3).
+
+    lab: read_lab_file 的输出; 有定义时用真实轴名/标题。
+    """
     fig, ax = _ax(ax, figsize)
     ax.plot(scan["para"], scan["FOM"][:, i], label="FOM(%d)" % (i + 1))
-    ax.set_xlabel("scan parameter")
-    ax.set_ylabel("FOM(%d)" % (i + 1))
-    ax.set_title(title or "parameter scan")
+    if lab is not None and i < len(lab["xlabel"]):
+        xl = lab["xlabel"][i]
+        yl = lab["ylabel"][i]
+        tl = lab["title"][i]
+        if xl and xl.lower() != "no entry":
+            ax.set_xlabel(xl)
+        else:
+            ax.set_xlabel("scan parameter")
+        if yl and yl.lower() != "no entry":
+            ax.set_ylabel(yl)
+        else:
+            ax.set_ylabel("FOM(%d)" % (i + 1))
+        ax.set_title(title or (tl if tl and tl.lower() != "no entry" else "parameter scan"))
+    else:
+        ax.set_xlabel("scan parameter")
+        ax.set_ylabel("FOM(%d)" % (i + 1))
+        ax.set_title(title or "parameter scan")
     ax.legend()
     fig.tight_layout()
     return fig
 
 
-def plot_error_hist(err, i=0, bins=20, ax=None, figsize=(8, 4), title=None):
-    """误差扫描 FOM(i) 直方图 (Error 文件, 菜单 3)."""
+def plot_error_hist(err, i=0, bins=20, ax=None, figsize=(8, 4), title=None,
+                     lab=None):
+    """误差扫描 FOM(i) 直方图 (Error 文件, 菜单 3).
+
+    lab: read_lab_file 的输出; 有定义时用真实轴名/标题。
+    """
     fig, ax = _ax(ax, figsize)
     ax.hist(err["FOM"][:, i], bins=bins, alpha=0.75, label="FOM(%d)" % (i + 1))
-    ax.set_xlabel("FOM(%d)" % (i + 1))
+    if lab is not None and i < len(lab["xlabel"]):
+        xl = lab["xlabel"][i]
+        tl = lab["title"][i]
+        ax.set_xlabel(xl if xl and xl.lower() != "no entry" else "FOM(%d)" % (i + 1))
+        ax.set_title(title or (tl if tl and tl.lower() != "no entry" else "error scan histogram"))
+    else:
+        ax.set_xlabel("FOM(%d)" % (i + 1))
+        ax.set_title(title or "error scan histogram")
     ax.set_ylabel("counts")
-    ax.set_title(title or "error scan histogram")
     ax.legend()
     fig.tight_layout()
     return fig

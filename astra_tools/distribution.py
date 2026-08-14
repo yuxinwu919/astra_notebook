@@ -43,7 +43,7 @@ class Distribution:
 
     x: np.ndarray      # [m]
     y: np.ndarray      # [m]
-    z: np.ndarray      # [m], relative to reference particle
+    z: np.ndarray      # [m] (reader converts file-relative z to absolute)
     px: np.ndarray     # [eV/c]
     py: np.ndarray     # [eV/c]
     pz: np.ndarray     # [eV/c]
