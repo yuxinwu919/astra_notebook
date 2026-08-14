@@ -81,9 +81,11 @@ def parse_namelists(text_or_path) -> dict:
             else:
                 blocks[current][base] = parsed[0] if len(parsed) == 1 else parsed
 
-        # Multiple assignments may share one line:
+        # Multiple assignments may share one line, with or without
+        # array parens:
         #   MaxE(1)=10, MaxE(2)=20,
-        segments = re.split(r",\s*(?=[A-Za-z_]\w*\s*\()", content)
+        #   ZSTART=0.0, ZSTOP=1.5,
+        segments = re.split(r",\s*(?=[A-Za-z_]\w*\s*(?:\([^)]*\))?\s*=)", content)
         if len(segments) > 1:
             for seg in segments:
                 seg = seg.rstrip(",").strip()

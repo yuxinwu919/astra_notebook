@@ -322,7 +322,6 @@ def plot_3d_map_slices(path, axis="z", n_slices=3, figsize=(13, 4), title=None,
     """
     from ..io.field_map import read_3d_field_map
     x, y, z, f = read_3d_field_map(path)
-    axes = {"x": x, "y": y, "z": z}
     shape = f.shape
     fig, axs = plt.subplots(1, n_slices, figsize=figsize)
     vmax = float(np.max(np.abs(f)))
@@ -475,7 +474,6 @@ def plot_core_brightness(ce, landf=None, ax=None, figsize=(8, 4), title=None):
 
 def plot_slice_ellipses_3d(dist, n_slices=10, figsize=(9, 6), title=None):
     """3D RMS slice 椭圆 (postpro 5.6.3 项 6, mplot3d 静态)."""
-    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
     from ..analysis.emittance import compute_emittance_ellipse_params
     from ..analysis.slices import compute_slice_analysis
 

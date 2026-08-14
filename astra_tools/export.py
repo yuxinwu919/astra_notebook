@@ -95,16 +95,23 @@ _UNIT_HINTS = {
 
 
 def export_emit(emit, out_dir, stem: str = "emit"):
-    """导出 Xemit/Yemit/Zemit 演化数据: <stem>_{x,y,z}.csv (SI 列)."""
+    """导出 Xemit/Yemit/Zemit 演化数据: <stem>_{x,y,z}.csv (SI 列).
+
+    每个平面用各自的单位表: x/y 平面 avg/rms/rmsprime/emit/corr 为
+    m, m, rad, m.rad, rad; z 平面为 eV, m, eV, eV.m, eV。
+    """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    units = {"z": "m", "t": "s", "avg": "m/eV", "rms": "m",
-             "rmsprime": "rad/eV", "emit": "m.rad / eV.m", "corr": "-"}
+    units_transverse = {"z": "m", "t": "s", "avg": "m", "rms": "m",
+                        "rmsprime": "rad", "emit": "m.rad", "corr": "rad"}
+    units_longitudinal = {"z": "m", "t": "s", "avg": "eV", "rms": "m",
+                          "rmsprime": "eV", "emit": "eV.m", "corr": "eV"}
     written = {}
     for key in ("x", "y", "z"):
         e = getattr(emit, key)
         arrays = {"z": e.z, "t": e.t, "avg": e.avg, "rms": e.rms,
                   "rmsprime": e.rmsprime, "emit": e.emit, "corr": e.corr}
+        units = units_longitudinal if key == "z" else units_transverse
         written[key] = _write_csv_units(
             arrays, out_dir / ("%s_%s.csv" % (stem, key)), units,
             note="ASTRA %semit data exported by astra-notebook (SI units)." % key.upper())

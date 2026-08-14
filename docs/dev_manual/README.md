@@ -13,8 +13,7 @@
     |-- plot/      KDE 密度体系 + postpro/lineplot/fieldplot 图形
     |-- run/       可执行文件定位/运行(失败标记检测)/输出发现/备份
     |-- widgets/   ipywidgets 组件 (选择器/表单/面板)
-    |-- export.py  CSV/npz 导出
-    `-- interop.py 与 LUME 生态 (beamphysics) 互转
+    `-- export.py  CSV/npz 导出
 
 ## 数据流
 

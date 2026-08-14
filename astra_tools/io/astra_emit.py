@@ -34,7 +34,7 @@ parsers and pmd-beamphysics):
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -361,7 +361,7 @@ OUTPUT_TABLES = {
          "norm_emit_y", "core_emit_95percent_y",
          "core_emit_90percent_y", "core_emit_80percent_y",
          "norm_emit_z", "core_emit_95percent_z",
-         "core_emit_905percent_z", "core_emit_80percent_z"],
+         "core_emit_90percent_z", "core_emit_80percent_z"],
         ["m"] + 8 * ["mm-mrad"] + 4 * ["mm-keV"],
         # NOTE: deviates from lume-astra, which uses 1e-6 for ALL 12
         # columns. The z-plane is 'keV mm' = 1 eV.m, so the factor is 1

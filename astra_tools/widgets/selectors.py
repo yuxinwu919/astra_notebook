@@ -33,7 +33,10 @@ def discover_sim_runs(sim_dir):
 
 
 def run_selector(sim_dir, stem: str = "", run: str = ""):
-    """run 下拉选择器 (自动发现目录里的输出).
+    """算例(stem) 下拉选择器 (自动发现目录里的输出).
+
+    选项是输出文件的项目名 stem (如 Example、Wake); 同 stem 的
+    不同 run 由 phase/z 选择器再细分。run 参数为兼容保留。
 
     Returns (selector, refresh_fn)。
     """
@@ -44,7 +47,7 @@ def run_selector(sim_dir, stem: str = "", run: str = ""):
     sel = widgets.Dropdown(
         options=stems,
         value=stem if stem in stems else (stems[0] if stems else None),
-        description="run:",
+        description="算例:",
         layout=widgets.Layout(width="auto"),
     )
 

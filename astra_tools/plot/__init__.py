@@ -11,11 +11,15 @@ from .distributions import plot_distributions, plot_energy_distribution
 from .overview import plot_overview, plot_transverse_profile
 from .emit_plots import (
     plot_envelope_evolution,
+    plot_divergence_evolution,
     plot_emittance_evolution,
     plot_energy_evolution,
+    plot_bunch_length_evolution,
+    plot_energy_spread_evolution,
     plot_ref_trajectory,
     plot_eigen_emittances,
     plot_emit_dashboard,
+    plot_lineplot_overview,
 )
 from .slice_plots import (
     plot_current_profile,
@@ -31,13 +35,26 @@ __all__ = [
     "plot_phase_space", "plot_transverse_phase_space",
     "plot_distributions", "plot_energy_distribution",
     "plot_overview", "plot_transverse_profile",
-    "plot_envelope_evolution", "plot_emittance_evolution",
-    "plot_energy_evolution", "plot_ref_trajectory",
-    "plot_eigen_emittances", "plot_emit_dashboard",
+    "plot_envelope_evolution", "plot_divergence_evolution",
+    "plot_emittance_evolution", "plot_energy_evolution",
+    "plot_bunch_length_evolution", "plot_energy_spread_evolution",
+    "plot_ref_trajectory", "plot_eigen_emittances",
+    "plot_emit_dashboard", "plot_lineplot_overview",
     "plot_current_profile", "plot_slice_emittance",
     "plot_energy_chirp", "plot_slice_dashboard",
     "plot_bff", "plot_bff_with_amplitude",
     "plot_cavity_field", "plot_solenoid_field",
+    # advanced_plots (postpro 5.6 / lineplot 菜单2/3/4 / fieldplot 扩展)
+    "plot_losses", "plot_beam_loading", "plot_beta_alpha",
+    "plot_phase_advance", "plot_coherence_length", "plot_phase_scan",
+    "plot_scan_fom", "plot_error_hist", "plot_reduced_emittance",
+    "plot_trace_emittance", "plot_core_emittance", "plot_larmor",
+    "plot_probe_trajectories", "plot_space_charge_fields",
+    "plot_cathode_emission", "plot_slice_mismatch", "plot_3d_map_slices",
+    "slice_mismatch",
+    "plot_pscan_dedz", "plot_pscan_compression", "plot_tcheck_scaling",
+    "plot_z_plot", "plot_field_profile", "plot_curved_cathode_contour",
+    "plot_core_brightness", "plot_slice_ellipses_3d",
 ]
 
 from .advanced_plots import (

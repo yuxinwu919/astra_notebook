@@ -152,6 +152,10 @@ class Distribution:
         n = len(np.asarray(x))
         if status is None:
             status = np.full(n, 5, dtype=np.int32)  # standard particle
+        if "total_charge_nC" not in kwargs:
+            # 与文件读取一致: 总电荷 = 所有粒子电荷的代数和 (符号保留,
+            # 显示层才取 |Q|)
+            kwargs["total_charge_nC"] = float(np.sum(np.asarray(charge, dtype=float)))
         return cls(
             x=np.asarray(x, dtype=float),
             y=np.asarray(y, dtype=float),
@@ -169,6 +173,7 @@ class Distribution:
     # -- Slicing / filtering ------------------------------------------
 
     def _subset(self, mask: np.ndarray, source_note: str = "") -> "Distribution":
+        """取子集; total_charge_nC 重算为子集电荷的代数和 (符号保留)."""
         mask = np.asarray(mask, dtype=bool)
         return Distribution(
             x=self.x[mask].copy(), y=self.y[mask].copy(), z=self.z[mask].copy(),

@@ -18,7 +18,6 @@ from __future__ import annotations
 from typing import Optional
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 from ..constants import kinetic_energy_from_momentum
 from ..io.astra_emit import EmitSet, RefData, SigmaData

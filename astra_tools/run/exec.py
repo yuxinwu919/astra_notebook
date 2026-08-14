@@ -15,6 +15,7 @@ import logging
 import os
 import shutil
 import subprocess
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -98,12 +99,24 @@ def run_program(
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             )
             lines = []
-            assert proc.stdout is not None
-            for line in proc.stdout:
-                line = line.rstrip("\n")
-                print(line)
-                lines.append(line)
-            returncode = proc.wait(timeout=timeout)
+
+            def _drain() -> None:
+                assert proc.stdout is not None
+                for line in proc.stdout:
+                    line = line.rstrip("\n")
+                    print(line)
+                    lines.append(line)
+
+            reader = threading.Thread(target=_drain, daemon=True)
+            reader.start()
+            try:
+                returncode = proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=10)
+                raise RuntimeError(
+                    "%s timed out after %d s" % (exe_name, timeout))
+            reader.join(timeout=10)
             result = subprocess.CompletedProcess(cmd, returncode, "\n".join(lines), "")
         else:
             result = subprocess.run(
