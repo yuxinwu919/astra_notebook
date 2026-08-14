@@ -63,6 +63,9 @@ Desktop.ini
 # Generated test outputs
 packages/*/tests/output/
 
+# Notebook 执行产物
+notebooks/exec_*.ipynb
+
 # WHPS_LINAC 示例: 只入库输入文件, 大型输出留在本地重新生成
 examples/WHPS_LINAC/**/*.001
 examples/WHPS_LINAC/**/*.exe
