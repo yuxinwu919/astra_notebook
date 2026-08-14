@@ -97,12 +97,20 @@ EV_TO_KEV = 1e-3
 MEV_TO_EV = 1e6
 KEV_TO_EV = 1e3
 
-# Emittance: m.rad <-> um.rad and the accelerator-standard pi-unit.
-# ASTRA emit files (Table 4) store normalized emittances in pi mrad mm:
-#   1 pi mrad mm = pi * 1e-6 m rad
+# Emittance units.
+#
+# ASTRA prints emittances in 'pi mm mrad' / 'pi keV mm'. The pi marks
+# the quantity as the AREA of the RMS phase-space ellipse
+# (area = pi*a*b, while the RMS statistical emittance from particle data
+# is eps_rms = a*b). Numerically 'pi mm mrad' and 'mm mrad' therefore
+# denote the SAME value in ASTRA files: the stored number equals
+# eps_rms in mm.mrad. To convert to SI multiply by 1e-6 -> m.rad.
+# Do NOT multiply by pi. This matches lume-astra's parsers
+# (unit 'mm-mrad', factor 1e-6) and pmd-beamphysics
+# (norm_emit = sqrt(det cov(x,px)) / mc2, in meters).
 EMIT_M_TO_UM = 1e6                # m.rad -> um.rad
-EMIT_M_TO_PI_MM_MRAD = 1e6 / np.pi  # m.rad -> pi mm mrad
-PIMRAD_MM_TO_M_RAD = np.pi * 1e-6   # pi mrad mm -> m rad
+EMIT_M_TO_MM_MRAD = 1e6           # m.rad -> mm.mrad (numerically == pi-units)
+MM_MRAD_TO_M_RAD = 1e-6           # mm.mrad -> m.rad
 
 # Charge
 C_TO_NC = 1e9

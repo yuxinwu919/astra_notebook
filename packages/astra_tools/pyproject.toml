@@ -33,7 +33,17 @@ dev = [
 ]
 jupyter = ["jupyter>=1.0.0", "ipykernel>=6.0.0", "ipympl>=0.9.0"]
 ocelot = ["ocelot>=0.3.0"]
-lume = ["lume-astra>=0.1.0"]
+# LUME ecosystem (recommended base layer; conda-forge or git installs):
+#   pip install git+https://github.com/ChristopherMayes/lume-astra
+#   pip install git+https://github.com/ColwynGulliford/distgen
+#   pip install beamphysics
+lume = [
+    "beamphysics>=0.16.0",
+    "lume-base>=0.1.0",
+    "pint>=0.20",
+    "lume-astra @ git+https://github.com/ChristopherMayes/lume-astra",
+    "distgen @ git+https://github.com/ColwynGulliford/distgen",
+]
 
 [build-system]
 requires = ["setuptools>=64.0", "wheel"]

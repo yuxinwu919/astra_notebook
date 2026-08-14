@@ -17,10 +17,18 @@ on read; the original display units are documented per column.
                               eps_yn, Cy95, Cy90, Cy80 [1e-6 m.rad],
                               eps_zn, Cz95, Cz90, Cz80 [keV.mm]
 
-Empirical notes (validated against examples/Manual_Example):
-  * the Xemit column labelled eps_n stores eps_n in units of 1e-6 m.rad,
-    i.e. numerically equal to eps_n expressed in mm.mrad
-  * the corr column stores <u u'> in mm.mrad
+Emittance unit convention (validated against ASTRA output, lume-astra
+parsers and pmd-beamphysics):
+  * ASTRA prints emittances in 'pi mm mrad' / 'pi keV mm'. The pi marks
+    the quantity as the AREA of the RMS phase-space ellipse
+    (area = pi*a*b); the RMS statistical emittance from particle data is
+    eps_rms = a*b. Numerically 'pi mm mrad' and 'mm mrad' are therefore
+    the SAME value in ASTRA files: file value x 1e-6 -> m.rad, do NOT
+    multiply by pi. lume-astra labels the column 'mm-mrad' (factor 1e-6)
+    and pmd-beamphysics computes norm_emit = sqrt(det cov(x,px))/mc2
+    in meters - all consistent.
+  * the last column stores cov(u, u') / sigma_u (lume-astra name:
+    cov_x__xp/sigma_x), in mrad.
 """
 
 from __future__ import annotations
@@ -169,13 +177,13 @@ def _read_emit_plane(path: Path, label: str, plane: str, u_is_energy: bool) -> E
         rms = data[:, 3] * MM_TO_M          # z_rms [m]
         rmsprime = data[:, 4] * KEV_TO_EV   # dE_rms [eV]
         emit = data[:, 5] * (KEV_TO_EV * MM_TO_M)  # eps_zn [eV.m]
-        corr = data[:, 6] * (KEV_TO_EV * MM_TO_M)  # <z E'> [eV.m]
+        corr = data[:, 6] * (KEV_TO_EV * MM_TO_M)  # cov(z,E)/sigma_z [eV.m]
     else:
         avg = data[:, 2] * MM_TO_M          # <u> [m]
         rms = data[:, 3] * MM_TO_M          # sigma_u [m]
         rmsprime = data[:, 4] * MRAD_TO_RAD  # sigma_u' [rad]
-        emit = data[:, 5] * 1e-6            # eps_n [m.rad]
-        corr = data[:, 6] * 1e-6            # <u u'> [m.rad]
+        emit = data[:, 5] * 1e-6            # eps_n [m.rad] (no pi factor!)
+        corr = data[:, 6] * MRAD_TO_RAD     # cov(u,u')/sigma_u [rad]
 
     return EmitData(z=z, t=t, avg=avg, rms=rms, rmsprime=rmsprime,
                     emit=emit, corr=corr, label=label, plane=plane)

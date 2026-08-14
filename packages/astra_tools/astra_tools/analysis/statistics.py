@@ -23,7 +23,7 @@ from typing import Optional
 import numpy as np
 
 from ..constants import (
-    EMIT_M_TO_PI_MM_MRAD,
+    EMIT_M_TO_MM_MRAD,
     EV_TO_KEV,
     EV_TO_MEV,
     M_TO_MM,
@@ -135,8 +135,9 @@ class BeamStatistics:
             "emit_y_geom_um": self.emit_y_geom * 1e6,
             "emit_x_norm_um": self.emit_x_norm * 1e6,
             "emit_y_norm_um": self.emit_y_norm * 1e6,
-            "emit_x_norm_pi_mm_mrad": self.emit_x_norm * EMIT_M_TO_PI_MM_MRAD,
-            "emit_y_norm_pi_mm_mrad": self.emit_y_norm * EMIT_M_TO_PI_MM_MRAD,
+            # ASTRA prints 'pi mm mrad'; numerically identical to mm.mrad
+            "emit_x_norm_mm_mrad": self.emit_x_norm * EMIT_M_TO_MM_MRAD,
+            "emit_y_norm_mm_mrad": self.emit_y_norm * EMIT_M_TO_MM_MRAD,
             "beta_x_m": self.beta_x,
             "alpha_x": self.alpha_x,
             "gamma_t_x": self.gamma_t_x,
@@ -317,10 +318,10 @@ def print_statistics(stats: BeamStatistics, title: str = "Beam Statistics") -> N
     print("-" * 40)
     print("  eps_x (geom):    %10.4f um.rad" % (stats.emit_x_geom * 1e6))
     print("  eps_y (geom):    %10.4f um.rad" % (stats.emit_y_geom * 1e6))
-    print("  eps_nx:          %10.4f um.rad (%.4f pi mm mrad)" % (
-        stats.emit_x_norm * 1e6, stats.emit_x_norm * EMIT_M_TO_PI_MM_MRAD))
-    print("  eps_ny:          %10.4f um.rad (%.4f pi mm mrad)" % (
-        stats.emit_y_norm * 1e6, stats.emit_y_norm * EMIT_M_TO_PI_MM_MRAD))
+    print("  eps_nx:          %10.4f um.rad (= %.4f mm.mrad)" % (
+        stats.emit_x_norm * 1e6, stats.emit_x_norm * EMIT_M_TO_MM_MRAD))
+    print("  eps_ny:          %10.4f um.rad (= %.4f mm.mrad)" % (
+        stats.emit_y_norm * 1e6, stats.emit_y_norm * EMIT_M_TO_MM_MRAD))
     print("-" * 40)
     print("  beta_x / alpha_x / gamma_T: %8.4f m / %8.4f / %8.4f 1/m" % (
         stats.beta_x, stats.alpha_x, stats.gamma_t_x))
