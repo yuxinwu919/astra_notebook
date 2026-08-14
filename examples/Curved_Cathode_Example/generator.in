@@ -1,0 +1,28 @@
+! curved cathode bunch (completed by astra-notebook)
+&INPUT
+  FNAME='bunch.ini',
+  IPart=1000,
+  Species='electrons',
+  Q_total=1,
+  Probe=T,
+  Noise_reduc=T,
+  Cathode=T,
+  R_Cathode=0.02,
+  Ref_Ekin=0,
+  Ref_zpos=0,
+  Ref_clock=0,
+  Dist_z='gauss',
+  sig_clock=0.001,
+  C_sig_clock=3,
+  Dist_pz='g',
+  sig_Ekin=0,
+  Dist_x='gauss',
+  sig_x=1,
+  Dist_y='gauss',
+  sig_y=1,
+  Dist_px='g',
+  Nemit_x=1,
+  Dist_py='g',
+  Nemit_y=1,
+ /
+

@@ -70,5 +70,29 @@
   "n_active": 7,
   "mean_pz_eVc": 525717.0724887915,
   "total_charge_nC": -0.07
+ },
+ "Aperture": {
+  "final": {
+   "mean_z": 1.9,
+   "mean_t": 0.0,
+   "mean_x": 3.1742e-08,
+   "sigma_x": 7.9994e-05,
+   "sigma_xp": 2.55e-05,
+   "norm_emit_x": 1e-06,
+   "cov_x__xp": 3.3196710059999996e-14
+  },
+  "n_rows": 1
+ },
+ "Wake": {
+  "final": {
+   "mean_z": 2.1,
+   "mean_t": 6.671300000000001e-10,
+   "mean_x": 3.5177e-08,
+   "sigma_x": 8.015600000000001e-05,
+   "sigma_xp": 2.5509000000000003e-05,
+   "norm_emit_x": 1e-06,
+   "cov_x__xp": 1.301492972e-10
+  },
+  "n_rows": 10
  }
 }

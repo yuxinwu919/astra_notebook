@@ -1,0 +1,27 @@
+! TWS bunch (completed by astra-notebook)
+&INPUT
+  FNAME='bunch.ini',
+  IPart=1000,
+  Species='electrons',
+  Q_total=0.1,
+  Probe=T,
+  Noise_reduc=T,
+  Cathode=F,
+  Ref_Ekin=100,
+  Ref_zpos=0,
+  Ref_clock=0,
+  Dist_z='gauss',
+  sig_z=1,
+  C_sig_z=3,
+  Dist_pz='g',
+  sig_Ekin=1,
+  Dist_x='gauss',
+  sig_x=1,
+  Dist_y='gauss',
+  sig_y=1,
+  Dist_px='g',
+  Nemit_x=1,
+  Dist_py='g',
+  Nemit_y=1,
+ /
+

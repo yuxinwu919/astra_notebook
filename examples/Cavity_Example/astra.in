@@ -1,0 +1,32 @@
+! TWS tracking (completed by astra-notebook)
+&NEWRUN
+  Head='TWS example (cavity files)',
+  RUN=1,
+  Distribution='bunch.ini',
+  Track_All=T,
+  Auto_Phase=T,
+  check_ref_part=F,
+  H_max=0.001,
+  H_min=0,
+ /
+
+&OUTPUT
+  ZSTART=0,
+  ZSTOP=0.4,
+  Zemit=50,
+  Zphase=1,
+  RefS=T,
+  EmitS=T,
+  PhaseS=T,
+ /
+
+&CAVITY
+  LEfield=T,
+  File_Efield(1)='TWS_Sband.dat',
+  Nue(1)=2.857,
+  MaxE(1)=-40,
+  Phi(1)=0,
+  C_pos(1)=0.1,
+  C_numb(1)=9,
+ /
+

@@ -247,3 +247,29 @@ def expand_tws_field_map(z0, f0, z1, z2, m_cells_in_body, n_cell):
     ftot.append(f_exit)
 
     return np.concatenate(ztot), np.concatenate(ftot)
+
+
+def fix_laser_map_header(path):
+    """Convert a MATLAB-written laser 3D map to ASTRA grid-header format.
+
+    DESY ships Plasma_Example_2 laser.dat with three header lines in
+    (n, min, spacing) form; the ASTRA 3D map reader requires explicit
+    grid value lines (n followed by the n values). Converts in place.
+    """
+    path = Path(path)
+    with open(path) as f:
+        lines = f.readlines()
+    if len(lines) < 4:
+        raise ValueError("laser map too short: " + str(path))
+    grids = []
+    for i in range(3):
+        vals = [float(v) for v in lines[i].split()]
+        n = int(vals[0])
+        x0, dx = vals[1], vals[2]
+        grid = [x0 + j * dx for j in range(n)]
+        grids.append((n, grid))
+    with open(path, "w") as f:
+        for n, grid in grids:
+            f.write(" ".join([str(n)] + ["%.16e" % v for v in grid]) + "\n")
+        f.writelines(lines[3:])
+    return [(n, g[0], g[-1]) for n, g in grids]

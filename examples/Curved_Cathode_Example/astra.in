@@ -1,0 +1,43 @@
+! curved cathode (completed by astra-notebook)
+&NEWRUN
+  Head='Example for a non-planar cathode',
+  RUN=1,
+  Distribution='bunch.ini',
+  Track_All=T,
+  Auto_Phase=F,
+  check_ref_part=F,
+  H_max=0.001,
+  H_min=0,
+ /
+
+&OUTPUT
+  ZSTART=0,
+  ZSTOP=0.1,
+  Zemit=50,
+  Zphase=1,
+  RefS=T,
+  EmitS=T,
+  PhaseS=T,
+ /
+
+&CHARGE
+  LSPCH=T,
+  Lmirror=T,
+  L_Curved_Cathode=T,
+  R_zero=0.02,
+  Cathode_Contour='Contour.dat',
+  Nrad=10,
+  Cell_var=2,
+  Nlong_in=10,
+  min_grid=0,
+  Max_Scale=0.05,
+ /
+
+&CAVITY
+  LEfield=T,
+  File_Efield(1)='efld.dat',
+  Nue(1)=1.3,
+  MaxE(1)=-40,
+  Phi(1)=0,
+ /
+
