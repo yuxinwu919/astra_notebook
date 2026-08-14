@@ -40,6 +40,8 @@ from typing import Optional
 
 import numpy as np
 
+from ..constants import M_E_C2_EV
+
 logger = logging.getLogger(__name__)
 
 MM_TO_M = 1e-3
@@ -106,15 +108,16 @@ class SigmaData:
     """6x6 beam covariance matrix evolution (23 columns).
 
     Covariance in canonical coordinates (x, p~x, y, p~y, z, E_kin),
-    manual 4.13. matrix[i,j] in SI: positions [m^2] on (1,1),(3,3),(5,5),
-    mixed terms [m.eV/c] etc.
+    manual 4.13. 文件把动量列归一化到 mc、能量列归一化到 mc^2
+    (无量纲) - 这就是历史"3.83 因子"的来源 (1/mc^2 = 3.83);
+    读取时统一转换为 SI: 位置 [m], 动量 [eV/c], 能量 [eV]。
     """
 
     z: np.ndarray          # [m]
     e_kin_eV: np.ndarray   # [eV] (file stores MeV)
-    matrix: np.ndarray     # (N, 6, 6) covariance
-    enx: np.ndarray        # eigen-emittance x [m.rad]
-    eny: np.ndarray        # eigen-emittance y [m.rad]
+    matrix: np.ndarray     # (N, 6, 6) covariance, SI
+    enx: np.ndarray        # 归一化 eigen-emittance x [m.rad] (可与 Xemit 对照)
+    eny: np.ndarray        # 归一化 eigen-emittance y [m.rad]
     enz: np.ndarray        # longitudinal emittance [eV.m]
     filename: str = ""
 
@@ -239,14 +242,14 @@ def read_sigma_file(rootname: str, run: str = "001") -> SigmaData:
     i=1..6, j=i..6 (row-major) of the covariance matrix in canonical
     coordinates (x, p~x, y, p~y, z, E_kin) - manual 4.13.
 
-    Empirical validation (examples/Manual_Example, last row):
-      * sig(1,1) [m^2] = sigma_x^2 and sig(5,5) [m^2] = sigma_z^2
-        (exact match with Xemit/Zemit)
-      * sig(2,2) and sig(6,6) scale like sigma_x'^2 and sigma_E^2 but
-        with an additional factor of ~3.83 whose origin is not documented
-        in the manual; the eigen-emittances derived here are therefore
-        marked experimental. For validated emittances use the Xemit
-        files (read_emit_files) instead.
+    验证 (examples/Manual_Example, 全部行):
+      * sig(1,1) [m^2] = sigma_x^2, sig(5,5) = sigma_z^2 (与
+        Xemit/Zemit 精确一致)
+      * sig(2,2)/(mc)^2 = (sigma_x' * p_ref)^2, sig(6,6)/(mc)^2 =
+        sigma_E^2 - 文件把动量列归一化到 mc、能量列归一化到 mc^2;
+        历史上"3.83 因子"即 1/mc^2 = 3.83 (见 physics_notes/06)
+      * 由 Sigma 导出的归一化 eigen-emittance 与 Xemit 的 eps_n
+        逐行对照 < 2% (test/test_cross_validation.py)
     """
     base = _base_from_rootname(rootname)
     path = Path(base + ".Sigma." + run)
@@ -266,8 +269,17 @@ def read_sigma_file(rootname: str, run: str = "001") -> SigmaData:
                 matrix[:, j, i] = cov_elements[:, idx]
             idx += 1
 
+    # 文件单位 -> SI: 列 2/4 (p~x/p~y) 归一化到 mc, 列 6 (E_kin)
+    # 归一化到 mc (两者在文件里都是"除以 mc"后的无量纲量)。
+    # 协方差按元素对缩放: matrix[i,j] *= s_i * s_j, 因此对角元
+    # sig66 乘 mc^2, 混合元 (z,E) 乘 mc。
+    mc = M_E_C2_EV
+    scale = np.array([1.0, mc, 1.0, mc, 1.0, mc])
+    matrix = matrix * scale[None, :, None] * scale[None, None, :]
+
     # Eigen-emittances: imaginary parts of eigenvalues of Sigma @ J
-    # (4x4 transverse block), plus longitudinal sqrt(det).
+    # (4x4 transverse block, 单位 m.eV/c)。除以 mc 得到归一化
+    # 发射度 [m.rad] (beta*gamma = p/mc 已含在换算中)。
     enx = np.zeros(n)
     eny = np.zeros(n)
     enz = np.zeros(n)
@@ -281,11 +293,11 @@ def read_sigma_file(rootname: str, run: str = "001") -> SigmaData:
         imag = np.sort(np.abs(ev.imag))
         imag = imag[imag > 1e-30]
         if len(imag) >= 4:
-            enx[k] = imag[0]
-            eny[k] = imag[2]
+            enx[k] = imag[0] / mc
+            eny[k] = imag[2] / mc
         elif len(imag) >= 2:
-            enx[k] = imag[0]
-            eny[k] = imag[1]
+            enx[k] = imag[0] / mc
+            eny[k] = imag[1] / mc
         z2 = matrix[k, 4, 4]
         pz2 = matrix[k, 5, 5]
         zpz = matrix[k, 4, 5]

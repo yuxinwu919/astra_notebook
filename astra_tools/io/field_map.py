@@ -165,7 +165,11 @@ def read_wake_potential(path) -> WakePotential:
     if not lines:
         raise ValueError("empty wake file: " + str(path))
     n = int(float(lines[0][0]))
+    if n <= 0:
+        raise ValueError("wake file declares %d points: %s" % (n, path))
     rows = np.asarray([[float(v) for v in ln] for ln in lines[1:1 + n]], dtype=float)
+    if rows.ndim != 2 or rows.shape[0] < n or rows.shape[1] < 2:
+        raise ValueError("wake file truncated: expected %d rows: %s" % (n, path))
     return WakePotential(s=rows[:, 0], w=rows[:, 1], source=str(path))
 
 

@@ -286,12 +286,13 @@ def plot_cathode_emission(path, ax=None, figsize=(8, 5), title=None,
     return fig
 
 
-def slice_mismatch(dist, n_slices=20):
+def slice_mismatch(dist, n_slices=20, bz_on_axis_T: float = 0.0):
     """slice 失配参数 (postpro 5.6.3 项 2):
 
     zeta_i = 0.5 * (beta0*gamma_i - 2*alpha0*alpha_i + gamma0*beta_i) >= 1
 
     投影束团 (下标 0) 与各纵向 slice (下标 i) 的 Courant-Snyder 参数。
+    散角用正则动量 (manual 4.13.1, bz_on_axis_T)。
     返回 (z_centers [m], zeta_x, zeta_y)。
     """
     from ..analysis.emittance import compute_twiss_parameters
@@ -299,11 +300,13 @@ def slice_mismatch(dist, n_slices=20):
 
     d = dist.filter_active()
     p_ref = dist.ref_momentum_eVc or float(np.mean(np.abs(d.pz)))
-    sa = compute_slice_analysis(dist, n_slices=n_slices)
+    sa = compute_slice_analysis(dist, n_slices=n_slices, bz_on_axis_T=bz_on_axis_T)
 
-    # 投影 Twiss (x / y), 使用正则散角 x' = px/p_ref
-    xp = (d.px - np.mean(d.px)) / p_ref
-    yp = (d.py - np.mean(d.py)) / p_ref
+    # 投影 Twiss (x / y), 使用正则散角 x' = p~x/p_ref
+    ptx = d.px + 0.5 * C_LIGHT * bz_on_axis_T * d.y
+    pty = d.py - 0.5 * C_LIGHT * bz_on_axis_T * d.x
+    xp = (ptx - np.mean(ptx)) / p_ref
+    yp = (pty - np.mean(pty)) / p_ref
     b0x, a0x, g0x = compute_twiss_parameters(d.x - np.mean(d.x), xp)
     b0y, a0y, g0y = compute_twiss_parameters(d.y - np.mean(d.y), yp)
 
@@ -356,7 +359,8 @@ def plot_3d_map_slices(path, axis="z", n_slices=3, figsize=(13, 4), title=None,
     from ..io.field_map import read_3d_field_map
     x, y, z, f = read_3d_field_map(path)
     shape = f.shape
-    fig, axs = plt.subplots(1, n_slices, figsize=figsize)
+    fig, axs = plt.subplots(1, n_slices, figsize=figsize, squeeze=False)
+    axs = axs[0]
     vmax = float(np.max(np.abs(f)))
     if vmax == 0:
         vmax = 1.0
@@ -490,8 +494,9 @@ def plot_core_brightness(ce, landf=None, ax=None, figsize=(8, 4), title=None):
     z = ce["mean_z"]
     epsn = np.maximum(ce["norm_emit_x"] * ce["norm_emit_y"], 1e-30)
     if landf is not None and "landf_total_charge" in landf:
+        # landf 来自 parse_output_file, 电荷已是 SI (C)
         q = np.interp(z, landf["landf_z"], landf["landf_total_charge"])
-        b = np.abs(q) * 1e-9 / epsn
+        b = np.abs(q) / epsn
         ylabel = "brightness B = Q/(eps_nx eps_ny) [C/m^2]"
     else:
         b = 1.0 / epsn
@@ -505,12 +510,16 @@ def plot_core_brightness(ce, landf=None, ax=None, figsize=(8, 4), title=None):
     return fig
 
 
-def plot_slice_ellipses_3d(dist, n_slices=10, figsize=(9, 6), title=None):
-    """3D RMS slice 椭圆 (postpro 5.6.3 项 6, mplot3d 静态)."""
+def plot_slice_ellipses_3d(dist, n_slices=10, figsize=(9, 6), title=None,
+                            bz_on_axis_T: float = 0.0):
+    """3D RMS slice 椭圆 (postpro 5.6.3 项 6, mplot3d 静态).
+
+    散角用正则动量 (manual 4.13.1, bz_on_axis_T)。
+    """
     from ..analysis.emittance import compute_emittance_ellipse_params
     from ..analysis.slices import compute_slice_analysis
 
-    sa = compute_slice_analysis(dist, n_slices=n_slices)
+    sa = compute_slice_analysis(dist, n_slices=n_slices, bz_on_axis_T=bz_on_axis_T)
     d = dist.filter_active()
     p_ref = dist.ref_momentum_eVc or float(np.mean(np.abs(d.pz)))
     fig = plt.figure(figsize=figsize)
@@ -522,7 +531,9 @@ def plot_slice_ellipses_3d(dist, n_slices=10, figsize=(9, 6), title=None):
         if i == sa.n_slices - 1:
             mask = (d.z >= sa.z_edges[i]) & (d.z <= sa.z_edges[i + 1])
         xi = d.x[mask]
-        xp = (d.px[mask] - np.mean(d.px[mask])) / p_ref
+        yi = d.y[mask]
+        ptx = d.px[mask] + 0.5 * C_LIGHT * bz_on_axis_T * yi
+        xp = (ptx - np.mean(ptx)) / p_ref
         par = compute_emittance_ellipse_params(xi - np.mean(xi), xp)
         th = np.linspace(0, 2 * np.pi, 60)
         xe = par["a"] * np.cos(th) * 1e3
@@ -596,7 +607,7 @@ def plot_envelope_with_aperture(emit, apertures, ax=None, figsize=(9, 5),
         if r < 0:  # beam stop / plug
             ax.axvspan(z1, z2, color="k", alpha=0.25, label="beam stop")
             continue
-        off = ap["yoff"] if plane == "x" else ap["xoff"]
+        off = ap["xoff"] if plane == "x" else ap["yoff"]
         ax.add_patch(Rectangle(
             (z1, (off - r) * 1e3), z2 - z1, 2 * r * 1e3,
             fill=False, edgecolor="r", lw=1.5, label="aperture"))

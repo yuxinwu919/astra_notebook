@@ -56,6 +56,7 @@ class AstraDistributionReader:
         may be a field map) requires the content to actually look like a
         particle file.
         """
+        path = Path(path)
         suffixes_lower = {s.lower() for s in path.suffixes}
         if suffixes_lower & _NON_PHASE_SUFFIXES:
             return False
@@ -66,6 +67,18 @@ class AstraDistributionReader:
             return True
         # Anything else (e.g. .dat): only accept if content looks like
         # particles. Field maps (2-column tables) must be rejected.
+        # 先按字节判断文本/二进制: ASCII 场图的前几个字节读成 float64
+        # 会变成 denormal 小浮点并通过二进制头的范围检查 (误判)
+        with open(path, "rb") as f:
+            head_bytes = f.read(4096)
+        if b"\x00" not in head_bytes:
+            # 文本: 只走 ASCII 探测
+            ncols = self._probe_ascii_ncols(path)
+            if ncols is None:
+                return False
+            if ncols >= 9:
+                return True
+            return ncols == 5 and self._probe_ascii_second_line(path) in (9, 10)
         try:
             self._probe_binary(path)
             return True
@@ -144,9 +157,10 @@ class AstraDistributionReader:
         n10, r10 = divmod(len(body), 10)
 
         if r9 == 0 and r10 == 0:
-            # Ambiguous: inspect the 10th column as particle index
+            # Ambiguous: inspect column 8 (particle index; column 9 is
+            # status and is ~constant, so it can never look sequential)
             test = body[: n10 * 10].reshape(n10, 10)
-            if self._looks_like_index(test[:, 9]):
+            if self._looks_like_index(test[:, 8]):
                 n_particles, n_cols = n10, 10
             else:
                 n_particles, n_cols = n9, 9

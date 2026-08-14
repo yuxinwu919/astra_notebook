@@ -81,3 +81,27 @@ def test_reference_particle_is_absolute():
     # Bunch z values are absolute around 1.5 m, not 0
     assert np.mean(dist.z) == pytest.approx(1.5, abs=0.01)
     assert dist.ref_z_m == pytest.approx(1.5)
+
+def test_sigma_eigen_emittances():
+    """Sigma 文件导出的归一化 eigen-emittance 与 Xemit/Zemit 对照.
+
+    文件把动量列归一化到 mc、能量列归一化到 mc^2 (历史 "3.83 因子"
+    之谜, 见 physics_notes/06); 读者换算到 SI 后:
+      * enz (纵向, eV.m) 与 Zemit eps_zn 逐行一致 (< 0.5%)
+      * enx/eny (归一化, m.rad) 与 Xemit eps_n 逐行一致 (< 10%,
+        耦合束的特征发射度与投影发射度固有差异)
+    """
+    from astra_tools.io.astra_emit import read_sigma_file
+    sig = read_sigma_file(str(DATA / "Example"))
+    xemit = np.loadtxt(DATA / "Example.Xemit.001")
+    zemit = np.loadtxt(DATA / "Example.Zemit.001")
+    from scipy.interpolate import interp1d
+    xeps = interp1d(xemit[:, 0], xemit[:, 5] * 1e-6,
+                    bounds_error=False,
+                    fill_value=(xemit[0, 5] * 1e-6, xemit[-1, 5] * 1e-6))(sig.z)
+    zeps = interp1d(zemit[:, 0], zemit[:, 5],
+                    bounds_error=False,
+                    fill_value=(zemit[0, 5], zemit[-1, 5]))(sig.z)
+    assert np.max(np.abs(sig.enz - zeps) / zeps) < 5e-3
+    assert np.max(np.abs(sig.enx - xeps) / xeps) < 0.10
+

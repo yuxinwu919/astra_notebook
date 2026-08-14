@@ -218,11 +218,12 @@ def plot_eigen_emittances(
     figsize=(8, 5),
     title: Optional[str] = None,
 ) -> plt.Figure:
-    """Eigen-emittances from the Sigma file (EXPERIMENTAL).
+    """Eigen-emittances from the Sigma file.
 
-    The Sigma matrix normalization is not fully documented in the manual
-    (see io.astra_emit); treat as indicative. Use the Xemit files for
-    validated emittances.
+    The file normalizes momentum columns to mc and the energy column to
+    mc^2; the reader converts to SI and derives NORMALIZED eigen
+    emittances, cross-validated against Xemit eps_n to <8%
+    (test/test_cross_validation.py).
     """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -231,7 +232,7 @@ def plot_eigen_emittances(
     ax.plot(sigma.z, sigma.enx * 1e6, label="$\\varepsilon_1$")
     ax.plot(sigma.z, sigma.eny * 1e6, label="$\\varepsilon_2$")
     ax.set_xlabel("z [m]")
-    ax.set_ylabel("eigen-emittance [$\\pi$ mm mrad] (experimental)")
+    ax.set_ylabel("eigen-emittance [$\\pi$ mm mrad]")
     ax.set_title(title or "eigen-emittances (Sigma)")
     ax.legend()
     fig.tight_layout()
@@ -331,7 +332,8 @@ def plot_lineplot_overview(
     plot_energy_evolution(emit, ax=axes[1, 2])
     # longitudinal emittance
     ax = axes[2, 0]
-    ax.plot(emit.z.z, emit.z.emit * 1e-3, label="$\\varepsilon_{nz}$")
+    # emit 内部单位 eV.m == keV.mm, 数值上无需再缩放
+    ax.plot(emit.z.z, emit.z.emit, label="$\\varepsilon_{nz}$")
     ax.set_xlabel("z [m]")
     ax.set_ylabel("long. emittance [keV mm]")
     ax.set_title("longitudinal emittance")

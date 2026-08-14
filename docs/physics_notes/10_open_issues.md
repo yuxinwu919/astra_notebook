@@ -3,26 +3,12 @@
 > 状态: 2026-08-15, 批 A/B/C 修复完成、83 项测试通过之后。
 > 每条给出: 现象 / 已知证据 / 影响范围 / 建议实验 / 风险评级。
 
-## 1. Sigma 矩阵 sig(2,2) / sig(6,6) 的 ~3.83 归一化因子 ★高
+## 1. Sigma 矩阵 ~3.83 因子 — **已解决** (2026-08)
 
-**现象**: 手册 Table 4 的 Sigma 文件 (23 列, 6x6 协方差, 正则坐标
-x, p~x, y, p~y, z, E_kin)。sig(1,1)=σx²、sig(5,5)=σz² 与 Xemit/Zemit
-精确吻合; 但 sig(2,2) 与 <p~x²>、sig(6,6) 与 σE² 的比例相差一个约
-3.83 的因子, 手册未说明其来源。
-
-**已知证据**:
-* examples/Manual_Example/Example.Sigma.001 末行: sig22/σx'²(p_ref²)
-  与 sig66/σE² 均 ≈ 3.83 (见 docs/physics_notes/06 与
-  astra_tools/io/astra_emit.py 中 read_sigma_file 的 docstring);
-* 由 Sigma 导出的 eigen-emittance 因此标为"实验性", 绘图
-  (plot_eigen_emittances) 已加警示; 权威发射度一律走 Xemit。
-
-**影响范围**: 仅 Sigma 读者与 eigen-emittance 图 (lineplot 菜单 4)。
-**建议实验**: 多 z 行数据检验假设 (βγ)²、γ²、γ(1+β²)、γ²(1+β²) 等;
-在 Manual_Example 上把每行的 sig22 与 p_ref²·σx'² 做比, 看比值是否
-随 γ 变化即可锁定组合 (γ 从 ~2 变到 ~1000 量级)。细节见
-docs/dev_manual/codex_tasks.md 任务 T4。
-**风险**: 中 — 不影响任何已验证的统计量。
+**结论**: 文件把动量列归一化到 mc、能量列归一化到 mc^2 (无量纲);
+3.83 = 1/(mc[MeV])^2。read_sigma_file 现已换算到 SI 并导出归一化
+eigen-emittance, 与 Xemit eps_n 对照 < 8% (enz 与 Zemit eps_zn
+< 0.01%)。详见 physics_notes/06。
 
 ## 2. Cemit 95/90/80 核心发射度算法未独立复现 ★高
 

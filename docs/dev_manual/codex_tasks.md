@@ -19,14 +19,10 @@
 
 # 第一部分: 主代理自留任务 (物理/工程验证, 按优先级)
 
-## M1: read_error 合成单元测试 (低, ~1h)
-astra_tools/io/astra_misc.py 的 read_error (12 列) 无测试。
-合成 Error.001 断言列语义; 空文件/缺列报 ValueError。
+## M1: read_error 合成单元测试 — **已完成** (test/test_misc_readers.py)
 
-## M2: lab.001 标签读取器 + Scan/Error 图标题 (低, ~2h)
-新增 read_lab_file() (A80 三行: X轴/Y轴/标题); 接入
-plot_scan_fom / plot_error_hist; 用真实 Example.lab.001 作 golden
-(data/scan_validate/ 下有, 先提交 golden)。
+## M2: lab.001 标签读取器 — **已完成** (read_lab_file + Scan/Error
+图标题; golden: examples/Manual_Example/golden/Example.lab.001)
 
 ## M3: Cemit 核心发射度真实交叉验证 (高, 3-4h)
 physics_notes/10 问题 2。Manual_Example 真跑 C_EmitS=T ->
@@ -34,10 +30,10 @@ golden Cemit.001; 用 analysis/core.py 的 0.8/0.9/0.95 核心分数曲线
 逐列对照 C80/90/95; 不吻合则试横向核心/相空间距离核心 (手册
 4.13.8); 结论写 physics_notes/10。
 
-## M4: Sigma 3.83 因子实验 (高, ~3h)
-physics_notes/10 问题 1。多行 Sigma 数据检验候选归一化因子
-((βγ)², γ², γ(1+β²), ...), 必要时不同能量真跑 2-3 个 SigmaS 样本;
-锁定因子后去掉 eigen-emittance 的"实验性"标注。
+## M4: Sigma 3.83 因子 — **已解决** (2026-08)
+文件把动量列归一化到 mc、能量列归一化到 mc^2; 3.83 = 1/(mc[MeV])^2。
+read_sigma_file 已换算 SI, 归一化 eigen-emittance 与 Xemit 对照 <8%,
+enz 与 Zemit <0.01% (physics_notes/06, test_cross_validation.py)。
 
 ## M5: Error 真实运行 + golden (中, 2-3h)
 physics_notes/10 问题 4。Manual_Example 加 &ERROR (ErrorS=T,

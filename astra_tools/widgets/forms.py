@@ -22,8 +22,11 @@ def _widget_for_param(entry, value=None):
 
     if "Logical" in ptype:
         default = False
-        if value is not None:
-            default = bool(value)
+        if isinstance(value, bool):
+            default = value
+        elif isinstance(value, str):
+            # 只有明确的真值拼写才勾选 (字符串 "FALSE" 不得翻成 True)
+            default = value.strip().upper() in ("T", "TRUE")
         elif entry["default"] and entry["default"].upper() in ("T", "TRUE"):
             default = True
         w = widgets.Checkbox(value=default, description=name, tooltip=tip)
@@ -51,7 +54,10 @@ def _widget_for_param(entry, value=None):
         # Character / 数组 / 其他 -> 文本框 (数组用逗号分隔)
         default = ""
         if value is not None:
-            default = str(value)
+            if isinstance(value, (list, tuple)):
+                default = ", ".join(str(v) for v in value)
+            else:
+                default = str(value)
         elif entry["default"] not in (None, ""):
             default = str(entry["default"])
         w = widgets.Text(value=default, description=name, tooltip=tip,
@@ -74,6 +80,7 @@ def namelist_form(namelist: str, values=None, only=None, show: bool = True):
     """
     meta = load(namelist)
     wmap = {}
+    ptypes = {}
     touched = set()
     only_lower = None
     if only is not None:
@@ -89,6 +96,7 @@ def namelist_form(namelist: str, values=None, only=None, show: bool = True):
                     val = v
                     break
         wmap[base] = _widget_for_param(entry, val)
+        ptypes[base] = entry["type"]
         # 记录用户改动 (changed_only 模式只写用户动过的参数)
         wmap[base].observe(lambda change, b=base: touched.add(b), "value")
 
@@ -107,7 +115,26 @@ def namelist_form(namelist: str, values=None, only=None, show: bool = True):
             # (例如 Cathode=F 若省略会退回手册默认 T, 行为完全不同)
             if v is None or v == "":
                 continue
-            out[base] = v
+            ptype = ptypes[base]
+            # 文本框 -> 按元数据类型转值 (数组参数: 逗号分隔的数值
+            # 列表; 否则写出带引号字符串会被 ASTRA 拒绝)
+            if isinstance(v, str) and "array" in ptype.lower():
+                toks = [t.strip() for t in v.split(",") if t.strip()]
+                if "Character" in ptype:
+                    out[base] = toks
+                else:
+                    try:
+                        if "Integer" in ptype:
+                            out[base] = [int(float(t)) for t in toks]
+                        elif "Logical" in ptype:
+                            out[base] = [t.upper() in ("T", "TRUE") for t in toks]
+                        else:
+                            out[base] = [float(t) for t in toks]
+                    except ValueError:
+                        raise ValueError(
+                            "参数 %s 需要逗号分隔的数值, 收到: %r" % (base, v))
+            else:
+                out[base] = v
         return out
 
     return wmap, getter

@@ -38,14 +38,18 @@ def plot_overview(
     p_ref = dist.ref_momentum_eVc
     if p_ref <= 0:
         p_ref = float(np.mean(np.abs(dist.pz[m])))
-    w = dist.charge[m] if use_weights else None
+    if p_ref <= 0:
+        raise ValueError("reference momentum is zero; cannot form x'")
+    w = np.abs(dist.charge[m]) if use_weights else None
 
     x = dist.x[m] * 1e3
     y = dist.y[m] * 1e3
     z = (dist.z[m] - np.mean(dist.z[m])) * 1e3
     pz = dist.pz[m]
     mean_pz = np.mean(pz)
-    dp = (pz - mean_pz) / mean_pz * 100
+    if abs(mean_pz) < 1e-30:
+        mean_pz = p_ref
+    dp = (pz - mean_pz) / abs(mean_pz) * 100
     ptx = canonical_divergence(dist.px[m], dist.y[m], bz_on_axis_T, +1.0)
     pty = canonical_divergence(dist.py[m], dist.x[m], bz_on_axis_T, -1.0)
     xp = (ptx - np.mean(ptx)) / p_ref * 1e3

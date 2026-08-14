@@ -27,7 +27,7 @@ def discover_sim_runs(sim_dir):
         if len(parts) != 3 or not parts[2].isdigit():
             continue
         stem, typ, run = parts
-        if typ in _TYPES or typ.isdigit():
+        if typ in _TYPES or typ.lstrip("-").isdigit():
             found.setdefault(stem, {}).setdefault(run, {})[typ] = f
     return found
 

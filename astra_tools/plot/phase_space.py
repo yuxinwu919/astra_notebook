@@ -89,7 +89,9 @@ def plot_phase_space(
     else:
         x_data = (dist.z[mask] - np.mean(dist.z[mask])) * 1e3
         mean_pz = np.mean(dist.pz[mask])
-        y_data = (dist.pz[mask] - mean_pz) / mean_pz * 100
+        if abs(mean_pz) < 1e-30:
+            mean_pz = p_ref
+        y_data = (dist.pz[mask] - mean_pz) / abs(mean_pz) * 100
         xlabel = "z [mm]  (positive = ahead of reference)"
         ylabel = "dp/p [%]"
         default_title = "longitudinal phase space"
@@ -149,7 +151,9 @@ def plot_phase_space(
         ye_ = params["b"] * np.sin(th) * uscale
         xr_ = xe_ * np.cos(params["theta"]) - ye_ * np.sin(params["theta"])
         yr_ = xe_ * np.sin(params["theta"]) + ye_ * np.cos(params["theta"])
-        ax.plot(xr_, yr_, color="#CC3311", lw=1.8, ls="-", label="1-RMS ellipse")
+        # 密度画在绝对 x (未居中), 椭圆必须平移到质心
+        ax.plot(xr_ + float(np.mean(x_data)), yr_,
+                color="#CC3311", lw=1.8, ls="-", label="1-RMS ellipse")
         ax.legend(loc="best")
 
     # 离群点裁剪说明

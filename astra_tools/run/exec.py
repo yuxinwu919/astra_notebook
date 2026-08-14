@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import shutil
 import subprocess
 import threading
@@ -131,10 +132,14 @@ def run_program(
         raise RuntimeError(
             "%s returned exit code %d\n%s" % (exe_name, result.returncode, combined)
         )
-    # ASTRA 解析失败时可能仍以 0 退出, 检查失败标记
-    for marker in ("Program stops", "Error reading", "ERROR"):
+    # ASTRA 解析失败时可能仍以 0 退出, 检查失败标记。
+    # 注: "ERROR" 只认行首独立出现, 避免 Head 等正常文本里含
+    # "ERROR" 字样时误报 (例如 'ERROR STUDY' 作为标题)。
+    for marker in ("Program stops", "Error reading"):
         if marker in combined:
             raise RuntimeError("%s 失败 (%s):\n%s" % (exe_name, marker, combined[-2000:]))
+    if re.search(r"(?m)^\s*ERROR\b", combined):
+        raise RuntimeError("%s 失败 (ERROR):\n%s" % (exe_name, combined[-2000:]))
     logger.info("%s finished successfully", exe_name)
     return result
 
@@ -149,7 +154,8 @@ def discover_outputs(work_dir: Path, stem: str, run: str = "001"):
                      'phase': [paths], 'dist': [paths]}
     """
     work_dir = Path(work_dir)
-    out = {"emit": None, "sigma": None, "ref": None, "log": None,
+    out = {"emit": None, "yemit": None, "zemit": None, "sigma": None,
+           "ref": None, "log": None, "landf": None,
            "phase": [], "dist": [], "cemit": None}
     for f in sorted(work_dir.glob("*")):
         parts = f.name.split(".")
@@ -159,12 +165,18 @@ def discover_outputs(work_dir: Path, stem: str, run: str = "001"):
             ext = parts[1]
             if ext == "Xemit":
                 out["emit"] = f
+            elif ext == "Yemit":
+                out["yemit"] = f
+            elif ext == "Zemit":
+                out["zemit"] = f
             elif ext == "Sigma":
                 out["sigma"] = f
             elif ext == "ref":
                 out["ref"] = f
             elif ext == "Log":
                 out["log"] = f
+            elif ext == "LandF":
+                out["landf"] = f
             elif ext == "Cemit":
                 out["cemit"] = f
             elif ext.isdigit():

@@ -26,7 +26,8 @@ def _format_value(value: Any) -> str:
             raise ValueError("empty string values are not valid namelist entries")
         if s.startswith(("'", '"')) and s.endswith(("'", '"')):
             return s  # already quoted
-        return "'" + s + "'"
+        # Fortran 惯例: 内嵌撇号双写转义, 保证 parse 往返对称
+        return "'" + s.replace("'", "''") + "'"
     if isinstance(value, (int, np.integer)):
         return str(int(value))
     if isinstance(value, (float, np.floating)):

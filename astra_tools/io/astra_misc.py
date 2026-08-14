@@ -36,12 +36,18 @@ def _load(path, ncols):
 
 
 def read_track_file(path) -> dict:
-    """探针轨迹 (track 文件): 每行 = 一个探针在一个积分步的状态."""
+    """探针轨迹 (track 文件, 手册 Table 4, 8 列):
+    seq | status | z | x | y | Ez | (Er 或 Ex) | (0.0 或 Ey).
+
+    注意: 笛卡尔 3D 场下第 7/8 列是 Ex/Ey 而非 Er/0; 本读器保留
+    文件名语义 (Er/Ey), 调用方在笛卡尔场景自行把 Er 理解为 Ex。
+    """
     d = _load(path, 7)
+    ey = d[:, 7] if d.shape[1] >= 8 else np.zeros(d.shape[0])
     return {
         "seq": d[:, 0].astype(int), "status": d[:, 1].astype(int),
         "z": d[:, 2], "x": d[:, 3] * MM_TO_M, "y": d[:, 4] * MM_TO_M,
-        "Ez": d[:, 5], "Er": d[:, 6],
+        "Ez": d[:, 5], "Er": d[:, 6], "Ey": ey,
     }
 
 
@@ -134,10 +140,10 @@ def read_tcheck(path) -> dict:
 
 
 def read_lab_file(path) -> dict:
-    """Scan/Error 标签文件 (A80: 每个 FOM 三行 = X轴 / Y轴 / 标题).
+    r"""Scan/Error 标签文件 (A80: 每个 FOM 三行 = X轴 / Y轴 / 标题).
 
     返回 {'xlabel': [...], 'ylabel': [...], 'title': [...]}, 与
-    FOM(1..10) 一一对应; PGPLOT 转义前缀 (\fi \gs \gp) 被剥除,
+    FOM(1..10) 一一对应; PGPLOT 转义前缀 (i gs gp) 被剥除,
     未定义的 FOM 行为空或 "no entry"。
     """
     text = Path(path).read_text()
