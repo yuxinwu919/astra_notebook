@@ -81,3 +81,7 @@ anaconda_projects/
 
 # WHPS 无 .001 后缀的杂散输出
 examples/WHPS_LINAC/**/*.4200
+
+# 大体积可再生物料 (留在本地)
+examples/Plasma_Example_2/laser.dat
+examples/Wake/Wake_Files/plots.pptx
