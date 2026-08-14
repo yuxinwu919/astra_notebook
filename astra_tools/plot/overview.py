@@ -67,9 +67,19 @@ def plot_overview(
     fig, axes = plt.subplots(3, 2, figsize=figsize)
     for row, col, xd, yd, t, xl, yl in panels:
         ax = axes[row, col]
-        zz, xe, ye = density2d(xd, yd, bins=bins,
-                               range_xy=(clip_percentile(xd), clip_percentile(yd)),
-                               weights=w)
+        try:
+            zz, xe, ye = density2d(
+                xd, yd, bins=bins,
+                range_xy=(clip_percentile(xd), clip_percentile(yd)),
+                weights=w)
+        except ValueError:
+            ax.text(0.5, 0.5, "fewer than 3 active particles",
+                    ha="center", va="center", transform=ax.transAxes,
+                    color="0.4", fontsize=9)
+            ax.set_xlabel(xl)
+            ax.set_ylabel(yl)
+            ax.set_title(t)
+            continue
         im = ax.pcolormesh(xe, ye, np.where(zz > 0, zz, np.nan).T,
                            cmap="viridis", norm=LogNorm(), shading="auto",
                            rasterized=True)
@@ -96,7 +106,17 @@ def plot_transverse_profile(
     x = dist.x[m] * 1e3
     y = dist.y[m] * 1e3
     fig, ax = plt.subplots(1, 1, figsize=figsize)
-    zz, xe, ye = density2d(x, y, bins=bins)
+    try:
+        zz, xe, ye = density2d(x, y, bins=bins)
+    except ValueError:
+        ax.text(0.5, 0.5, "fewer than 3 active particles",
+                ha="center", va="center", transform=ax.transAxes,
+                color="0.4", fontsize=10)
+        ax.set_xlabel("x [mm]")
+        ax.set_ylabel("y [mm]")
+        ax.set_title(title or "transverse beam profile (x-y)")
+        fig.tight_layout()
+        return fig
     im = ax.pcolormesh(xe, ye, np.where(zz > 0, zz, np.nan).T,
                        cmap="inferno", norm=LogNorm(), shading="auto",
                        rasterized=True)

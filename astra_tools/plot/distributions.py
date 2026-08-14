@@ -44,10 +44,16 @@ def plot_distributions(
     fig, axes = plt.subplots(1, 3, figsize=figsize)
     for ax, data, label in zip(axes, [x, y, z], ["x", "y", "z"]):
         inside, _ = _hist_with_outliers(ax, data, bins, color, label)
-        mu, sigma = float(np.mean(inside)), float(np.std(inside))
-        xs = np.linspace(float(np.min(inside)), float(np.max(inside)), 200)
-        ax.plot(xs, stats.norm.pdf(xs, mu, sigma), color="#CC3311", lw=2,
-                label="Gauss: sigma = %.4g mm" % sigma)
+        if len(inside) >= 2:
+            mu, sigma = float(np.mean(inside)), float(np.std(inside))
+            if sigma > 0:
+                xs = np.linspace(float(np.min(inside)), float(np.max(inside)), 200)
+                ax.plot(xs, stats.norm.pdf(xs, mu, sigma), color="#CC3311", lw=2,
+                        label="Gauss: sigma = %.4g mm" % sigma)
+        else:
+            ax.text(0.5, 0.5, "fewer than 2 active particles",
+                    ha="center", va="center", transform=ax.transAxes,
+                    color="0.4", fontsize=9)
         ax.set_xlabel(label + " [mm]")
         ax.set_ylabel("probability density [1/mm]")
         ax.set_title((title_prefix + " " + label + " distribution").strip())
@@ -72,10 +78,12 @@ def plot_energy_distribution(
     e_kin = kinetic_energy_from_momentum(dist.pz[mask]) * 1e-6  # MeV
     fig, ax = plt.subplots(1, 1, figsize=figsize)
     inside, _ = _hist_with_outliers(ax, e_kin, bins, "#009988", "E")
-    mu, sigma = float(np.mean(inside)), float(np.std(inside))
-    xs = np.linspace(float(np.min(inside)), float(np.max(inside)), 200)
-    ax.plot(xs, stats.norm.pdf(xs, mu, sigma), color="#CC3311", lw=2,
-            label="Gauss: sigma = %.4g MeV" % sigma)
+    if len(inside) >= 2:
+        mu, sigma = float(np.mean(inside)), float(np.std(inside))
+        if sigma > 0:
+            xs = np.linspace(float(np.min(inside)), float(np.max(inside)), 200)
+            ax.plot(xs, stats.norm.pdf(xs, mu, sigma), color="#CC3311", lw=2,
+                    label="Gauss: sigma = %.4g MeV" % sigma)
     ax.set_xlabel("E_kin [MeV]")
     ax.set_ylabel("probability density [1/MeV]")
     ax.set_title(title)

@@ -124,7 +124,19 @@ def plot_phase_space(
 
     xr = clip_percentile(x_data, clip_q)
     yr = clip_percentile(y_data, clip_q)
-    z, xe, ye = density2d(x_data, y_data, bins=bins, range_xy=(xr, yr), weights=w)
+    try:
+        z, xe, ye = density2d(x_data, y_data, bins=bins,
+                              range_xy=(xr, yr), weights=w)
+    except ValueError:
+        # 少于 3 个活粒子: 画空图并注明, 不崩溃
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title or default_title)
+        ax.text(0.5, 0.5, "fewer than 3 active particles",
+                ha="center", va="center", transform=ax.transAxes,
+                color="0.4", fontsize=10)
+        fig.tight_layout()
+        return fig
 
     z_plot = np.where(z > 0, z, np.nan)
     im = ax.pcolormesh(xe, ye, z_plot.T, cmap=cmap, norm=LogNorm(),

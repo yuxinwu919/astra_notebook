@@ -216,5 +216,46 @@ def test_wake_potential_guards(tmp_path):
     w = read_wake_potential(pok)
     assert list(w.s) == [0.0, 0.1] and list(w.w) == [1.0, 2.0]
 
+def test_plots_empty_and_single_particle_graceful():
+    """<3 活粒子/单粒子: 画空图并注明, 不抛异常、无 inf/nan。"""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from astra_tools.plot.phase_space import plot_phase_space
+    from astra_tools.plot.overview import plot_overview, plot_transverse_profile
+    from astra_tools.plot.distributions import (
+        plot_distributions, plot_energy_distribution)
+    n = 1
+    d1 = Distribution.from_arrays(
+        x=np.full(n, 1e-3), y=np.zeros(n), z=np.zeros(n),
+        px=np.zeros(n), py=np.zeros(n), pz=np.full(n, 5e6),
+        clock=np.zeros(n), charge=np.ones(n))
+    fig = plot_phase_space(d1, plane="x")
+    assert "fewer than 3" in fig.axes[0].texts[0].get_text()
+    plt.close(fig)
+    fig, _ = plot_overview(d1)
+    plt.close(fig)
+    fig = plot_transverse_profile(d1)
+    plt.close(fig)
+    fig = plot_distributions(d1)
+    # 单粒子: 不画 inf/nan 高斯线
+    for ax in fig.axes:
+        for ln in ax.lines:
+            assert np.all(np.isfinite(ln.get_ydata()))
+    plt.close(fig)
+    fig = plot_energy_distribution(d1)
+    for ln in fig.axes[0].lines:
+        assert np.all(np.isfinite(ln.get_ydata()))
+    plt.close(fig)
+    # 空束团 (0 活粒子)
+    d0 = Distribution.from_arrays(
+        x=np.zeros(0), y=np.zeros(0), z=np.zeros(0),
+        px=np.zeros(0), py=np.zeros(0), pz=np.zeros(0),
+        clock=np.zeros(0), charge=np.zeros(0))
+    fig = plot_phase_space(d0, plane="x")
+    assert "fewer than 3" in fig.axes[0].texts[0].get_text()
+    plt.close(fig)
+
+
 
 
