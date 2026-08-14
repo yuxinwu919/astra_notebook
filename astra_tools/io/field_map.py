@@ -167,3 +167,83 @@ def read_wake_potential(path) -> WakePotential:
     n = int(float(lines[0][0]))
     rows = np.asarray([[float(v) for v in ln] for ln in lines[1:1 + n]], dtype=float)
     return WakePotential(s=rows[:, 0], w=rows[:, 1], source=str(path))
+
+
+# ============================================================
+# 1D field maps incl. travelling-wave structures (TWS)
+# ============================================================
+# Vendored and adapted from lume-astra (C. Mayes et al., LBNL,
+# Apache-2.0): https://github.com/ChristopherMayes/lume-astra
+# (astra/fieldmaps.py). ASTRA manual V3.2 section 6.9 describes the
+# TWS field-map format: a 4-value header line 'z1 z2 n m' followed by
+# a two-column (z, Ez) body.
+
+
+def parse_field_map_file(path):
+    """Parse a 1D ASTRA field map (standard 2-column or TWS).
+
+    Returns (attrs, data):
+        attrs = {'type': 'astra_1d' | 'astra_tws', 'z1','z2','n','m'}
+        data  = (N, 2) array [z, field]
+    """
+    path = Path(path)
+    with open(path) as f:
+        header = [float(v) for v in f.readline().split()]
+
+    attrs = {}
+    if len(header) == 4:
+        attrs["type"] = "astra_tws"
+        attrs["z1"] = header[0]
+        attrs["z2"] = header[1]
+        attrs["n"] = int(header[2])
+        attrs["m"] = int(header[3])
+        data = np.loadtxt(path, skiprows=1)
+    else:
+        attrs["type"] = "astra_1d"
+        data = np.loadtxt(path)
+    return attrs, data
+
+
+def expand_tws_field_map(z0, f0, z1, z2, m_cells_in_body, n_cell):
+    """Periodically expand a TWS field-map body over n_cell cells.
+
+    Layout: |Entrance| Cells | Exit | -> |Entrance| Cells |...|Cells| Exit |
+    (vendored from lume-astra's expand_tws_fmap).
+
+    Args:
+        z0: z positions of the raw table [m].
+        f0: field values of the raw table.
+        z1, z2: start/end of the periodic cell body [m].
+        m_cells_in_body: number of cells inside the raw body (attrs 'm').
+        n_cell: total number of cells requested (C_numb).
+
+    Returns:
+        (zfull, ffull) arrays.
+    """
+    z0 = np.asarray(z0, dtype=float)
+    f0 = np.asarray(f0, dtype=float)
+    zmin, zmax = float(z0.min()), float(z0.max())
+    dz = float(np.mean(np.diff(z0)))
+    l_entrance = z1 - zmin
+    l_exit = zmax - z2
+    l_cell = z2 - z1
+
+    n_repeat = int(n_cell / m_cells_in_body)
+
+    z_entrance = np.linspace(zmin, z1, int(round(l_entrance / dz + 1)))
+    z_cell = np.linspace(z1, z2, int(round(l_cell / dz + 1)))
+    z_exit = np.linspace(z2, zmax, int(round(l_exit / dz + 1)))
+
+    f_entrance = np.interp(z_entrance, z0, f0)
+    f_cell = np.interp(z_cell, z0, f0)
+    f_exit = np.interp(z_exit, z0, f0)
+
+    ztot = [z_entrance[:-1]]
+    ftot = [f_entrance[:-1]]
+    for i in range(n_repeat):
+        ztot.append(z_cell[:-1] + i * l_cell)
+        ftot.append(f_cell[:-1])
+    ztot.append(z_exit + (n_repeat - 1) * l_cell)
+    ftot.append(f_exit)
+
+    return np.concatenate(ztot), np.concatenate(ftot)

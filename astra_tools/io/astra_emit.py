@@ -321,3 +321,109 @@ def read_log_file(rootname: str, run: str = "001") -> str:
     """Read an ASTRA log file as plain text."""
     base = _base_from_rootname(rootname)
     return Path(base + ".Log." + run).read_text()
+
+
+# ============================================================
+# Generic tabular output parser
+# ============================================================
+# Column name/factor/unit tables vendored and adapted from lume-astra
+# (C. Mayes et al., LBNL, Apache-2.0):
+#   https://github.com/ChristopherMayes/lume-astra  (astra/parsers.py)
+# Original units = what ASTRA writes (manual Table 4); factors convert
+# to SI. Emittance columns: 'mm-mrad'/'mm-keV' with factor 1e-6 / 1,
+# numerically equal to the pi-unit values printed by ASTRA.
+
+OUTPUT_TABLES = {
+    "Xemit": (
+        ["mean_z", "mean_t", "mean_x", "sigma_x", "sigma_xp",
+         "norm_emit_x", "cov_x__xp/sigma_x"],
+        ["m", "ns", "mm", "mm", "mrad", "mm-mrad", "mrad"],
+        [1, 1e-9, 1e-3, 1e-3, 1e-3, 1e-6, 1e-3],
+        ["m", "s", "m", "m", "1", "m", "rad"],
+    ),
+    "Yemit": (
+        ["mean_z", "mean_t", "mean_y", "sigma_y", "sigma_yp",
+         "norm_emit_y", "cov_y__yp/sigma_y"],
+        ["m", "ns", "mm", "mm", "mrad", "mm-mrad", "mrad"],
+        [1, 1e-9, 1e-3, 1e-3, 1e-3, 1e-6, 1e-3],
+        ["m", "s", "m", "m", "1", "m", "rad"],
+    ),
+    "Zemit": (
+        ["mean_z", "mean_t", "mean_kinetic_energy", "sigma_z",
+         "sigma_energy", "norm_emit_z", "cov_z__energy/sigma_z"],
+        ["m", "ns", "MeV", "mm", "keV", "mm-keV", "keV"],
+        [1, 1e-9, 1e6, 1e-3, 1e3, 1, 1e3],
+        ["m", "s", "eV", "m", "eV", "m*eV", "eV"],
+    ),
+    "Cemit": (
+        ["mean_z", "norm_emit_x", "core_emit_95percent_x",
+         "core_emit_90percent_x", "core_emit_80percent_x",
+         "norm_emit_y", "core_emit_95percent_y",
+         "core_emit_90percent_y", "core_emit_80percent_y",
+         "norm_emit_z", "core_emit_95percent_z",
+         "core_emit_905percent_z", "core_emit_80percent_z"],
+        ["m"] + 8 * ["mm-mrad"] + 4 * ["mm-keV"],
+        # NOTE: deviates from lume-astra, which uses 1e-6 for ALL 12
+        # columns. The z-plane is 'keV mm' = 1 eV.m, so the factor is 1
+        # (lume-astra's copy-paste bug would make eps_zn 1e6 times too
+        # small). Verified against ASTRA's own Cemit.001 values.
+        [1] + 8 * [1e-6] + 4 * [1],
+        ["m"] + 8 * ["m"] + 4 * ["m*eV"],
+    ),
+    "LandF": (
+        ["landf_z", "landf_n_particles", "landf_total_charge",
+         "landf_n_lost", "landf_energy_deposited", "landf_energy_exchange"],
+        ["m", "1", "nC", "1", "J", "J"],
+        [1, 1, 1e-9, 1, 1, 1],
+        ["m", "1", "C", "1", "J", "J"],
+    ),
+}
+
+# suffix (lower) -> table key
+_EXT_TO_TABLE = {
+    ".xemit": "Xemit", ".yemit": "Yemit", ".zemit": "Zemit",
+    ".cemit": "Cemit", ".landf": "LandF",
+}
+
+
+def output_file_type(path) -> str:
+    """ASTRA output type from filename: 'Example.Xemit.001' -> 'Xemit'."""
+    parts = str(Path(path)).rsplit(".", 2)
+    if len(parts) == 3 and parts[2].isdigit():
+        return parts[1]
+    return parts[-1]
+
+
+def parse_output_file(path, standardize_labels: bool = True) -> dict:
+    """Parse any tabular ASTRA output file into SI unit arrays.
+
+    Covers Xemit/Yemit/Zemit/Cemit/LandF (Table 4). Returns a dict of
+    1D arrays keyed by column name. With standardize_labels, the
+    covariance columns (cov_x__xp/sigma_x etc.) are multiplied back to
+    plain covariances: cov_x__xp, cov_y__yp, cov_z__energy.
+    """
+    path = Path(path)
+    data = np.loadtxt(path, ndmin=2)
+    if data.size == 0:
+        raise ValueError("empty output file: " + str(path))
+
+    ftype = output_file_type(path)
+    key = _EXT_TO_TABLE.get("." + ftype.lower())
+    if key is None:
+        raise ValueError("unsupported output type: " + ftype)
+
+    names, _, factors, _ = OUTPUT_TABLES[key]
+    d = {}
+    for i, name in enumerate(names):
+        if data.shape[1] <= i:
+            break
+        d[name] = data[:, i] * factors[i]
+
+    if standardize_labels:
+        if ftype == "Xemit" and "cov_x__xp/sigma_x" in d:
+            d["cov_x__xp"] = d.pop("cov_x__xp/sigma_x") * d["sigma_x"]
+        if ftype == "Yemit" and "cov_y__yp/sigma_y" in d:
+            d["cov_y__yp"] = d.pop("cov_y__yp/sigma_y") * d["sigma_y"]
+        if ftype == "Zemit" and "cov_z__energy/sigma_z" in d:
+            d["cov_z__energy"] = d.pop("cov_z__energy/sigma_z") * d["sigma_z"]
+    return d
