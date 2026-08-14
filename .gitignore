@@ -1,0 +1,67 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*.pyo
+
+# OS generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*_V072817
+
+# ASTRA/Generator executables (binary, proprietary DESY)
+ASTRA/
+!ASTRA/*/readme.md
+
+# Runtime working directories
+simulation_files/
+data/
+
+# Virtual environments
+venv/
+.venv/
+
+# Large PDFs
+*.pdf
+
+# NORRAN artifact
+NORRAN
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+build_venv/
+*.spec.bak
+
+# OS specific (Windows)
+Desktop.ini
+
+# LaTeX build intermediates
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
+*.toc
+*.xdv
+
+# Generated test outputs
+packages/*/tests/output/
+
+
+*.log

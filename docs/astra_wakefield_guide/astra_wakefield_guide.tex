@@ -1,0 +1,488 @@
+\documentclass[a4paper,11pt]{article}
+
+% ── Preamble ──────────────────────────────────────────
+\usepackage[UTF8]{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{tikz}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=cyan,
+  citecolor=green
+}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\small\ttfamily,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small ASTRA Wakefield 机制详解}
+\fancyhead[R]{\small DESY ASTRA v3.2 / v4.0}
+\fancyfoot[C]{\thepage}
+
+\title{\textbf{ASTRA 中尾场（Wakefield）机制的完整文档}}
+\author{基于 ASTRA 用户手册 v3.2 \& DESY 12-012 \\ 结合数值计算实践整理}
+\date{\today}
+
+% ── Begin Document ────────────────────────────────────
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% ======================================================
+\section{尾场基本概念}
+% ======================================================
+
+\subsection{尾场函数（Wake Function）$W(s)$}
+
+\textbf{物理定义}：一个点电荷（严格来说是 $\delta$ 函数）$q_1$ 穿过电磁结构后，在它后方距离 $s$ 处，对测试电荷 $q_2$ 产生的归一化尾场力。
+
+\begin{align}
+  F_z(s) &= q_2 \cdot W_L(s) \cdot q_1 \label{eq:wake-long} \\
+  F_T(s) &= q_2 \cdot W_T(s) \cdot q_1 \cdot x_1 \label{eq:wake-trans}
+\end{align}
+
+\textbf{单位}：
+\begin{itemize}
+  \item 纵向尾场函数 $W_L(s)$：\textbf{V/C}（每库仑驱动电荷在测试电荷处产生的电压）
+  \item 横向尾场函数 $W_T(s)$：\textbf{V/(C·m)}（与横向偏移 $x_1$ 成正比）
+\end{itemize}
+
+\textbf{本质}：$W(s)$ 是结构的\textbf{脉冲响应}——给一个 $\delta$ 函数激励，测量输出响应。
+
+\textbf{因果性}：尾场只影响后方粒子，即 $W(s<0) = 0$。
+
+\subsection{格林函数（Green's Function）$G(s)$}
+
+在尾场语境下，格林函数与尾场函数在数学上是同一个东西——两者都是电磁边值问题的格林函数解。区别仅在于侧重点：
+
+\begin{itemize}
+  \item \textbf{$W(s)$}：加速器物理视角，强调点电荷激发的尾场
+  \item \textbf{$G(s)$}：数学物理视角，满足 $\mathcal{L}[G] = \delta(s)$ 的解
+\end{itemize}
+
+在 ASTRA 手册中提到的``伪格林函数（pseudo Green's function）''是指：用一个\textbf{非常短（但不是无限短）的电荷分布}计算出的尾场势，作为真实 $\delta$ 函数响应的数值近似。
+
+\subsection{尾场势（Wake Potential）$V_{\text{wake}}(s)$}
+
+\textbf{物理定义}：一个\textbf{有实际长度和电荷分布的真实束团}在位置 $s$ 处感受到的总尾场电压。它是尾场函数与束团电荷分布的\textbf{卷积}：
+
+\begin{equation}
+  V_{\text{wake}}(s) = \int_{0}^{\infty} \rho(s') \cdot W_L(s - s') \; ds'
+  \label{eq:convolution}
+\end{equation}
+
+\textbf{注意积分方向}：$s' > s$（只有前方粒子 $\to$ 后方粒子，因果性）。
+
+\subsection{三大概念的直观类比}
+
+\begin{center}
+\begin{tabular}{p{4cm} p{8cm}}
+\toprule
+\textbf{类比} & \textbf{物理对应} \\
+\midrule
+单艘快艇开过湖面 & 点电荷穿过结构 \\
+快艇激起的波浪形状 & 尾场函数 $W(s)$ — 结构的脉冲响应 \\
+波浪形状的精确数学描述 & 格林函数 $G(s)$ — PDE 的 $\delta$ 响应解 \\
+船队（多艘船）在你位置的总浪高 & 尾场势 $V_{\text{wake}}(s)$ — 束团的总尾场电压 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{三者关系总结}
+
+\begin{tcolorbox}[title=关键区别]
+  \begin{itemize}
+    \item $W(s)$：\textbf{点电荷}激发的尾场函数（单位 V/C）
+    \item $G(s)$：数学上与 $W(s)$ 等价，侧重 PDE 解的角度
+    \item $V_{\text{wake}}(s)$：\textbf{束团总响应}，通过式 (\ref{eq:convolution}) 卷积得到
+  \end{itemize}
+\end{tcolorbox}
+
+\newpage
+% ======================================================
+\section{ASTRA 中尾场的定义与输入}
+% ======================================================
+
+\subsection{\&WAKE Namelist 完整参数}
+
+下表基于 ASTRA 手册 v3.2 §6.8（PDF 第 68--69 页）。
+
+\begin{center}
+\begin{tabular}{p{3.2cm} p{2cm} p{2cm} p{4.5cm}}
+\toprule
+\textbf{参数} & \textbf{类型} & \textbf{默认值} & \textbf{说明} \\
+\midrule
+\texttt{Loop} & Logical & F & 循环控制（见 §4.9） \\
+\texttt{LWAKE} & Logical & F & 总开关：F 则忽略所有 \&WAKE \\
+\texttt{Wk\_Type(\ )} & Char*40 & — & 尾场类型：\texttt{Monopole\_Method\_F}, \texttt{Dipole\_Method\_F}, \texttt{Taylor\_Method\_F}, \texttt{Monopole\_Method\_P}, \texttt{Dipole\_Method\_P} \\
+\texttt{Wk\_filename(\ )} & Char*150 & — & 尾场数据文件名 \\
+\texttt{Wk\_testfile(\ )} & Char*150 & — & 测试输出文件名（卷积验证） \\
+\texttt{Wk\_screen(\ )} & Logical & F & T 则在 kick 后保存相空间 \\
+\texttt{Wk\_scaling} & Real*8 & 1.0 & 尾场缩放因子 \\
+\texttt{Wk\_x(\ )} & Real*8 & 0.0 & 尾场横向原点（m） \\
+\texttt{Wk\_y(\ )} & Real*8 & 0.0 & 尾场横向原点（m） \\
+\texttt{Wk\_z(\ )} & Real*8 & 1.0 & 尾场纵向位置（m） \\
+\texttt{Wk\_ex/ey/ez(\ )} & Real*8 & 0,0,1 & 纵向方向向量 \\
+\texttt{Wk\_hx/hy/hz(\ )} & Real*8 & 1,0,0 & 横向方向向量 \\
+\texttt{Wk\_equi\_grid(\ )} & Real*8 & 1.0 & 1.0=等距网格；0.0=等电荷网格 \\
+\texttt{Wk\_N\_bin(\ )} & Integer & 10 & bin 数量 \\
+\texttt{Wk\_ip\_method(\ )} & Integer & 2 & 插值方法：0=矩形, 1=三角, 2=高斯 \\
+\texttt{Wk\_smooth(\ )} & Real*8 & 0.5 & 高斯插值平滑参数 \\
+\texttt{Wk\_sigma\_min(\ )} & Real*8 & 0.0 & 高斯插值最小 sigma \\
+\texttt{Wk\_sub(\ )} & Integer & 1 & 子 bin 参数 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{尾场输入类型详解}
+
+ASTRA 提供三种输入方式，对应五种 \texttt{Wk\_Type} 关键字：
+
+\begin{enumerate}[label=\textbf{方法 \arabic*:}, leftmargin=*]
+
+  \item \textbf{\texttt{Monopole\_Method\_F} / \texttt{Dipole\_Method\_F} — 尾场函数直接输入}
+
+  \begin{itemize}
+    \item 输入物理量：\textbf{尾场函数 $W(s)$ [V/C]}（点电荷的脉冲响应）
+    \item 文件格式：两列表格，首行 \texttt{N\ \ 0}，后续 N 行 \texttt{s\_i\ \ W(s\_i)}
+    \item \texttt{Monopole\_}：纵向尾场，改变粒子能量
+    \item \texttt{Dipole\_}：横向尾场，产生与偏移成正比的横向踢力
+    \item 适用场景：解析公式计算的 $W(s)$，或 EM 求解器对 $\delta$ 函数的响应
+  \end{itemize}
+
+  \item \textbf{\texttt{Monopole\_Method\_P} / \texttt{Dipole\_Method\_P} — 尾场势输入（伪格林函数）}
+
+  \begin{itemize}
+    \item 输入物理量：\textbf{短电荷分布的尾场势 $G(s)$ [V/C]}
+    \item 文件格式：与 Method\_F 相同（两列表格）
+    \item 关键区别：输入是有限长（但很短）束团的响应，ASTRA 内部处理与 Method\_F 不同
+    \item 适用场景：数值 EM 求解器用短束团跑出的结果
+  \end{itemize}
+
+  \item \textbf{\texttt{Taylor\_Method\_F} — 泰勒展开系数}
+
+  \begin{itemize}
+    \item 输入物理量：尾场函数的\textbf{分段泰勒展开系数}
+    \item 文件格式：前 5 行为元数据头，之后为系数表
+    \item 优势：大幅压缩长程尾场数据，O($N_{\text{bin}}$) 卷积代替 O($N_{\text{sample}}$) 查表
+    \item 适用场景：尾场作用范围 $\gg$ 束团长度（如 TESLA 模块 ~12m）
+  \end{itemize}
+
+\end{enumerate}
+
+\subsection{Method\_F 与 Method\_P 的区别}
+
+\begin{center}
+\begin{tabular}{p{3cm} p{5cm} p{5cm}}
+\toprule
+& \textbf{Method\_F} & \textbf{Method\_P} \\
+\midrule
+输入物理量 & $W(s)$ — 点电荷尾场函数 & $G(s)$ — 短脉冲尾场势 \\
+假设 & 输入是真实的 $\delta$ 响应 & 输入是有限长脉冲的近似 $\delta$ 响应 \\
+你需要提供 & 精确的 $W(s)$ & 数值模拟的直接输出 \\
+适用场景 & 解析公式、理论计算 & EM 求解器（echo2D/CST/GdfidL） \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{文件格式}
+
+\textbf{Method\_F 和 Method\_P 共用格式}：
+
+\begin{lstlisting}[gobble=4]
+    N         0.0
+    s_1       W(s_1)
+    s_2       W(s_2)
+    ...
+    s_N       W(s_N)
+\end{lstlisting}
+
+\begin{itemize}
+  \item 第 1 行：$N$ 为数据点数（整数），后跟 0.0（占位符）
+  \item 第 2--N+1 行：$s$ 为距束团头部的纵向距离 [m]，值 [V/C]
+  \item $s$ 需升序排列，$s_1=0$，$W(s<0) = 0$（因果性）
+  \item 分辨率通常需 $\sim \mu$m 级别（取决于束团长度）
+\end{itemize}
+
+\section{伪格林函数的数值实现}
+
+\subsection{概念}
+
+\textbf{伪格林函数}是用有限长度的短束团（非真正的 $\delta$ 函数）在数值计算中近似得到的尾场势。需要满足：
+
+\begin{quote}
+\textit{"a pseudo Greens function of the wake potential in V/C, i.e. a numerical result for a charge distribution short as compared to the distribution in the actual calculation"} \\
+\hfill — ASTRA 手册 §6.8, p.68
+\end{quote}
+
+\subsection{驱动束团长度的选择}
+
+一个有限高斯束团 $e^{-s^2/2\sigma_d^2}$ 作为驱动源时，频域等效于对真实格林函数施加低通滤波：
+
+\begin{equation}
+  W_{\text{measured}}(s) = W_{\text{true}}(s) \circledast \frac{1}{\sqrt{2\pi}\sigma_d} e^{-s^2/2\sigma_d^2}
+\end{equation}
+
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+$\sigma_d$ (驱动) / $\sigma_{\text{real}}$ (真实) & 高频截止 & 近似质量 \\
+\midrule
+1:5   & $\sim\sigma_d$ & 勉强可用 \\
+1:10  & $\ll\sigma_d$ & 一般可靠 \\
+\textbf{1:20} & $\sim0.05$ mm → $\sim6$ THz & \textbf{很好} \\
+1:50  & — & 接近理想 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{建议}：$\sigma_d \leq \frac{1}{10}\,\sigma_{\text{real}}$ 作为经验准则。对于 $\sigma_{\text{real}} = 1$ mm 的束团，$\sigma_d \leq 0.1$ mm。
+
+\subsection{操作流程}
+
+\begin{enumerate}
+  \item 在 echo2D/CST/GdfidL 中定义短驱动束团：
+        $\sigma_z = 0.05$--$0.1$ mm，$\sigma_x \ll a$（结构半径），$Q_{\text{drive}}$ 任意
+  \item 运行求解器，输出两列表格：$s$ [m] \quad $W_{\text{pot}}(s)$ [V/C]
+  \item 将此表格作为 ASTRA 的尾场输入文件
+  \item 在 \&WAKE 中设置 \texttt{Wk\_Type = 'Monopole\_Method\_P'}（或 \texttt{Dipole\_Method\_P}）
+\end{enumerate}
+
+\subsection{误差控制}
+
+\begin{itemize}
+  \item \textbf{收敛性检验}：用 $\sigma_d = 0.03$、0.05、0.08 mm 分别计算，比较最终发射度，稳定即收敛
+  \item \textbf{横向尺寸}：$\sigma_x$ 也应尽量小（点源近似），否则横向尾场偶极响应不准确
+  \item \textbf{电荷归一化}：$Q_{\text{drive}} = 1$ nC 方便直接得到 V/C 单位
+\end{itemize}
+
+\newpage
+% ======================================================
+\section{ASTRA 尾场追踪的物理逻辑}
+% ======================================================
+
+\subsection{局域化近似}
+
+整个分布式结构的尾场效应被压缩为在 \texttt{Wk\_z} 处施加一个\textbf{离散的"踢"（kick）}。这一近似的合理性在于：
+
+\begin{itemize}
+  \item 尾场结构沿 $z$ 方向有宏观长度
+  \item 但对相对论束团（$\beta \approx 1$），穿越时间远小于束团自身演化时间尺度
+  \item 因此尾场效应可近似为在单一位置发生的瞬态作用
+\end{itemize}
+
+\subsection{尾场追踪的完整步骤}
+
+以 \texttt{Method\_F} 为例，ASTRA 在尾场位置的内部处理流程：
+
+\begin{enumerate}[label=\textbf{Step \arabic*:}, leftmargin=*]
+  \item \textbf{束团到达 Wk\_z 位置} \\
+        追踪至 $\langle z \rangle = \text{Wk\_z}$。
+
+  \item \textbf{纵向分 bin} \\
+        将束团沿纵向等分为 $\text{Wk\_N\_bin}$ 个 bin。
+        \begin{itemize}
+          \item $\text{Wk\_equi\_grid}=1.0$：等间距网格
+          \item $\text{Wk\_equi\_grid}=0.0$：等电荷网格
+          \item 中间值：线性混合
+        \end{itemize}
+
+  \item \textbf{读入并插值尾场函数} \\
+        读入 $W(s)$ 两列表格，在 bin 网格上用 $\text{Wk\_ip\_method}$ 指定的方法插值：
+        \begin{itemize}
+          \item 0 — 矩形（零阶保持）
+          \item 1 — 三角（线性插值）
+          \item 2 — 高斯（带平滑参数 $\text{Wk\_smooth}$）
+        \end{itemize}
+
+  \item \textbf{离散卷积} \\
+        \begin{equation}
+          V_{\text{wake}}[i] = \sum_{j > i} Q_{\text{bin}}[j] \cdot W(s_i - s_j)
+        \end{equation}
+        因果性：只有 $j>i$（前方 bin）才贡献给 $i$（后方 bin）。
+
+  \item \textbf{对每个粒子施加 kick} \\
+        \begin{align}
+          \Delta p_z &= -q_{\text{macro}} \cdot V_{\text{wake}}(s_{\text{particle}}) \label{eq:kick-long} \\
+          \Delta p_x &= \phantom{-}q_{\text{macro}} \cdot x \cdot V_{\text{wake},\,T}(s_{\text{particle}}) \label{eq:kick-trans}
+        \end{align}
+
+  \item \textbf{（可选）输出验证} \\
+        若指定了 $\text{Wk\_testfile}$，输出三列：$s$ [m]、$I_{\text{local}}$ [A]、$V_{\text{wake}}(s)$ [V/C]。
+\end{enumerate}
+
+\subsection{泰勒展开法（Taylor\_Method\_F）}
+
+当尾场函数非常长（如整个加速模块的尾场，数据点可达数万），直接 $\mathcal{O}(N_{\text{sample}}^2)$ 卷积代价太大。DESY 12-012 提出泰勒展开法：
+
+\begin{enumerate}
+  \item 将 $W(s)$ 分段做泰勒展开：$W(s) \approx \sum_k c_k \cdot (s-s_0)^k$
+  \item 存储系数 $c_k$ 替代原始数据点（大幅压缩）
+  \item 卷积时用多项式求值代替查表：$\mathcal{O}(N_{\text{poly}} \cdot N_{\text{bin}})$
+\end{enumerate}
+
+\subsection{数据流图}
+
+\begin{center}
+\begin{tikzpicture}[node distance=2cm, auto]
+  \node[draw, rounded corners] (w) {$W(s)$ 文件};
+  \node[draw, rounded corners, below of=w] (bin) {束团分 bin $\rho(s_k)$};
+  \node[draw, rounded corners, below of=bin] (conv) {离散卷积：$V = \rho \circledast W$};
+  \node[draw, rounded corners, below of=conv] (kick) {粒子 kick：$\Delta p = -q \cdot V(s)$};
+  \node[draw, rounded corners, below of=kick] (track) {继续追踪至 ZSTOP};
+
+  \draw[->] (w) -- (conv);
+  \draw[->] (bin) -- (conv);
+  \draw[->] (conv) -- (kick);
+  \draw[->] (kick) -- (track);
+\end{tikzpicture}
+\end{center}
+
+\newpage
+% ======================================================
+\section{ASTRA 官方 Wake 算例}
+% ======================================================
+
+ASTRA 安装目录包含完整的 Wake 算例：\texttt{examples/Wake/}。
+
+\subsection{文件清单}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{文件} & \textbf{说明} \\
+\midrule
+\texttt{Wake.pdf} & 说明文档（M.~Dohlus） \\
+\texttt{Wake\_Files/Wake.in} & ASTRA 输入文件，含 \&WAKE namelist \\
+\texttt{Wake\_Files/test.ini} & 测试用初始粒子分布 \\
+\texttt{Wake\_Files/TESLA\_MODULE\_WAKE\_TAYLOR.dat} & TESLA 模块尾场数据（Taylor 格式） \\
+\texttt{Wake\_Files/READ\_ASTRA.m} & MATLAB 后处理脚本 \\
+\texttt{Wake\_Files/plots.pptx} & 结果图 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{算例 Wake.in 内容}
+
+\begin{lstlisting}[gobble=4]
+ &NEWRUN
+  Head='DRIFT to z=2.1 with WAKE at 2.0m (from z=1.9)'
+  Distribution='test.ini'
+  RUN =1
+  H_max =0.00333          ! 1mm
+ /
+
+ &OUTPUT
+  ZSTART = 1.900
+  ZSTOP  = 2.100
+  High_res = T
+  EmitS = T
+  Zemit = 10
+  PhaseS = T
+  Zphase = 1
+  RefS = T
+ /
+
+ &WAKE
+  LWake = T
+  WK_Z(1)        = 2.0
+  WK_EQUI_GRID(1)= 1.0
+  WK_N_BIN(1)    = 50
+  WK_TYPE(1)     = 'taylor_method_F'
+  WK_FILENAME(1) = 'TESLA_MODULE_WAKE_TAYLOR.dat'
+  WK_TESTFILE(1) = 'test.dat'
+ /
+\end{lstlisting}
+
+\newpage
+% ======================================================
+\section{实际工作流}
+% ======================================================
+
+\subsection{通用流程}
+
+\begin{enumerate}
+  \item \textbf{计算尾场函数}：用 echo2D / CST / GdfidL / 解析公式，以短束团 ($\sigma_d \ll \sigma_{\text{real}}$) 激励，获取 $W(s)$
+  \item \textbf{导出两列表格}：$s$ [m] + $W(s)$ [V/C]
+  \item \textbf{构建 ASTRA 输入}：
+        \begin{itemize}
+          \item \texttt{\&NEWRUN}：指定初始分布 \texttt{Distribution}
+          \item \texttt{\&OUTPUT}：指定 \texttt{ZSTART}、\texttt{ZSTOP}、输出设置
+          \item \texttt{\&WAKE}：指定类型、文件名、作用位置、网格参数
+        \end{itemize}
+  \item \textbf{运行 ASTRA}：追踪粒子，尾场 kick 在指定位置自动施加
+  \item \textbf{后处理}：读取输出文件，分析发射度增长、能散变化等
+\end{enumerate}
+
+\subsection{针对 Corrugated Structure 的建议}
+
+\begin{itemize}
+  \item 尾场类型：主要为横向尾场（dipole），用 \texttt{Dipole\_Method\_F} 或 \texttt{Dipole\_Method\_P}
+  \item 特点：尾场集中在束团附近（短程），直接卷积即可，无需 Taylor 展开
+  \item 纵向网格：$\text{Wk\_N\_bin} \ge 30$（束团内分辨率足够）
+\end{itemize}
+
+\subsection{针对 Dielectric Lined Waveguide (DLW) 的建议}
+
+\begin{itemize}
+  \item 尾场类型：纵向 + 横向（monopole + dipole）
+  \item 特点：介质尾场可延伸数百个 $\sigma_z$（长程），Taylor 展开法可大幅加速
+  \item 纵向网格：$\text{Wk\_N\_bin} \ge 100$——需覆盖长尾场范围
+\end{itemize}
+
+\newpage
+% ======================================================
+\section{常见误区}
+% ======================================================
+
+\begin{enumerate}[leftmargin=*]
+
+  \item \textbf{把束团总尾场 $V_{\text{wake}}(s)$ 当作 $W(s)$ 喂给 ASTRA} \\
+        ASTRA 内部一定会自己做一次 $\rho \circledast W$ 卷积。如果输入的是已卷积过的总尾场，ASTRA 会再卷积一次——物理上完全错误。
+
+  \item \textbf{用 Method\_F 传入有限长束团算出的结果} \\
+        Method\_F 假设输入是真正的 $\delta$ 响应。如果输入是有限长束团的响应，应用 Method\_P。
+
+  \item \textbf{驱动束团 $\sigma_x$ 太大导致横向尾场不准确} \\
+        横向尾场的偶极响应需要一个近似的点源。$\sigma_x$ 应远小于结构最小孔径。
+
+  \item \textbf{忽略 bin 数量的选择} \\
+        bin 太少 → 分辨率不足以分辨束团内的尾场变化；bin 太多 → 计算量增大。经验值：$\text{Wk\_N\_bin} \approx \frac{\text{束团长度}}{\text{W(s) 的典型变化尺度}}$。
+
+  \item \textbf{忽略收敛性检验} \\
+        驱动束团 $\sigma_d$ 的选择需要验证——用不同 $\sigma_d$ 运行，确保最终结果收敛。
+
+\end{enumerate}
+
+% ======================================================
+\section*{参考文献}
+% ======================================================
+
+\begin{enumerate}
+  \item K.~Floettmann, \textit{ASTRA -- A Space Charge Tracking Algorithm, User's Manual v3.2}, DESY, March 2017.
+  \item M.~Dohlus, K.~Floettmann, C.~Henning, \textit{Fast Particle Tracking With Wake Fields}, DESY 12-012, arXiv:1201.5270, 2012.
+  \item M.~Dohlus, \textit{Example: Wake fields in Astra}, DESY (included in ASTRA distribution).
+  \item T.~Weiland, I.~Zagorodnov, \textit{The Short-Range Transverse Wake Function for TESLA Accelerating Structure}, TESLA Report 2003.
+\end{enumerate}
+
+\end{document}

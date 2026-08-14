@@ -1,0 +1,90 @@
+ ...
+
+ &APERTURE
+  LApert=T,
+  File_Aperture(1)='Rad',
+  Ap_Z1(1)=0.1000    , Ap_Z2(1)=0.1200,
+  Ap_R(1)=1.500,
+  A_xoff(1)=0.5E-3,
+  File_Aperture(2)='RAD',
+  Ap_Z1(2)=0.19000    , Ap_Z2(2)=0.200,
+  Ap_R(2)=-50.0,
+ /
+
+ ...
+
+Element 1: A circular aperture with 1.5 mm opening radius and 0.5 mm horizontal offset, extending from 10 cm up to 12 cm
+Element 2: A beam stop (negative radius of 50 mm) at 19 cm.
+
+ ...
+
+ &APERTURE
+  LApert=T,
+  File_Aperture(1)='Scr_X',
+  Ap_Z1(1)=0.1000    , Ap_Z2(1)=0.1100,
+  Ap_R(1)=2.000,
+  File_Aperture(2)='Scr_Y',
+  Ap_Z1(2)=0.11000    , Ap_Z2(2)=0.1200,
+  Ap_R(2)=3.0,
+ /
+
+ ...
+
+Two single sided scraper forming a 90 degree angle
+Element 1: A single sided planar scraper in X extending from 10 cm up to 11 cm with 2 mm opening.
+Element 2: A single sided planar scraper in Y extending from 11 cm up to 12 cm with 3 mm opening.
+
+...
+
+ &APERTURE
+  LApert=T,
+  File_Aperture(1)='Col_X',
+  Ap_Z1(1)=0.1000    , Ap_Z2(1)=0.1100,
+  Ap_R(1)=2.000,
+  File_Aperture(2)='Col_Y',
+  Ap_Z1(2)=0.11000    , Ap_Z2(2)=0.1200,
+  Ap_R(2)=3.0,
+ /
+
+ ...
+
+A rectangular aperture with 4 mm x 6 mm opening
+Element 1: A double sided planar collimator in X extending from 10 cm up to 11 cm with 2 mm opening.
+Element 2: A double sided planar collimator in Y extending from 11 cm up to 12 cm with 3 mm opening.
+
+...
+
+ &APERTURE
+  LApert=T,
+  File_Aperture(1)='CIR',
+  Ap_Z1(1)=0.0200    , Ap_Z2(1)=0.02100,
+  Ap_GR(1,1)=0.000,
+  Ap_GR(1,2)=0.500,
+  Ap_GR(1,3)=0.600,
+  Ap_GR(1,4)=0.700,
+  Ap_GR(1,5)=0.800,
+  Ap_GR(1,6)=0.900,
+  Ap_GR(1,7)=1.000,
+  Ap_GR(1,8)=1.100,
+  Ap_GR(1,9)=1.200,
+  Ap_GR(1,10)=1.300,
+ /
+
+...
+
+Example of a circular grid aperture consisting of 5 rings. Longitudinal extension from 2 cm up to 2.1
+cm, first ring from 0.0 to 0.5 mm, second ring from 0.6 to 0.7 mm, third ring from 0.8 to 0.9 mm
+fourth ring from 1.0 to 1.1 mm, fifth ring from 1.2 to 1.3 mm.
+
+...
+
+ &APERTURE
+  LApert=T,
+  File_Aperture(1)='Geometry.dat',
+ /
+
+ ...
+
+Circular aperture defined by the table 'Geometry.dat'. The data of the table extend from 1.0E-4 m up
+to 1.0 m and form the inner contour of an rf gun cavity and a beam tube. The data table can also be
+red by fieldplot and lineplot.

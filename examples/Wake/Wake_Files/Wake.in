@@ -1,0 +1,27 @@
+&NEWRUN
+  Head='DRIFT to z=2.1 with WAKE at 2.0m (from z=1.9)',
+  Distribution='test.ini',
+  RUN=1,
+  H_max=0.00333,
+ /
+
+&OUTPUT
+  ZSTART=1.900,
+  ZSTOP=2.100,
+  High_res=T,
+  EmitS=T,
+  Zemit=10,
+  PhaseS=T,
+  Zphase=1,
+  RefS=T,
+ /
+
+&WAKE
+  LWake=T,
+  WK_Z(1)=2.0,
+  WK_EQUI_GRID(1)=1.0,
+  WK_N_BIN(1)=50,
+  WK_TYPE(1)='taylor_method_F',
+  WK_FILENAME(1)='TESLA_MODULE_WAKE_TAYLOR.dat',
+  WK_TESTFILE(1)='test.dat',
+ /
