@@ -273,3 +273,37 @@ def fix_laser_map_header(path):
             f.write(" ".join([str(n)] + ["%.16e" % v for v in grid]) + "\n")
         f.writelines(lines[3:])
     return [(n, g[0], g[-1]) for n, g in grids]
+
+
+def read_3d_field_map(path):
+    """读取 ASTRA 3D 场图 (如 3D_test.ex / 3D_Dipole.bx).
+
+    格式: 3 个网格行 (n 与 n 个网格值, 自由格式), 随后为数据值,
+    顺序为 x 最快、y 次之、z 最慢。
+
+    Returns:
+        (x, y, z, F) — F 为 (nx, ny, nz) 数组, SI 单位按文件名约定
+        (ex/ey/ez: V/m; bx/by/bz: T; 数值原样返回)。
+    """
+    path = Path(path)
+    toks = path.read_text().split()
+    vals = [float(t) for t in toks]
+    idx = 0
+
+    def read_grid():
+        nonlocal idx
+        n = int(vals[idx])
+        idx += 1
+        g = np.array(vals[idx:idx + n], dtype=float)
+        idx += n
+        return g
+
+    x = read_grid()
+    y = read_grid()
+    z = read_grid()
+    nx, ny, nz = len(x), len(y), len(z)
+    data = np.array(vals[idx:idx + nx * ny * nz], dtype=float)
+    if len(data) < nx * ny * nz:
+        raise ValueError("3D map data truncated: " + str(path))
+    f = data.reshape(nx, ny, nz)
+    return x, y, z, f

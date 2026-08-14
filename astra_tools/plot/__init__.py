@@ -39,3 +39,12 @@ __all__ = [
     "plot_bff", "plot_bff_with_amplitude",
     "plot_cavity_field", "plot_solenoid_field",
 ]
+
+from .advanced_plots import (
+    plot_losses, plot_beam_loading, plot_beta_alpha, plot_phase_advance,
+    plot_coherence_length, plot_phase_scan, plot_scan_fom, plot_error_hist,
+    plot_reduced_emittance, plot_trace_emittance, plot_core_emittance,
+    plot_larmor, plot_probe_trajectories, plot_space_charge_fields,
+    plot_cathode_emission, plot_slice_mismatch, plot_3d_map_slices,
+    slice_mismatch,
+)

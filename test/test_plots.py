@@ -149,3 +149,48 @@ class TestOtherPlots:
         labs = _labels(fig)
         assert any("[T]" in l for l in labs)
         plt.close(fig)
+
+
+class TestAdvancedPlots:
+    """lineplot 菜单 2/3/4 与 postpro 扩展绘图."""
+
+    def test_beta_alpha_units(self):
+        from astra_tools.plot.advanced_plots import plot_beta_alpha
+        fig = plot_beta_alpha(EMIT)
+        labs = _labels(fig)
+        assert any("beta function [m]" in l for l in labs)
+        assert fig.axes[0].get_legend() is not None
+        plt.close(fig)
+
+    def test_phase_advance(self):
+        from astra_tools.plot.advanced_plots import plot_phase_advance
+        fig = plot_phase_advance(EMIT)
+        assert any("phase advance [rad]" in l for l in _labels(fig))
+        plt.close(fig)
+
+    def test_coherence_length_units(self):
+        from astra_tools.plot.advanced_plots import plot_coherence_length
+        fig = plot_coherence_length(EMIT)
+        assert any("coherence length [m]" in l for l in _labels(fig))
+        plt.close(fig)
+
+    def test_slice_mismatch_ge_one(self):
+        """失配参数物理下界: zeta >= 1 (手册 5.6.3)."""
+        from astra_tools.plot.advanced_plots import slice_mismatch
+        _, zx, zy = slice_mismatch(DIST, n_slices=8)
+        assert np.all(np.nanmin(zx) >= 0.999)
+        assert np.all(np.nanmin(zy) >= 0.999)
+
+    def test_3d_map_slices(self):
+        from astra_tools.plot.advanced_plots import plot_3d_map_slices
+        p = PROJECT_ROOT / "examples/Cavity_Example/3D_test.ex"
+        fig = plot_3d_map_slices(p, axis="z", n_slices=2, unit="V/m")
+        assert len(fig.axes) >= 2
+        plt.close(fig)
+
+    def test_3d_map_reader(self):
+        from astra_tools.io.field_map import read_3d_field_map
+        x, y, z, f = read_3d_field_map(
+            PROJECT_ROOT / "examples/Cavity_Example/3D_test.ex")
+        assert f.shape == (11, 11, 340)
+        assert np.all(np.isfinite(f))
