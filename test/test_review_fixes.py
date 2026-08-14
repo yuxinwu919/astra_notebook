@@ -200,4 +200,21 @@ def test_discover_outputs_negative_z():
         out = discover_outputs(Path(td), "astra", run="001")
         assert [f.name for f in out["phase"]] == ["astra.-050.001"]
 
+def test_wake_potential_guards(tmp_path):
+    """read_wake_potential: n=0 或行数不足时明确报错而非崩溃."""
+    from astra_tools.io.field_map import read_wake_potential
+    p0 = tmp_path / "w0.dat"
+    p0.write_text("0 0\n")
+    with pytest.raises(ValueError):
+        read_wake_potential(p0)
+    pt = tmp_path / "wt.dat"
+    pt.write_text("5 0\n1.0 2.0\n")   # 声明 5 行只有 1 行
+    with pytest.raises(ValueError):
+        read_wake_potential(pt)
+    pok = tmp_path / "wok.dat"
+    pok.write_text("2 0\n0.0 1.0\n0.1 2.0\n")
+    w = read_wake_potential(pok)
+    assert list(w.s) == [0.0, 0.1] and list(w.w) == [1.0, 2.0]
+
+
 
