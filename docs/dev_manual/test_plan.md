@@ -31,7 +31,7 @@ examples/golden_expected.json。
 * 覆盖: 9 个官方算例的归档输出 (Xemit/Zemit/ref/Log/PScan/Scan) 与
   记录在 golden_expected.json 的期望末行值比对 (rel < 0.5%)。
 * 黄金样本生成流程 (仅在本地重跑后更新):
-  1. notebooks/08_examples.ipynb 的 run_example() 在 data/ 下真跑;
+  1. notebooks/06_examples.ipynb 的 run_example() 在 data/ 下真跑;
   2. 核对新输出与 golden 的差异 (compare_xemit 打印 rel%);
   3. 确认差异为物理/版本变化后, 更新 golden 文件与
      golden_expected.json, 并在提交说明中记录原因。

@@ -27,21 +27,18 @@
     # 3. 启动 Jupyter
     jupyter notebook
 
-    # 4. 按编号运行 notebooks/ 下的 Notebook: 00 -> 01 -> 02 -> 03 -> 04/05/06
+    # 4. 按编号运行 notebooks/ 下的 Notebook: 01 -> 02 -> 03/04/05
 
 ## Notebook 一览
 
-| # | Notebook | 作用 |
-|---|----------|------|
-| 00 | workspace | 环境自检、可执行文件定位、工作目录 |
-| 01 | generator | 初始束团生成 (参数表单 -> 运行 -> 束团预览) |
-| 02 | astra_setup | 追踪设置 (全部 namelist 表单 + .in 文本双模式) |
-| 03 | run | 运行 ASTRA (流式日志) + 输出清单 |
-| 04 | postpro | 相空间分析与统计 (postpro 替代) |
-| 05 | lineplot | 束流参数演化 (lineplot 菜单 1 九图) |
-| 06 | fieldplot | 腔场/螺线管场图 (fieldplot 替代) |
-| 07 | analysis | 切片分析、BFF、数据导出 |
-| 08 | examples | DESY 官方算例一键复现 + 黄金样本比对 |
+| # | Notebook | 对应原程序 | 作用 |
+|---|----------|-----------|------|
+| 01 | generator | generator | 初始束团生成 (参数表单 -> 运行 -> 束团预览) |
+| 02 | astra | astra | 工作区自检 + 追踪设置 (全部 namelist 表单 + .in 文本) + 运行/输出清单 |
+| 03 | postpro | postpro | 相空间分析/统计/切片/BFF/导出 (含孔径叠加与核心曲线) |
+| 04 | lineplot | lineplot | 束流参数演化 (九图 + 速度/步长 + t 轴变体) |
+| 05 | fieldplot | fieldplot | 腔场/螺线管/3D 场图/激光/等离子体 |
+| 06 | examples | — | DESY 官方算例展示 + 一键复现 + 黄金样本比对 |
 
 ## 目录结构
 

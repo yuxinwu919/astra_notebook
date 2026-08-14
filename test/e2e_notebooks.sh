@@ -8,8 +8,8 @@ PYTHON=${PYTHON:-.venv/bin/python}
 export MPLCONFIGDIR=${MPLCONFIGDIR:-/tmp/mplcfg}
 
 FAIL=0
-for nb in 00_workspace 01_generator 02_astra_setup 03_run 04_postpro \
-          05_lineplot 06_fieldplot 07_analysis 08_examples; do
+for nb in 01_generator 02_astra 03_postpro \
+          04_lineplot 05_fieldplot 06_examples; do
   echo "=== $nb ==="
   $PYTHON -m jupyter nbconvert --to notebook --execute "notebooks/$nb.ipynb" \
     --output "/tmp/e2e_$nb.ipynb" \

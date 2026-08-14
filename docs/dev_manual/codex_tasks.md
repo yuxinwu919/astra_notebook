@@ -1,130 +1,104 @@
-# Codex (IDE MCP) 任务清单 — 当前状态版
+# 任务分工: 主代理自留 vs Codex (PyCharm MCP)
 
-> 2026-08-15, 批 A/B/C 已由主代理完成 (83 测试通过)。以下是按当前
-> 代码状态整理的、可整块委托给 Codex 的具体任务。每条含: 背景 /
-> 步骤 / 验收 / 涉及文件 / 依赖。
+> 2026-08-15 更新。原则: **我做得了、做得好的一律自己做;
+> 只有真正需要 IDE/PyCharm 的任务才交给 Codex**。
+> Codex 通过 MCP 连接 PyCharm, 但后端的一切物理/工程验证
+> (跑 ASTRA、算统计、写测试) 主代理用 bash+python 完全可做,
+> 不需要 IDE。
 
-## 环境接入 (每个任务开始前)
+## 环境接入 (Codex 使用前)
 
-1. 用 PyCharm 打开项目根目录 astra_notebook;
-2. 解释器选 .venv/bin/python (Python 3.14.6, 依赖已装好);
-3. 测试运行: .venv/bin/python -m pytest test/ -q
-4. 改动后跑 pyflakes: .venv/bin/python -m pyflakes astra_tools test
-5. ASTRA/Generator 在 /Users/yuxinwu/programs/ASTRA/ (PATH 已含);
-   真跑在 data/ 下 (gitignored), golden 产物才进 examples/。
-6. 铁律: 见 AGENTS.md (物理 8 条 + 测试五层 + 不做打包)。改物理
-   约定前必须先改对应测试并说明手册依据。
+1. PyCharm 打开项目根目录 astra_notebook;
+2. 解释器选 .venv/bin/python (Python 3.14.6);
+3. 测试: .venv/bin/python -m pytest test/ -q;
+4. 依赖: requirements.txt (PyCharm 会提示安装);
+5. 铁律见 AGENTS.md (物理 8 条 + 测试五层 + 不做打包);
+   改物理约定必须先改测试并给手册依据。
 
 ---
 
-## T1: read_error 合成单元测试 (低风险, 约 1 小时)
+# 第一部分: 主代理自留任务 (物理/工程验证, 按优先级)
 
-* 背景: astra_tools/io/astra_misc.py 的 read_error (run#, z,
-  FOM(1..10), 12 列) 无任何测试; 真实 ErrorS 运行见 T5。
-* 步骤: 合成一个 12 列 Error.001 (numpy.savetxt), 断言列语义
-  (run 为 int, FOM 形状 (N,10), z 原样); 空文件/缺列报 ValueError。
-* 验收: 新测试放入 test/, pytest 绿, pyflakes 清。
-* 文件: astra_tools/io/astra_misc.py, test/。
+## M1: read_error 合成单元测试 (低, ~1h)
+astra_tools/io/astra_misc.py 的 read_error (12 列) 无测试。
+合成 Error.001 断言列语义; 空文件/缺列报 ValueError。
 
-## T2: lab.001 标签读取器 + 接入 Scan/Error 图标题 (低, 约 2 小时)
+## M2: lab.001 标签读取器 + Scan/Error 图标题 (低, ~2h)
+新增 read_lab_file() (A80 三行: X轴/Y轴/标题); 接入
+plot_scan_fom / plot_error_hist; 用真实 Example.lab.001 作 golden
+(data/scan_validate/ 下有, 先提交 golden)。
 
-* 背景: &SCAN 运行时生成 <stem>.lab.001 (A80 三行: X轴/Y轴/标题);
-  目前 plot_scan_fom / plot_error_hist 用默认标题。示例文件:
-  data/scan_validate/Example.lab.001。
-* 步骤: 新增 read_lab_file(path) -> dict(xlabel, ylabel, title);
-  plot_scan_fom / plot_error_hist 增加 lab 可选参数, 有则用其标题/
-  轴名; 导出到 astra_tools/plot/__init__; 测试用真实
-  Example.lab.001 (先提交为 golden)。
-* 验收: 单元测试 + 绘图标签断言。
-* 文件: astra_misc.py, advanced_plots.py, plot/__init__.py, test/。
+## M3: Cemit 核心发射度真实交叉验证 (高, 3-4h)
+physics_notes/10 问题 2。Manual_Example 真跑 C_EmitS=T ->
+golden Cemit.001; 用 analysis/core.py 的 0.8/0.9/0.95 核心分数曲线
+逐列对照 C80/90/95; 不吻合则试横向核心/相空间距离核心 (手册
+4.13.8); 结论写 physics_notes/10。
 
-## T3: Cemit 核心发射度真实交叉验证 (高价值, 约 3-4 小时)
+## M4: Sigma 3.83 因子实验 (高, ~3h)
+physics_notes/10 问题 1。多行 Sigma 数据检验候选归一化因子
+((βγ)², γ², γ(1+β²), ...), 必要时不同能量真跑 2-3 个 SigmaS 样本;
+锁定因子后去掉 eigen-emittance 的"实验性"标注。
 
-* 背景: 见 physics_notes/10 问题 2。Cemit C80/90/95 算法未复现;
-  我们已有 analysis/core.py (纵向 |q| 分数核心)。
-* 步骤:
-  1. 复制 examples/Manual_Example 输入到 data/cemit_validate/,
-     在 &OUTPUT 加 C_EmitS=T, 真跑 astra -> Example.Cemit.001;
-  2. 用 read_distribution 读 Example.0150.001,
-     compute_core_fraction_curves(fractions=(0.8,0.9,0.95)),
-     与 Cemit 末行 Cx80/Cx90/Cx95 对照;
-  3. 若不吻合, 依次试: 横向 x 分数核心 / 相空间距离核心 / 亚束团
-     定义 (手册 4.13.8) 并记录哪个定义能复现;
-  4. 结论写入 physics_notes/10 (更新问题 2), 黄金 Cemit.001 提交
-     examples/Manual_Example/, 测试进 test/。
-* 验收: 若复现成功 -> 对照测试 rel<5%; 若三种定义都不吻合 -> 文档
-  记录失败矩阵, 保留只读展示状态并说明。
-* 文件: analysis/core.py (可能), io/astra_emit.py, physics_notes/10, test/。
+## M5: Error 真实运行 + golden (中, 2-3h)
+physics_notes/10 问题 4。Manual_Example 加 &ERROR (ErrorS=T,
+Err_MaxB) 真跑 -> Error.001 golden; 与 Scan 名义值对照。
 
-## T4: Sigma 3.83 因子实验 (高价值, 约 3 小时)
+## M6: Plasma_2 激光尾场物理量级验证 (中, 2-3h)
+physics_notes/10 问题 8。按手册第 8 章尾场公式估算 a0~0.8、
+1e17 cm^-3、800nm 的能增量级, 对照 golden 末态 421.8 MeV;
+检查 laser.dat 单位约定 (a0² vs a0)。
 
-* 背景: 见 physics_notes/10 问题 1 与 physics_notes/06。
-  sig(2,2)/sig(6,6) 与 <p~x^2>/sigmaE^2 差 ~3.83 因子, 手册未说明。
-* 步骤:
-  1. 读 examples/Manual_Example/Example.Sigma.001 全部行;
-  2. 对每行计算 R22 = sig22 / (p_ref^2 * sigx'^2) 与
-     R66 = sig66 / sigE^2 (sigx'/sigE 取同 z 行 Xemit/Zemit),
-     得到 R(z);
-  3. 检验候选因子: (bg)^2, g^2, g(1+b^2), g^2(1+b^2), 2g^2-1,
-     (g^2+1)/2 ... 与 R(z) 随 gamma 变化曲线 (gamma 从 ~2 到
-     ~1000) 做最小二乘, 锁定唯一假设; 必要时在 data/ 下用不同
-     能量真跑 2-3 个 SigmaS 样本加大 gamma 跨度;
-  4. 更新 read_sigma_file 注释与 physics_notes/06、10。
-* 验收: 找到确切因子并把 eigen-emittance 去掉实验性标记 (或证明
-  无一致因子, 文档化证据)。
-* 文件: io/astra_emit.py, physics_notes/06+10, test/ (若修正)。
+## M7: slice 发射度临时第三方对照 (一次性, 不进仓库)
+physics_notes/10 问题 3。用 venv 里的 pmd-beamphysics 对
+Example.0150.001 做 slice_analysis, 与 compute_slice_analysis 对照;
+结论写入 physics_notes/10。(铁律: 不进仓库、不成为运行时依赖)
 
-## T5: Error 真实运行 + golden (中, 约 2-3 小时)
+## M8: 持续回归
+每次改动: 红测试先行 -> pyflakes 清 -> 全量 pytest ->
+涉及 notebook 重跑 e2e (bash test/e2e_notebooks.sh)。
 
-* 背景: physics_notes/10 问题 4。
-* 步骤: Manual_Example 副本加 &ERROR (ErrorS=T, Err_MaxB(1)=0.02,
-  参照手册 4.12) 真跑 -> Example.Error.001 golden; 对照名义值:
-  Error 运行 FOM 与 Scan 名义点 FOM 一致性 (误差扰动下均值应回
-  名义值); 测试照 T1 扩展。
-* 验收: golden + 对照测试; 若 &ERROR 语法有出入, 以手册 4.12 为准
-  并记录。
-* 文件: examples/Manual_Example/golden/, test/。
+---
 
-## T6: README / 文档特性更新 (低, 约 1 小时)
+# 第二部分: Codex (PyCharm MCP) 专属任务 (只有 IDE 做得好)
 
-* 背景: 批 C 新增了 t 轴变体、孔径叠加、激光/等离子体图、核心
-  分数曲线、PScan/Scan 交叉验证。
-* 步骤: 更新 README.md 的 Notebook 一览与功能列表; docs/user_guide/
-  补相应说明; 保证 docs/dev_manual/README.md 与
-  physics_notes/README.md 的索引包含 09/10 与 test_plan/codex_tasks。
-* 验收: markdown 链接可点、无死链。
+## C1: 6 本 notebook 的交互 UX 审阅 (推荐先做)
 
-## T7: 待机/可选 — Plasma_Example_2 激光图 fixture (低)
+* 背景: notebook 刚精简为 01_generator / 02_astra / 03_postpro /
+  04_lineplot / 05_fieldplot / 06_examples, 从未做过人工交互审阅。
+* 步骤: 在 PyCharm 的 Jupyter 面板逐个打开运行 (内核
+  astra-notebook), 检查: widget 表单渲染与默认值 (02_astra)、
+  下拉选择器选项 (03_postpro)、图表尺寸/图例/中文文案是否清晰、
+  暗色主题下的可读性、报错信息是否指向正确 notebook;
+  对每个问题截图并给出定位 (cell 编号)。
+* 输出: 问题清单 (截图 + cell 定位 + 建议), 提交到主代理修复。
+* 注意: 只读审阅, 不改代码。
 
-* 背景: laser.dat 65MB 本地 gitignored; plot_laser_on_axis 已用
-  3D_test.ex 验证。可选: 加一个 skipif(laser.dat 不存在) 的激光
-  剖面测试, 供有该文件的机器使用。
-* 文件: test/。
+## C2: PyCharm 工程配置 (一次性)
 
-## T8: 待机/可选 — slice 发射度临时第三方对照 (中, 一次性)
+* 创建并验证运行配置: (a) pytest: 解释器 .venv, 目录 test/;
+  (b) e2e: Shell Script test/e2e_notebooks.sh;
+  (c) Jupyter Server: 内核 astra-notebook, 工作目录项目根;
+* 配置 ruff (或保留 pyflakes) 作为外部工具, 命令:
+  .venv/bin/python -m pyflakes astra_tools test;
+* 验证 02_astra 的 namelist_form 在 PyCharm Jupyter 里可交互修改;
+* 输出: .idea/ 里的配置说明 (不入库, 写 docs/user_guide/pycharm_setup.md 增补)。
 
-* 背景: physics_notes/10 问题 3。ASTRA 无 slice 级输出。
-* 步骤 (仅本地, 不进仓库): 临时脚本用 venv 里已有的
-  pmd-beamphysics 的 slice_analysis 对 Example.0150.001 求 slice
-  epsn, 与 compute_slice_analysis 对照; 结论写入 physics_notes/10。
-* 注意: 铁律 pmd-beamphysics 不得成为运行时依赖 — 只允许测试期
-  临时对照脚本, 不得被仓库代码 import。
+## C3: IDE 静态检查告警清单 (可选, 定期)
 
-## T9: Plasma_Example_2 激光尾场物理验证 (中, 约 2-3 小时)
+* 运行 PyCharm Inspections (全项目), 过滤风格类告警,
+  只输出: 未解析引用 / 可能为 None 的解引用 / 类型不匹配 /
+  未使用参数; 提交清单供主代理逐一核实修复。
 
-* 背景: physics_notes/10 问题 8。laser.dat 图头在新构建下只能用
-  整数计数形式; 已据此重新生成 golden, 但尾场强度的绝对正确性
-  未独立验证 (末态 E 100->421.8 MeV)。
-* 步骤: 按手册第 8 章 (场图与等离子体) 的尾场公式估算 1e17 cm^-3、
-  a0~0.8、800 nm 驱动激光在 zeta=-45 um 处的轴向场与能增, 与
-  421.8 MeV 对照 (量级一致即通过); 或查 DESY 示例页的参考结果;
-  结论写入 physics_notes/10 问题 8。
-* 验收: 量级论证写入备忘录; 若发现量级不符, 检查 laser.dat 的
-  单位约定 (a0^2 vs a0) 并给出修正建议。
-* 文件: physics_notes/10。
+## C4: laser.dat 读取性能/内存剖析 (可选)
 
-## 通用提交要求
+* 用 PyCharm profiler 对 read_3d_field_map('examples/Plasma_Example_2/laser.dat',
+  81×81×400, 65MB) 剖析: 当前实现逐 token float() 解析, 记录耗时与峰值内存,
+  若 > 30s 建议 np.fromstring 加速方案 (只提方案, 不改代码)。
 
-* 每条任务: 红测试先行 -> 实现 -> pyflakes 清 -> 完整 pytest ->
-  涉及 notebook 则重跑 e2e -> 单条中文提交说明 (含验证了什么)。
+---
+
+## 通用提交要求 (双方)
+
+* 红测试先行 -> 实现 -> pyflakes 清 -> 全量 pytest -> 涉及 notebook
+  重跑 e2e -> 单条中文提交说明 (含验证了什么)。
 * 不改 AGENTS.md 物理 8 条、不改 golden 数据 (除非任务明确要求)。

@@ -40,6 +40,7 @@ def plot_phase_space(
     bz_on_axis_T: float = 0.0,
     use_weights: bool = False,
     clip_q: float = 0.5,
+    normalize: bool = False,
 ) -> plt.Figure:
     """KDE density plot of one 2D phase-space projection.
 
@@ -51,12 +52,17 @@ def plot_phase_space(
         bz_on_axis_T: on-axis solenoid field at bunch center [T].
         use_weights: weight by macro-particle charge.
         clip_q: display-range percentile clip [%] on each side.
+        normalize: divide both axes by their population std - the phase
+            space becomes a circle for a Gaussian and its structure stays
+            visible at ANY beam energy (e.g. 1 GeV beams with urad-level
+            divergence would otherwise render as a flat streak).
     """
     if plane not in PLANES:
         raise ValueError("plane must be one of " + str(PLANES))
 
     mask = dist.active
-    w = dist.charge[mask] if use_weights else None
+    # |q| 权重 (混合符号束团下带符号权重会产生负密度, 破坏 LogNorm)
+    w = np.abs(dist.charge[mask]) if use_weights else None
 
     # Reference momentum guard: fall back to mean |pz| for synthetic
     # distributions without a header reference.
@@ -89,6 +95,26 @@ def plot_phase_space(
         default_title = "longitudinal phase space"
         u = up = None
 
+    if normalize:
+        sx = float(np.std(x_data))
+        sy = float(np.std(y_data))
+        if sx > 0:
+            x_data = (x_data - np.mean(x_data)) / sx
+        if sy > 0:
+            y_data = (y_data - np.mean(y_data)) / sy
+        if plane in ("x", "y"):
+            xlabel, ylabel = plane + "/σ" + plane, plane + "'/σ" + plane + "'"
+        else:
+            xlabel, ylabel = "z/σz", "(dp/p)/σ"
+        default_title += " (normalized)"
+        if u is not None and up is not None:
+            su = float(np.std(u))
+            sup = float(np.std(up))
+            if su > 0:
+                u = u / su
+            if sup > 0:
+                up = up / sup
+
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
@@ -103,8 +129,11 @@ def plot_phase_space(
                        shading="auto", rasterized=True)
     if colorbar:
         cb = fig.colorbar(im, ax=ax)
-        cb.set_label("probability density [1/mm/mrad]" if plane in ("x", "y")
-                     else "probability density")
+        if normalize:
+            cb.set_label("probability density")
+        else:
+            cb.set_label("probability density [1/mm/mrad]" if plane in ("x", "y")
+                         else "probability density")
 
     ax.axhline(0, color="white", lw=0.6, ls="--", alpha=0.7)
     ax.axvline(0, color="white", lw=0.6, ls="--", alpha=0.7)
@@ -115,8 +144,9 @@ def plot_phase_space(
     if show_ellipse and plane in ("x", "y") and u is not None:
         params = compute_emittance_ellipse_params(u, up, n_sigma=1.0, weights=w)
         th = np.linspace(0, 2 * np.pi, 240)
-        xe_ = params["a"] * np.cos(th) * 1e3
-        ye_ = params["b"] * np.sin(th) * 1e3
+        uscale = 1.0 if normalize else 1e3
+        xe_ = params["a"] * np.cos(th) * uscale
+        ye_ = params["b"] * np.sin(th) * uscale
         xr_ = xe_ * np.cos(params["theta"]) - ye_ * np.sin(params["theta"])
         yr_ = xe_ * np.sin(params["theta"]) + ye_ * np.cos(params["theta"])
         ax.plot(xr_, yr_, color="#CC3311", lw=1.8, ls="-", label="1-RMS ellipse")

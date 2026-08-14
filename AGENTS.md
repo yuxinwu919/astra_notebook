@@ -7,10 +7,10 @@ modern frontend/backend split.
 
 ## Purpose and architecture
 
-* **Frontend**: 8 task-specific Jupyter notebooks in `notebooks/`
-  (workspace, generator, astra_setup, run, postpro, lineplot, fieldplot,
-  analysis, examples). UI text and parameter help are in Chinese; plot
-  labels are in English.
+* **Frontend**: 6 task-specific Jupyter notebooks in `notebooks/`
+  (01_generator, 02_astra, 03_postpro, 04_lineplot, 05_fieldplot,
+  06_examples) - one per original program plus the examples showcase.
+  UI text and parameter help are in Chinese; plot labels are in English.
 * **Backend**: the plain Python package `astra_tools/` (no packaging, no
   PyPI). The whole project folder is copied as-is to use it. Notebooks
   bootstrap the backend via `notebooks/_bootstrap.py` (locates the

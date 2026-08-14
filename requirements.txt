@@ -28,3 +28,12 @@ pytest>=7.0
 
 # ---- 可选: 交互式绘图 (锦上添花, 默认不开) ----
 # ipympl>=0.9
+
+# 测试与质量
+pytest>=7.0
+pytest-cov>=4.0
+ruff>=0.1.0
+pyflakes>=3.0
+
+# Notebook 执行测试 (第 5 层) — 已由 requirements.txt 覆盖
+

@@ -1,0 +1,202 @@
+"""第 4 层扩展: 全部绘图函数逐一渲染审计 (无异常/标签/有限性).
+
+渲染全部公开绘图函数并检查:
+  * 不抛异常
+  * 每个含曲线的轴都有 x/y 标签 (twinx 共享 x 轴除外)
+  * 所有线/集合/轴范围数据有限
+"""
+import sys
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from astra_tools.plot.style import set_style
+set_style()
+
+from astra_tools.io import read_distribution
+from astra_tools.io.astra_emit import (read_emit_files, read_ref_file,
+                                        read_sigma_file, parse_output_file)
+from astra_tools.io.field_map import read_cavity_field, read_solenoid_field
+from astra_tools.io.astra_misc import read_pscan, read_scan
+from astra_tools.analysis.slices import compute_slice_analysis
+from astra_tools.analysis.bff import compute_bff
+from astra_tools.namelist.parse import parse_namelists
+
+DATA = PROJECT_ROOT / "examples/Manual_Example"
+CAV = PROJECT_ROOT / "examples/Cavity_Example"
+
+
+def _is_twinx(ax):
+    """轴与同图其他轴共享 x (twinx) -> 不要求其 xlabel。"""
+    try:
+        return len(ax.get_shared_x_axes().get_siblings(ax)) > 1
+    except Exception:
+        return False
+
+
+@pytest.fixture(scope="module")
+def F():
+    d = read_distribution(DATA / "Example.0150.001")
+    emit = read_emit_files(str(DATA / "Example"))
+    ref = read_ref_file(str(DATA / "Example"))
+    sigma = read_sigma_file(str(DATA / "Example"))
+    sa = compute_slice_analysis(d, n_slices=20)
+    bff = compute_bff(d.filter_active().z, d.filter_active().charge,
+                      kmin=10, kmax=1e5, nk=150, detect_features=True)
+    cav = read_cavity_field(DATA / "3_cell_L-Band.dat")
+    sol = read_solenoid_field(DATA / "Solenoid.dat").scaled(0.35)
+    pscan = read_pscan(CAV / "golden/astra.PScan.001")
+    scan = read_scan(DATA / "Example.Scan.001")
+    z = np.linspace(0, 1.5, 30)
+    landf = dict(landf_z=z, landf_n_particles=np.full(30, 500.0),
+                 landf_total_charge=np.full(30, 1e-9),
+                 landf_n_lost=np.zeros(30),
+                 landf_energy_deposited=np.linspace(0, 1e-4, 30),
+                 landf_energy_exchange=np.linspace(0, 2e-5, 30))
+    track = dict(seq=np.repeat([1, 2, 3], 20), status=np.ones(60, int),
+                 z=np.tile(np.linspace(0, 1.5, 20), 3),
+                 x=np.tile(np.linspace(0, 1e-3, 20), 3),
+                 y=np.tile(np.linspace(0, -0.5e-3, 20), 3),
+                 Ez=np.linspace(0, 1e6, 60), Er=np.linspace(1e5, 0, 60))
+    cathode = dict(t=np.linspace(0, 1e-9, 20),
+                   E_acc=np.linspace(5e6, 3e6, 20),
+                   E_spch=np.linspace(-2e6, 0, 20),
+                   q=np.linspace(0, 1e-3, 20))
+    x2 = dict(z=np.linspace(0, 1.5, 20), K2z=np.zeros(20), K3z=np.zeros(20),
+              eps_red_z=np.linspace(0.9e-6, 1e-6, 20),
+              K2E=np.zeros(20), K3E=np.zeros(20),
+              eps_red_zE=np.linspace(1.2e-6, 1.1e-6, 20))
+    tr = dict(z=np.linspace(0, 1.5, 20), t=np.linspace(0, 5e-9, 20),
+              eps_tr_x=np.linspace(1e-6, 1.1e-6, 20),
+              eps_tr_y=np.linspace(1e-6, 0.9e-6, 20),
+              eps_tr_z=np.linspace(1e-6, 1.2e-6, 20))
+    lm = dict(z=np.linspace(0, 1.5, 20), avr=np.linspace(0, 0.5, 20),
+              rms=np.linspace(0.1, 0.3, 20))
+    tc = dict(z=np.linspace(0, 1.5, 20),
+              scaling=np.random.default_rng(0).uniform(0.5, 1.5, (20, 5)))
+    err = dict(run=np.arange(30), z=np.full(30, 1.5),
+               FOM=np.random.default_rng(1).normal(1e-6, 1e-8, (30, 10)))
+    cz = np.linspace(0, 1.5, 10)
+    crows = np.column_stack([cz] + [
+        np.full(10, 1.0), np.full(10, 0.95), np.full(10, 0.90),
+        np.full(10, 0.85), np.full(10, 1.0), np.full(10, 0.95),
+        np.full(10, 0.90), np.full(10, 0.85), np.full(10, 5.0),
+        np.full(10, 4.8), np.full(10, 4.5), np.full(10, 4.2)])
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".Cemit.001", delete=False) as tf:
+        np.savetxt(tf.name, crows)
+        cpath = tf.name
+    ce = parse_output_file(cpath)
+    ap = parse_namelists(PROJECT_ROOT / "examples/Aperture/astra.in")["APERTURE"]
+    return dict(dist=d, emit=emit, ref=ref, sigma=sigma, sa=sa, bff=bff,
+                cav=cav, sol=sol, pscan=pscan, scan=scan, landf=landf,
+                track=track, cathode=cathode, x2=x2, tr=tr, lm=lm, tc=tc,
+                err=err, ce=ce, ap=ap)
+
+
+from astra_tools.plot import (phase_space as _ps, overview as _ov,
+    distributions as _ds, emit_plots as _ep, slice_plots as _sp,
+    bff_plots as _bp, field_plots as _fp, advanced_plots as _ap)
+
+
+def _cases(F):
+    d, emit, ref, sigma = F["dist"], F["emit"], F["ref"], F["sigma"]
+    return [
+        ("phase_space_x", lambda: _ps.plot_phase_space(d, plane="x", show_ellipse=True)),
+        ("phase_space_x_norm", lambda: _ps.plot_phase_space(d, plane="x", normalize=True)),
+        ("phase_space_x_weighted", lambda: _ps.plot_phase_space(d, plane="x", use_weights=True)),
+        ("phase_space_y", lambda: _ps.plot_phase_space(d, plane="y")),
+        ("phase_space_z", lambda: _ps.plot_phase_space(d, plane="z")),
+        ("transverse", lambda: _ps.plot_transverse_phase_space(d, show_ellipse=True)),
+        ("overview", lambda: _ov.plot_overview(d)),
+        ("transverse_profile", lambda: _ov.plot_transverse_profile(d)),
+        ("distributions", lambda: _ds.plot_distributions(d)),
+        ("energy_dist", lambda: _ds.plot_energy_distribution(d)),
+        ("envelope", lambda: _ep.plot_envelope_evolution(emit)),
+        ("envelope_t", lambda: _ep.plot_envelope_evolution(emit, x_axis="t")),
+        ("divergence", lambda: _ep.plot_divergence_evolution(emit)),
+        ("emittance", lambda: _ep.plot_emittance_evolution(emit)),
+        ("energy", lambda: _ep.plot_energy_evolution(emit)),
+        ("bunch_length", lambda: _ep.plot_bunch_length_evolution(emit)),
+        ("energy_spread", lambda: _ep.plot_energy_spread_evolution(emit)),
+        ("ref_traj", lambda: _ep.plot_ref_trajectory(ref)),
+        ("velocity", lambda: _ep.plot_velocity_evolution(ref)),
+        ("step_size", lambda: _ep.plot_step_size_evolution(ref)),
+        ("eigen", lambda: _ep.plot_eigen_emittances(sigma)),
+        ("emit_dashboard", lambda: _ep.plot_emit_dashboard(emit, sigma)),
+        ("lineplot_overview", lambda: _ep.plot_lineplot_overview(emit)),
+        ("current", lambda: _sp.plot_current_profile(F["sa"])),
+        ("slice_emit", lambda: _sp.plot_slice_emittance(F["sa"])),
+        ("slice_sizes", lambda: _sp.plot_slice_sizes(F["sa"])),
+        ("chirp", lambda: _sp.plot_energy_chirp(F["sa"])),
+        ("slice_dashboard", lambda: _sp.plot_slice_dashboard(F["sa"])),
+        ("bff", lambda: _bp.plot_bff(F["bff"])),
+        ("bff_amp", lambda: _bp.plot_bff_with_amplitude(F["bff"])),
+        ("cavity", lambda: _fp.plot_cavity_field(F["cav"], omega=2 * np.pi * 1.3e9)),
+        ("solenoid", lambda: _fp.plot_solenoid_field(F["sol"])),
+        ("losses", lambda: _ap.plot_losses(F["landf"])),
+        ("beam_loading", lambda: _ap.plot_beam_loading(F["landf"])),
+        ("beta_alpha", lambda: _ap.plot_beta_alpha(emit)),
+        ("phase_advance", lambda: _ap.plot_phase_advance(emit)),
+        ("coherence", lambda: _ap.plot_coherence_length(emit)),
+        ("phase_scan", lambda: _ap.plot_phase_scan(F["pscan"])),
+        ("pscan_dedz", lambda: _ap.plot_pscan_dedz(F["pscan"])),
+        ("pscan_comp", lambda: _ap.plot_pscan_compression(F["pscan"])),
+        ("scan_fom", lambda: _ap.plot_scan_fom(F["scan"], i=0)),
+        ("error_hist", lambda: _ap.plot_error_hist(F["err"], i=0)),
+        ("reduced", lambda: _ap.plot_reduced_emittance(F["x2"], F["x2"])),
+        ("trace", lambda: _ap.plot_trace_emittance(F["tr"])),
+        ("core_emit", lambda: _ap.plot_core_emittance(F["ce"])),
+        ("core_brightness", lambda: _ap.plot_core_brightness(F["ce"], F["landf"])),
+        ("larmor", lambda: _ap.plot_larmor(F["lm"])),
+        ("tcheck", lambda: _ap.plot_tcheck_scaling(F["tc"])),
+        ("z_plot", lambda: _ap.plot_z_plot(d)),
+        ("probe_traj", lambda: _ap.plot_probe_trajectories(F["track"])),
+        ("sc_fields", lambda: _ap.plot_space_charge_fields(F["track"])),
+        ("cathode", lambda: _ap.plot_cathode_emission(F["cathode"])),
+        ("slice_mismatch", lambda: _ap.plot_slice_mismatch(d, n_slices=10)),
+        ("3d_map_slices", lambda: _ap.plot_3d_map_slices(str(CAV / "3D_test.ex"), axis="z", n_slices=2, unit="V/m")),
+        ("field_profile", lambda: _ap.plot_field_profile(str(DATA / "3_cell_L-Band.dat"), label="Ez", unit="MV/m")),
+        ("curved_cathode", lambda: _ap.plot_curved_cathode_contour(str(PROJECT_ROOT / "examples/Curved_Cathode_Example/Contour.dat"))),
+        ("laser_on_axis", lambda: _ap.plot_laser_on_axis(str(CAV / "3D_test.ex"), unit="V/m")),
+        ("plasma_profile", lambda: _ap.plot_plasma_profile(str(PROJECT_ROOT / "examples/Plasma_Example_1/PLASMA_flattop.txt"), peak_density_cm3=1e17)),
+        ("envelope_aperture", lambda: _ap.plot_envelope_with_aperture(emit, _ap.aperture_elements(F["ap"]))),
+        ("core_fraction", lambda: _ap.plot_core_fraction_curves(d)),
+        ("slice_ellipses_3d", lambda: _ap.plot_slice_ellipses_3d(d, n_slices=6)),
+    ]
+
+
+def test_all_plots_render_cleanly(F):
+    """每个绘图函数: 不抛异常、标签齐全、数据有限。"""
+    for name, fn in _cases(F):
+        fig = fn()
+        try:
+            if not isinstance(fig, plt.Figure):
+                fig = fig[0]
+            for ax in fig.axes:
+                if ax.get_label() == "<colorbar>":
+                    continue
+                has_lines = len(ax.lines) > 0 or len(ax.collections) > 0
+                if not has_lines:
+                    continue
+                if not _is_twinx(ax):
+                    assert ax.get_xlabel().strip(), name + ": missing xlabel"
+                assert ax.get_ylabel().strip(), name + ": missing ylabel"
+                for ln in ax.lines:
+                    assert np.all(np.isfinite(ln.get_xdata())), name + ": non-finite x"
+                    assert np.all(np.isfinite(ln.get_ydata())), name + ": non-finite y"
+                for coll in ax.collections:
+                    arr = coll.get_array()
+                    if arr is not None and len(arr):
+                        assert np.all(np.isfinite(arr)), name + ": non-finite collection"
+                assert np.isfinite(ax.get_xlim()).all() and np.isfinite(ax.get_ylim()).all(), name + ": bad limits"
+        finally:
+            plt.close("all")

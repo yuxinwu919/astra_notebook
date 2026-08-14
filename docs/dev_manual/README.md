@@ -2,7 +2,9 @@
 
 ## 架构
 
-前端 (notebooks/) 只做编排与呈现; 一切数据逻辑在后端包 astra_tools/
+前端 (notebooks/, 共 6 本: 01_generator 02_astra 03_postpro
+04_lineplot 05_fieldplot 06_examples) 只做编排与呈现; 一切数据逻辑
+在后端包 astra_tools/
 (import astra_tools)。复制文件夹即用, 无打包。
 
     astra_tools/
@@ -34,7 +36,8 @@ plot 渲染 (显示单位在边界转换) -> export 导出。
     jupyter nbconvert --to notebook --execute notebooks/XX.ipynb \
       --ExecutePreprocessor.kernel_name=astra-notebook
 
-可整块委托 Codex 的任务清单见 **codex_tasks.md** (T1-T9)。
+任务分工见 **codex_tasks.md**: 主代理自留 M1-M8 (物理/工程
+验证), Codex (PyCharm MCP) 只做 IDE 专属任务 C1-C4。
 
 ## 添加新绘图
 

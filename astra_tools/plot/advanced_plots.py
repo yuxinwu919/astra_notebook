@@ -65,15 +65,16 @@ def plot_beta_alpha(emit, ax=None, figsize=(8, 5), title=None):
     """光学 beta/alpha 函数 (菜单 2 项 12/13):
     beta = sigma_u^2 / eps_u,  alpha = -(cov/sigma_u)*beta。"""
     fig, ax = _ax(ax, figsize)
+    ax2 = ax.twinx()   # 只建一次右轴, 避免两个 twinx 重叠
     for e, lbl in ((emit.x, "x"), (emit.y, "y")):
         eps = np.maximum(e.emit, 1e-30)
         beta = e.rms**2 / eps
         alpha = -e.corr / np.maximum(e.rms, 1e-30) * beta
         ax.plot(e.z, beta, label="$\\beta_%s$ [m]" % lbl)
-        ax2 = ax.twinx()
         ax2.plot(e.z, alpha, ls="--", label="$\\alpha_%s$" % lbl)
     ax.set_xlabel("z [m]")
     ax.set_ylabel("beta function [m]")
+    ax2.set_ylabel("alpha")
     ax.set_title(title or "optical functions (from Xemit)")
     h1, l1 = ax.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()

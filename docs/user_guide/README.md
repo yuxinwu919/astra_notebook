@@ -18,15 +18,12 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
 
 | 步骤 | Notebook | 做什么 |
 |------|----------|--------|
-| 1 | 00_workspace | 环境自检 (一次性) |
-| 2 | 01_generator | 表单设参数 -> 运行 Generator -> 束团预览 |
-| 3 | 02_astra_setup | 表单设置追踪参数 (或直接用现成 .in) |
-| 4 | 03_run | 运行 ASTRA, 查看输出清单 |
-| 5 | 04_postpro | 相空间图 + 统计表 (选 z 位置) |
-| 6 | 05_lineplot | 束流参数随 z 演化 (九图) |
-| 7 | 06_fieldplot | 腔场/螺线管场图 |
-| 8 | 07_analysis | 切片分析 / BFF / 数据导出 |
-| 9 | 08_examples | 官方算例一键复现与比对 |
+| 1 | 01_generator | 表单设参数 -> 运行 Generator -> 束团预览 |
+| 2 | 02_astra | 环境自检 + 追踪设置 (表单或 .in 文本) + 运行 + 输出清单 |
+| 3 | 03_postpro | 相空间图 + 统计表 + 切片/BFF/导出 (选 z 位置) |
+| 4 | 04_lineplot | 束流参数随 z 演化 (九图 + 速度/步长 + t 轴变体) |
+| 5 | 05_fieldplot | 腔场/螺线管/3D 场图/激光/等离子体 |
+| 6 | 06_examples | 官方算例展示 + 一键复现与黄金比对 |
 
 每个 Notebook 独立可运行 (复制项目文件夹到任意路径均可)。
 
