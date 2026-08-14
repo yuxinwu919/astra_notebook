@@ -250,30 +250,30 @@ def expand_tws_field_map(z0, f0, z1, z2, m_cells_in_body, n_cell):
 
 
 def fix_laser_map_header(path):
-    """Convert a MATLAB-written laser 3D map to ASTRA grid-header format.
+    """修复 MATLAB 写的 laser.dat 3D 图头 (就地转换)。
 
-    DESY ships Plasma_Example_2 laser.dat with three header lines in
-    (n, min, spacing) form; the ASTRA 3D map reader requires explicit
-    grid value lines (n followed by the n values). Converts in place.
+    DESY Plasma_Example_2 的 laser.dat 头三行为 (n, min, spacing),
+    但 n 写成浮点形式 (8.1e+01)。实测 (macOS Apple Silicon ASTRA
+    构建):
+      * 浮点计数 8.1e+01            -> "Error while reading file"
+      * 逐值网格行 (n 后跟 n 个值)   -> 读取 3D 图时 SIGSEGV
+      * 整数计数 + (n,min,spacing)  -> 正常 (本函数的输出)
+
+    因此只把计数转成整数, 其余原样保留。
     """
     path = Path(path)
     with open(path) as f:
         lines = f.readlines()
     if len(lines) < 4:
         raise ValueError("laser map too short: " + str(path))
-    grids = []
+    out = []
     for i in range(3):
-        vals = [float(v) for v in lines[i].split()]
-        n = int(vals[0])
-        x0, dx = vals[1], vals[2]
-        grid = [x0 + j * dx for j in range(n)]
-        grids.append((n, grid))
+        vals = lines[i].split()
+        n = int(float(vals[0]))
+        out.append("%d %s %s\n" % (n, vals[1], vals[2]))
     with open(path, "w") as f:
-        for n, grid in grids:
-            f.write(" ".join([str(n)] + ["%.16e" % v for v in grid]) + "\n")
-        f.writelines(lines[3:])
-    return [(n, g[0], g[-1]) for n, g in grids]
-
+        f.writelines(out + lines[3:])
+    return out
 
 def read_3d_field_map(path):
     """读取 ASTRA 3D 场图 (如 3D_test.ex / 3D_Dipole.bx).

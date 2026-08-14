@@ -15,8 +15,16 @@ pandas>=2.0
 jupyter>=1.0
 ipywidgets>=8.0
 
+# ---- Notebook 执行/格式 (第 5 层 e2e 测试需要) ----
+nbconvert>=7.0
+nbformat>=5.0
+
 # ---- 测试 (可选) ----
 pytest>=7.0
+
+# 注: PyCharm 打开项目后会自动检测本文件并提示一键安装;
+#     若用项目自带的 .venv 则无需安装 (已全部装好)。
+#     pyflakes 为开发期静态检查工具 (可选): pip install pyflakes
 
 # ---- 可选: 交互式绘图 (锦上添花, 默认不开) ----
 # ipympl>=0.9

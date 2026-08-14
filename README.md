@@ -5,9 +5,15 @@
 
 - **前端**: 8 个任务式 Notebook, 参数用表单点选 (元数据驱动, 覆盖 ASTRA 手册第 6 章
   全部 13 个 namelist 与第 7 章 Generator 全部参数), 也可直接使用现成 .in 文本;
-  结果以统计表格 + 现代密度图呈现, 支持 CSV/npz 数据导出。
+  结果以统计表格 + 现代 KDE 密度图呈现, 支持 CSV/npz 数据导出。
 - **后端**: astra_tools 纯 Python 包 (不打包、不分发), **复制整个文件夹即可使用**;
   统计与绘图代码全部经物理审查, 与 ASTRA 自身输出交叉验证 (误差 < 0.02%)。
+- **覆盖**: postpro/lineplot/fieldplot 三大图形程序的功能替代 — 相空间与切片、
+  全部演化曲线 (z 或 t 轴)、发射度/能散/光学函数、场图 (1D/TWS/3D 截面/轴上
+  剖面)、孔径叠加、阴极发射、激光与等离子体、核心电荷分数曲线、
+  BFF (直接法 + FFT 快速路径)、PScan/Scan/Error 扫描图。
+- **验证**: 83 项测试 (五层, 见 docs/dev_manual/test_plan.md), 含真实 ASTRA
+  PScan/Scan 交叉验证; 官方 9 算例一键复现 + 黄金比对 (08 号 notebook)。
 
 ## 快速开始
 
@@ -62,6 +68,9 @@
 
 ## 文档
 
-- 用户手册: docs/user_guide/ (中文)
-- 开发手册: docs/dev_manual/ (中文)
-- 物理审查备忘录: docs/physics_notes/
+- 用户手册: docs/user_guide/ (中文; 含 PyCharm 打开指南 pycharm_setup.md)
+- 开发手册: docs/dev_manual/ (中文; 含完整测试方案 test_plan.md 与
+  可委托 Codex 的任务清单 codex_tasks.md)
+- 物理审查备忘录: docs/physics_notes/ (约定 01-09 + 未解决物理问题报告 10)
+- 环境: 自带 .venv (Python 3.14.6, 依赖已装); requirements.txt 供
+  PyCharm 自动识别一键安装

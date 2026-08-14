@@ -11,7 +11,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -23,10 +22,10 @@ from astra_tools.analysis.slices import compute_slice_analysis
 from astra_tools.analysis.bff import compute_bff
 from astra_tools.plot.style import set_style
 from astra_tools.plot.phase_space import plot_phase_space
-from astra_tools.plot.distributions import plot_distributions, plot_energy_distribution
-from astra_tools.plot.overview import plot_overview, plot_transverse_profile
+from astra_tools.plot.distributions import plot_distributions
+from astra_tools.plot.overview import plot_overview
 from astra_tools.plot.emit_plots import (
-    plot_emittance_evolution, plot_energy_evolution, plot_emit_dashboard,
+    plot_emittance_evolution, plot_energy_evolution,
     plot_lineplot_overview, plot_ref_trajectory,
 )
 from astra_tools.plot.slice_plots import plot_slice_dashboard

@@ -27,10 +27,14 @@ plot 渲染 (显示单位在边界转换) -> export 导出。
 
 ## 测试 (五层)
 
+完整方案见 **test_plan.md** (测试清单/交叉验证表/黄金再生成流程)。
+
     pytest test/                          # 1-4 层: 单元/黄金/交叉/绘图
     # 第 5 层: 逐个执行 notebooks (需可执行文件)
     jupyter nbconvert --to notebook --execute notebooks/XX.ipynb \
       --ExecutePreprocessor.kernel_name=astra-notebook
+
+可整块委托 Codex 的任务清单见 **codex_tasks.md** (T1-T9)。
 
 ## 添加新绘图
 
