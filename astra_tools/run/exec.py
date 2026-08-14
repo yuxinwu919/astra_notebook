@@ -113,11 +113,15 @@ def run_program(
     except subprocess.TimeoutExpired:
         raise RuntimeError("%s timed out after %d s" % (exe_name, timeout))
 
+    combined = (result.stderr or "") + "\n" + (result.stdout or "")
     if result.returncode != 0:
         raise RuntimeError(
-            "%s returned exit code %d\n%s"
-            % (exe_name, result.returncode, result.stderr or result.stdout)
+            "%s returned exit code %d\n%s" % (exe_name, result.returncode, combined)
         )
+    # ASTRA 解析失败时可能仍以 0 退出, 检查失败标记
+    for marker in ("Program stops", "Error reading", "ERROR"):
+        if marker in combined:
+            raise RuntimeError("%s 失败 (%s):\n%s" % (exe_name, marker, combined[-2000:]))
     logger.info("%s finished successfully", exe_name)
     return result
 
