@@ -1,0 +1,50 @@
+&NEWRUN
+  RUN=001
+  Loop=F
+  Distribution = 'phsp.ini'
+  Version=2
+  Xoff=0
+  Yoff=0
+  Zoff = 0
+  Tau=0.0
+  Toff=0.0
+  TRACK_ALL=T
+  PHASE_SCAN=F
+  AUTO_PHASE=F
+  check_ref_part=F
+  H_max = 0.0001			! always check this parameter for convergence
+/
+
+&OUTPUT
+  ZSTART=0
+  ZSTOP=15.e-3
+  Zemit=300
+  Zphase=1
+  EmitS=t
+  PhaseS=t
+  TrackS=t
+  RefS=f
+  TcheckS=f
+  CathodeS=f
+  High_res=T 
+ /
+ 
+ &CHARGE
+  LSpCh = f
+ / 
+
+ &CAVITY
+  LEFIELD=T
+  File_Efield(1)='PLASMA_flattop.txt',	! keyword 'PLASMA' indicates that this is a plasma wakefield
+  C_noscale(1) = T,
+  C_pos(1) = 2.4e-3,                    ! shift by C_pos (m) in z
+  zeta = -45.e-6,                       ! initial position of bunch behind driver (m)
+  E_a0 = 0.8,                           ! normalized peak vector potential of driver in focus
+  E_Z0 = 7.4e-3,                        ! driver focal position (m)
+  E_sig = 2.5e-05,                      ! rms transverse beam size of driver intensity in focus (m)
+  E_Zr = 0.0098,                        ! rayleigh length (m)
+  E_lam = 800.e-9,                      ! driver wavelength (m)
+  P_n = 1.e17,                          ! peak plasma density (cm^-3)
+  E_sigz = 6.4e-06		        ! rms longitudinal driver intensity length (m)
+
+ / 

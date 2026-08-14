@@ -1,0 +1,74 @@
+{
+ "Manual_Example": {
+  "final": {
+   "mean_z": 1.5,
+   "mean_t": 5.0035e-09,
+   "mean_x": 2.9703e-07,
+   "sigma_x": 0.0007499599999999999,
+   "sigma_xp": 7.4365e-07,
+   "norm_emit_x": 1.0003e-06,
+   "cov_x__xp": -2.2365307119999996e-10
+  },
+  "n_rows": 500
+ },
+ "Plasma_Example_1": {
+  "final": {
+   "mean_z": 0.015,
+   "mean_t": 5.0035000000000005e-11,
+   "mean_x": 3.9792e-09,
+   "sigma_x": 1.4553999999999999e-06,
+   "sigma_xp": 0.00041157,
+   "norm_emit_x": 9.6382e-08,
+   "cov_x__xp": 4.72946784e-10
+  },
+  "n_rows": 300
+ },
+ "Plasma_Example_2": {
+  "final": {
+   "mean_z": 0.11,
+   "mean_t": 3.67e-10,
+   "mean_x": -0.0006138200000000001,
+   "sigma_x": 0.0014735,
+   "sigma_xp": 0.0092991,
+   "norm_emit_x": 0.00010826999999999999,
+   "cov_x__xp": 1.37003083e-05
+  },
+  "n_rows": 300
+ },
+ "Curved_Cathode_Example": {
+  "final": {
+   "mean_z": 0.1,
+   "mean_t": 4.3112e-10,
+   "mean_x": -8.0814e-05,
+   "sigma_x": 0.0020698,
+   "sigma_xp": 0.0080601,
+   "norm_emit_x": 1.0217e-05,
+   "cov_x__xp": 1.6511622520000004e-05
+  },
+  "n_rows": 49
+ },
+ "Cavity_Example": {
+  "final": {
+   "mean_z": 0.4,
+   "mean_t": 1.3343e-09,
+   "mean_x": 1.7803000000000001e-07,
+   "sigma_x": 0.0009619,
+   "sigma_xp": 0.00017831,
+   "norm_emit_x": 1.0717e-06,
+   "cov_x__xp": -1.71439437e-07
+  },
+  "n_rows": 50
+ },
+ "90deg_bend_Example_Section1": {
+  "n_particle": 7,
+  "n_active": 7,
+  "mean_pz_eVc": 1867985.7678342161,
+  "total_charge_nC": -0.07
+ },
+ "90deg_bend_Example_Section2": {
+  "n_particle": 7,
+  "n_active": 7,
+  "mean_pz_eVc": 525717.0724887915,
+  "total_charge_nC": -0.07
+ }
+}

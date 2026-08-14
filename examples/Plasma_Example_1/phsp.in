@@ -1,0 +1,36 @@
+ &INPUT
+  FNAME = 'phsp.ini'
+  ADD=.F
+  N_add=0
+  IPart=1000
+  Species='electrons'
+  Probe=T
+  Noise_reduc=T
+  Cathode=F
+  Q_total=0.1E-3
+  Ref_zpos=0.0E0
+  Ref_clock=0.0E0
+  Ref_Ekin=100.	! MeV
+  sig_Ekin =100.	! 100 keV energy spread
+  
+  Dist_Z='g'
+  sig_z=1.e-03	! in mm
+  C_sig_z=3,
+  Dist_pz='g'
+  C_sig_Ekin = 3
+
+  Dist_x='2',  
+  sig_x= 1.62e-3,  ! in mm
+  C_sig_x = 3,
+  Nemit_x = 0.1,       ! mm mrad
+  C_sig_px = 3,
+  cor_px = -0.4,
+
+  Nemit_y = 0.1,
+  C_sig_py = 3,
+  sig_y = 1.62e-3,
+  cor_py = -0.4,
+
+  
+ /
+

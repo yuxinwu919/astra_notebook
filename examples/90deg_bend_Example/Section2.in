@@ -1,0 +1,32 @@
+ &NEWRUN
+  Head = '90 degree bend section 2'
+  Run =            1
+  Distribution = 'Section1_n.0100.001'  ,
+  Track_All =  T ,  Auto_Phase =  F , Phase_Scan =  F
+  High_res=T
+  H_max =  0.3000E-03
+ /
+
+ &OUTPUT
+  ZStart =   -0.250     , ZStop =    0.54
+  Zemit =    1, Zphase =    1
+  Local_emit=T
+  EmitS = F,
+  TrackS=T
+  PhaseS=T
+  RefS = T
+ /
+ 
+ 
+&CAVITY
+  LEfield = T
+  File_Efield(1)='3D_Dipole'
+  By_stat(1)=.TRUE.
+  Com_grid(1)='all'
+  C_noscale(1)=.TRUE.
+  c_Xrot(1)=-1.5708
+  C_pos(1)=0.165
+  C_xoff(1)=0.075
+ /
+
+

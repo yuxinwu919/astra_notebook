@@ -1,0 +1,26 @@
+ &NEWRUN
+  Head = 'Example for a non-planar cathode'
+  Run =  1
+ /
+
+
+ 
+ &CHARGE
+ 
+ ! only parameters required for the curved cathode are set in this example
+ ! add the grid parameter settings as needed for your case
+ 
+  LSpCh = T
+  
+  Lmirror =  T
+  L_Curved_Cathode=t
+  R_zero=0.02
+  Cathode_Contour='Contour.dat'
+ /
+
+ &CAVITY
+  LEfield = T
+  File_Efield(1) = 'efld.dat'                                                                        
+  Nue(1) =   1.300    ,
+  MaxE(1) =  -40.00    , Phi(1) =   0.00    
+ /

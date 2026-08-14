@@ -1,0 +1,92 @@
+...
+
+ &CAVITY
+  LEField=T,
+  
+  File_Efield(1)='3_cell_L-Band.dat',  C_pos(1)=0.3
+  Nue(1)=1.3,	MaxE(1)=40.0,	Phi(1)=0.0,
+  
+ /
+ 
+...
+
+Field description with a table: A 3 cell L-band cavity. By default only the linear expansion is used for the calculation of the transverse field components. With 'C_higher_order(1)=T' up to the 3rd order are included. See the appendix of the manual for details. Field components and the 3rd order 
+contribution can be displayed with fieldplot. The quality of this table is sufficient, smoothing is not required.
+
+...
+ 
+ &CAVITY
+  LEFieLD=T
+  
+  FILE_EFieLD(1) = 'dcfield.dat',
+  
+  MaxE(1)=-2.5
+  C_higher_order(1)=T
+  
+ /
+...
+
+A DC field as defined by the inital letters of the file name. Fields will be treated as DC fields independent of the file name if Nue(1)=0.0 and Phi(1)=0.0 is set.
+
+
+For a magnetostatic case see the example: section wise tracking with 90 degree bend
+
+...
+
+&CAVITY
+  LEfield=T
+  
+  File_Efield(1) = 'TWS_Sband.dat',
+  Nue(1)=2.857,   MaxE(1)=-40.0,    Phi(1)=0.0,
+  C_pos(1)=0.1,   C_numb(1)=9, 
+ 
+ /
+...
+
+SLAC type travelling wave structure with only 9 cells.  
+
+...
+
+ &CAVITY
+  LEfield=T
+  
+  File_Efield(1) = '3D_test',
+  Nue(1)=1.3,   MaxE(1)=-40.0,    Phi(1)=0.0,
+  C_pos(1)=0.3, 
+ 
+ /
+... 
+
+Field description with a 3D field map, compare with field table '3_cell_L-Band.dat'; fieldplot offers additional display options for 3D maps on Menu 2.
+
+...
+
+&MODULES  
+  LModule = T
+  Module(1,1) = 'Cavity(1)'                               
+  Module(1,2) = 'Cavity(2)'                               
+    
+  Mod_Efield(1) =  -0.1223 
+  Mod_phase(1)=50.0   , 
+ 
+ /
+
+
+&CAVITY
+  LEfield = T 
+  FILE_EFieLD(1) = 'DY_3D_TDS_ReIm',
+  Nue(1)=3.016,   C_noscale(1)=T,   Phi(1)=0,	 
+  C_pos(1)=0.5,
+  
+  FILE_EFieLD(2) = 'DY_3D_TDS_ImRe',
+  Nue(2)=3.016,   C_noscale(2)=T,   Phi(2)=90,
+  C_pos(2)=0.5,
+   
+ /
+...
+
+A transverse deflecting traveling wave structure described by a superpostion of two standing wave 3D maps, see the appendix of the manual for details. The magnetic component of the field is in the y-plane, the deflection in the x-plane. Absolute scaling with E_max(1) would act on the magnetic y-component as indicated by the first letters.
+The two cavities are combined in one module. Scaling the field with Mod_Efield(1) and setting the phase with Mod_phase(1) in combination with C_nosclae=T guaranties that the relative strength of the fields and the 90 degree phasing (relative to each other) stay constant. The scaling is now relativ to the field strength as defined in the maps.
+For a discussion of the beam dynamics in transverse deflecting structures see: PRST-AB 17, 054402 (2014), DOI: 10.1103/PhysRevSTAB.17.054402 
+
+
