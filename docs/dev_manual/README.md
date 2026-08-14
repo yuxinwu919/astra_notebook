@@ -49,3 +49,14 @@ git 历史 /tmp/parse_manual_params.py); 手册更新时重跑该脚本。
 
 examples/<name>/golden/ 由本地真跑生成 (data/golden_runs/, gitignore);
 期望值在 examples/golden_expected.json; 重跑后须重新生成期望值并核对差异。
+
+## 已知边界 (手册第 5 章的展示类末梢, 数据层均已支持)
+
+主体功能已全部覆盖; 以下纯展示变体未实现, 数据源 (对应文件读取器)
+均已就绪, 需要时按 plot/ 现有模式补充即可:
+
+* postpro: 三视图 vs 时间 (t 轴变体)、核心束长 vs 电荷、含孔径几何
+  叠加、3D 椭圆的交互旋转;
+* lineplot: 粒子速度曲线 (可由 beta 推出)、平均步长曲线;
+* fieldplot: 阴极表面场、激光场/等离子体场 vs z/zeta 的专用图
+  (3D 场图截面已可查看相应数据)。
