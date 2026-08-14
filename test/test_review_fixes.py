@@ -171,3 +171,33 @@ def test_discover_outputs_yemit_zemit_landf(tmp_path):
     assert out["landf"].name == "t.LandF.001"
     assert [f.name for f in out["phase"]] == ["t.0100.001"]
 
+def test_namelist_single_element_array_round_trip():
+    """单元素数组往返保持数组 (写出带 (1) 索引, 解析恒存列表)."""
+    from astra_tools.namelist.write import write_namelist
+    from astra_tools.namelist.parse import parse_namelists
+    text = write_namelist("CAVITY", {"MaxE": [10.0], "Phi": 5.0, "Nue": [2.857]})
+    d = parse_namelists(text)["CAVITY"]
+    assert d["MaxE"] == [10.0]
+    assert d["Phi"] == 5.0      # 标量仍为标量
+    assert d["Nue"] == [2.857]
+
+
+def test_namelist_blank_string_consistent():
+    """纯空白字符串与空串一致: 跳过, 不抛错."""
+    from astra_tools.namelist.write import write_namelist
+    text = write_namelist("NEWRUN", {"Head": "   ", "RUN": 1})
+    assert "Head" not in text
+    assert "RUN=1" in text
+
+
+def test_discover_outputs_negative_z():
+    """负 z 相空间文件 (如 astra.-050.001) 必须被发现."""
+    from astra_tools.run.exec import discover_outputs
+    import tempfile
+    from pathlib import Path
+    with tempfile.TemporaryDirectory() as td:
+        (Path(td) / "astra.-050.001").write_text("0 0 0\n")
+        out = discover_outputs(Path(td), "astra", run="001")
+        assert [f.name for f in out["phase"]] == ["astra.-050.001"]
+
+

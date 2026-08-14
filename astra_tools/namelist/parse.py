@@ -110,6 +110,7 @@ def parse_namelists(text_or_path) -> dict:
 
         def _store(key_raw, value_raw):
             key = key_raw.strip()
+            indexed = bool(re.search(r"\(\s*\d+\s*\)$", key))
             # strip the (index) suffix from array elements
             base = re.sub(r"\(\s*\d+\s*\)$", "", key)
             tokens = [t for t in _split_top_level(value_raw.strip()) if t.strip()]
@@ -124,7 +125,11 @@ def parse_namelists(text_or_path) -> dict:
                 prev.extend(parsed if len(parsed) > 1 else [parsed[0]])
                 blocks[current][base] = prev
             else:
-                blocks[current][base] = parsed[0] if len(parsed) == 1 else parsed
+                # 带 (i) 索引的键恒存列表 (数组语义); 无索引按标量
+                if indexed:
+                    blocks[current][base] = parsed
+                else:
+                    blocks[current][base] = parsed[0] if len(parsed) == 1 else parsed
 
         # Multiple assignments may share one line (with or without
         # array parens), 引号感知:

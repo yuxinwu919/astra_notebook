@@ -179,7 +179,7 @@ def discover_outputs(work_dir: Path, stem: str, run: str = "001"):
                 out["landf"] = f
             elif ext == "Cemit":
                 out["cemit"] = f
-            elif ext.isdigit():
+            elif ext.lstrip("-").isdigit():
                 out["phase"].append(f)
         elif f.suffix == ".ini":
             out["dist"].append(f)

@@ -23,7 +23,7 @@ def _format_value(value: Any) -> str:
     if isinstance(value, str):
         s = value.strip()
         if not s:
-            raise ValueError("empty string values are not valid namelist entries")
+            return "''"  # 空串 -> 空字符字面量 (与跳过策略一致, 不抛)
         if s.startswith(("'", '"')) and s.endswith(("'", '"')):
             return s  # already quoted
         # Fortran 惯例: 内嵌撇号双写转义, 保证 parse 往返对称
@@ -69,7 +69,11 @@ def write_namelist(
             continue
         if isinstance(value, (list, tuple, np.ndarray)) and len(value) == 0:
             continue
-        if isinstance(value, str) and value == "":
+        if isinstance(value, (list, tuple, np.ndarray)) and len(value) == 1:
+            # 单元素数组带 (1) 索引写出, parse 端恒存列表, 往返保持数组
+            lines.append("  " + key + "(1)=" + _format_value(value) + ",")
+            continue
+        if isinstance(value, str) and value.strip() == "":
             continue
         lines.append("  " + key + "=" + _format_value(value) + ",")
     lines.append(" /")
