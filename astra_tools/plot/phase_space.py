@@ -124,7 +124,7 @@ def plot_phase_space(
 
     # 离群点裁剪说明
     f_out = outside_fraction(x_data, *xr) + outside_fraction(y_data, *yr)
-    if f_out > 0.01:
+    if f_out > 0.001:
         ax.text(0.99, 0.02, "range clip: %.1f%% of points outside" % (100 * f_out),
                 transform=ax.transAxes, ha="right", va="bottom",
                 fontsize=8, color="0.35")

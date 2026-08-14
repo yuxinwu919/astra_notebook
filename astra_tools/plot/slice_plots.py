@@ -1,7 +1,8 @@
 """Slice-analysis plots: current profile, slice emittance, energy chirp.
 
-All quantities from astra_tools.analysis.slices (SI input, display units
-applied here).
+Input: astra_tools.analysis.slices.SliceAnalysis (SI); display units
+applied here. Emittance display follows the ASTRA convention
+([pi mm mrad] values equal eps_n in mm.mrad).
 """
 
 from __future__ import annotations
@@ -23,19 +24,22 @@ def plot_current_profile(
     """Longitudinal current profile |I(z)| [A].
 
     The absolute value is shown because ASTRA stores electron macro
-    charges as negative (the sign is conventional).
+    charges as negative numbers (sign is conventional).
     """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
     z = sa.z_centers * 1e3
-    ax.fill_between(z, 0, np.abs(sa.current), step="mid",
-                    color="steelblue", alpha=0.6)
-    ax.plot(z, np.abs(sa.current), color="navy", lw=1)
+    i_abs = np.abs(sa.current)
+    ax.fill_between(z, 0, i_abs, step="mid", alpha=0.5)
+    ax.plot(z, i_abs, lw=1)
+    i_peak = float(np.max(i_abs))
     ax.set_xlabel("z [mm]")
-    ax.set_ylabel("current [A]")
+    ax.set_ylabel("current |I| [A]")
     ax.set_title(title or "longitudinal current profile")
+    ax.text(0.02, 0.96, "peak %.1f A, Q = %.3f nC" % (i_peak, np.sum(sa.charge)),
+            transform=ax.transAxes, va="top", fontsize=9)
     fig.tight_layout()
     return fig
 
@@ -46,16 +50,16 @@ def plot_slice_emittance(
     figsize=(8, 4),
     title: Optional[str] = None,
 ) -> plt.Figure:
-    """Slice normalized emittances [mm.mrad] vs z."""
+    """Slice normalized emittances [pi mm mrad] vs z."""
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
     z = sa.z_centers * 1e3
-    ax.plot(z, sa.emit_x_norm * 1e6, label="eps_nx", color="C0")
-    ax.plot(z, sa.emit_y_norm * 1e6, label="eps_ny", color="C1")
+    ax.plot(z, sa.emit_x_norm * 1e6, label="$\\varepsilon_{nx}$")
+    ax.plot(z, sa.emit_y_norm * 1e6, label="$\\varepsilon_{ny}$")
     ax.set_xlabel("z [mm]")
-    ax.set_ylabel("slice emittance [mm mrad]")
+    ax.set_ylabel("slice emittance [$\\pi$ mm mrad]")
     ax.set_title(title or "slice emittance")
     ax.legend()
     fig.tight_layout()
@@ -74,15 +78,37 @@ def plot_energy_chirp(
     else:
         fig = ax.figure
     z = sa.z_centers * 1e3
-    ax.plot(z, sa.mean_kinetic_energy_eV * 1e-6, label="E_kin", color="C0")
+    ax.plot(z, sa.mean_kinetic_energy_eV * 1e-6, label="$E_{kin}$", color="C0")
     ax.set_xlabel("z [mm]")
-    ax.set_ylabel("mean slice E_kin [MeV]")
+    ax.set_ylabel("mean slice $E_{kin}$ [MeV]", color="C0")
     ax2 = ax.twinx()
-    ax2.plot(z, sa.sig_E_over_E * 100, label="sigma_E/E", color="C1", lw=1)
-    ax2.set_ylabel("sigma_E/E [%]")
+    ax2.plot(z, sa.sig_E_over_E * 100, label="$\\sigma_E/E$", color="C1", lw=1.2)
+    ax2.set_ylabel("$\\sigma_E/E$ [%]", color="C1")
     ax.set_title(title or "energy chirp")
-    lines = [ax.get_lines()[0], ax2.get_lines()[0]]
-    ax.legend(lines, [l.get_label() for l in lines], fontsize=8)
+    lines = ax.get_lines() + ax2.get_lines()
+    ax.legend(lines, [l.get_label() for l in lines], fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def plot_slice_sizes(
+    sa: SliceAnalysis,
+    ax=None,
+    figsize=(8, 4),
+    title: Optional[str] = None,
+) -> plt.Figure:
+    """Slice RMS sizes [mm] vs z."""
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    else:
+        fig = ax.figure
+    z = sa.z_centers * 1e3
+    ax.plot(z, sa.sig_x * 1e3, label="$\\sigma_x$")
+    ax.plot(z, sa.sig_y * 1e3, label="$\\sigma_y$")
+    ax.set_xlabel("z [mm]")
+    ax.set_ylabel("RMS size [mm]")
+    ax.set_title(title or "slice sizes")
+    ax.legend()
     fig.tight_layout()
     return fig
 
@@ -97,15 +123,7 @@ def plot_slice_dashboard(
     plot_current_profile(sa, ax=axes[0, 0])
     plot_slice_emittance(sa, ax=axes[0, 1])
     plot_energy_chirp(sa, ax=axes[1, 0])
-
-    ax = axes[1, 1]
-    z = sa.z_centers * 1e3
-    ax.plot(z, sa.sig_x * 1e3, label="sigma_x", color="C0")
-    ax.plot(z, sa.sig_y * 1e3, label="sigma_y", color="C1")
-    ax.set_xlabel("z [mm]")
-    ax.set_ylabel("RMS size [mm]")
-    ax.set_title("slice sizes")
-    ax.legend(fontsize=8)
+    plot_slice_sizes(sa, ax=axes[1, 1])
     if title:
         fig.suptitle(title)
     fig.tight_layout()

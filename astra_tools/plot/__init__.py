@@ -1,9 +1,14 @@
-"""Plotting layer: postpro / lineplot / fieldplot replacements."""
+"""Plotting layer: postpro / lineplot / fieldplot replacements.
+
+All plots: unified 2D Gaussian-kernel KDE density, 0.5-99.5 percentile
+range clipping (outlier-proof), SI input / display-unit output with
+complete legends. Call plot.style.set_style() once before plotting.
+"""
 
 from .style import set_style, reset_style
 from .phase_space import plot_phase_space, plot_transverse_phase_space
-from .distributions import plot_distributions, plot_beam_profile
-from .overview import plot_overview
+from .distributions import plot_distributions, plot_energy_distribution
+from .overview import plot_overview, plot_transverse_profile
 from .emit_plots import (
     plot_envelope_evolution,
     plot_emittance_evolution,
@@ -24,8 +29,8 @@ from .field_plots import plot_cavity_field, plot_solenoid_field
 __all__ = [
     "set_style", "reset_style",
     "plot_phase_space", "plot_transverse_phase_space",
-    "plot_distributions", "plot_beam_profile",
-    "plot_overview",
+    "plot_distributions", "plot_energy_distribution",
+    "plot_overview", "plot_transverse_profile",
     "plot_envelope_evolution", "plot_emittance_evolution",
     "plot_energy_evolution", "plot_ref_trajectory",
     "plot_eigen_emittances", "plot_emit_dashboard",
