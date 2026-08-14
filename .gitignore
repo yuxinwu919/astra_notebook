@@ -63,5 +63,18 @@ Desktop.ini
 # Generated test outputs
 packages/*/tests/output/
 
+# WHPS_LINAC 示例: 只入库输入文件, 大型输出留在本地重新生成
+examples/WHPS_LINAC/**/*.001
+examples/WHPS_LINAC/**/*.exe
+examples/WHPS_LINAC/**/*.Log*
+examples/WHPS_LINAC/**/win_config.dat
+
+# 本地工具/代理目录
+.codex/
+anaconda_projects/
+
 
 *.log
+
+# WHPS 无 .001 后缀的杂散输出
+examples/WHPS_LINAC/**/*.4200

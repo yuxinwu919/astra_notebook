@@ -1,27 +1,22 @@
-# ============================================================
-# ASTRA & Generator — Jupyter 交互式模拟界面
-# Python 环境依赖文件
-# ============================================================
-# 安装方式: pip install -r requirements.txt
-# ============================================================
+# astra-notebook — ASTRA/Generator 前后处理工作台依赖
+# 安装: pip install -r requirements.txt
+# 说明: 本项目不做发布包, 复制整个文件夹即可使用。
+#       ASTRA/Generator 可执行文件需另行放置 (见 README.md)。
 
-# ---- 核心科学计算库 ----
-numpy>=1.21.0
-matplotlib>=3.5.0
-scipy>=1.7.0
+# ---- 核心科学计算 ----
+numpy>=1.24
+scipy>=1.10
+matplotlib>=3.7
 
-# ---- Jupyter Notebook 运行环境 ----
-jupyter>=1.0.0
-ipykernel>=6.0.0
+# ---- 数据导出 (CSV 表格) ----
+pandas>=2.0
 
-# ---- 可选：粒子分布解析器（至少安装一个） ----
-# 推荐首选：ocelot（功能最全面，支持统计计算和转换）
-ocelot>=24.0.0
-# 备选：lume-astra（轻量级纯 Python 解析器）
-# lume-astra>=0.1.0
+# ---- Jupyter 前端 ----
+jupyter>=1.0
+ipywidgets>=8.0
 
-# ---- 注意事项 ----
-# 1. 若 ocelot 安装失败（尤其 Windows），可改用 lume-astra：
-#    pip uninstall ocelot && pip install lume-astra
-# 2. 两个都不安装也可运行，Notebook 将使用内置的 np.fromfile 解析器
-# 3. ASTRA 和 Generator 可执行文件需单独安装并添加到系统 PATH
+# ---- 测试 (可选) ----
+pytest>=7.0
+
+# ---- 可选: 交互式绘图 (锦上添花, 默认不开) ----
+# ipympl>=0.9

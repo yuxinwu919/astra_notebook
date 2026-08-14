@@ -1,0 +1,139 @@
+ &NEWRUN
+  Head='WHPS LINAC 1nC 10ps 2ps 0.5mm 2 laser pulse with space charge 0.4um 20K'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!,
+  RUN=1 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!,
+  Loop=F,
+  Nloop=1,
+  Distribution='WHPS_LINAC_1nC_10k_27_beforeAX.ini' !'WHPS_LINAC_1nC_10k_Shanghai2.ini' !'WHPS_LINAC_1nC_10k_1.ini' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!,
+  Xoff=0.0,
+  Yoff=0.0,
+  TRACK_ALL=T,
+  PHASE_SCAN=F,
+  AUTO_PHASE=T,  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!,
+  check_ref_part=F,
+  H_max=0.001,
+  H_min=0.0,
+  !Qbunch=0.1 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ /
+
+ &OUTPUT
+  ZSTART=28.5!31!8.5!0.0,
+  ZSTOP=42!35!8.5!40!2!10!14.75!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!14.75,
+  Zemit=1000.0,
+  Zphase=10!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!10,
+  !Screen(1)=0.155    	! exit of the gun
+  !Screen(2)=1.72     	! middle of SRR chamber(?)
+  !Screen(3)=2.86     	! position of straight screen monitor
+  !Screen(4)=10.85    	! 10 cm before chicane
+  !Screen(5)=12.35    	! middle of chicane
+  !Screen(6)=13.80    	! 5 cm after chicane
+  Lmagnetized=F!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!,
+  !Lproject_emit=T!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  EmitS=T,
+  PhaseS=T,
+  TrackS=T,
+  RefS=T,
+  TcheckS=T,
+  CathodeS=T,
+  High_res=T,
+ /
+
+&SCAN
+  LScan=F!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!F,
+  !Scan_para='MaxE(1)',    S_min=-120.0,  S_max=-100.0,  S_numb=10,!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !Scan_para='Phi(1)',        S_min=-45.00,  S_max=-25.00,  S_numb=10,!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  Scan_para='MaxE(9)',    S_min=40,  S_max=48,  S_numb=9,!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!0.1777,
+  !Scan_para='S_pos(1)',    S_min=-0.05,   S_max=0.05,    S_numb=8,!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  FOM(1)='bunch charge',
+  FOM(2)='statistics: number of backward traveling particles',
+  FOM(3)='horizontal rms spot size',
+  FOM(4)='longitudinal rms emittance',
+  FOM(5)='rms bunch length',
+  FOM(6)='mean beam energy',
+  FOM(7)='rms beam energy spread',
+  FOM(8)='horizontal rms emittance',
+  FOM(9)='vertical rms emittance',
+  !FOM(10)='statistics: number of lost particles on an aperture'
+ /
+
+ &CHARGE
+  Loop=F,
+  LSPCH=T!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!T,
+  LSPCH3D=T,
+  L2D_3D=T,
+  z_trans=10.85,
+  Nrad=10,
+  Nlong_in=20,
+  Cell_var=2.0,
+  min_grid=0,
+  Max_scale=0.05,
+  Max_count=40,
+  Lmirror=T,
+  N_min=100,
+ /
+
+ &CAVITY
+  Loop=F,
+  LEFieLD=T,
+  FILE_EFieLD(1)='one_and_half_cells_rf_gun.dat'!'one_and_half_cells_rf_gun.dat' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'CTF3_Ez_ASTRA.dat' !scaled from 2.5cells rf gun of CERN,
+  Nue(1)=2.9985,
+  MaxE(1)=-100!-115!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-118.45,
+  Phi(1)=-5!-29.87,  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!,
+  C_pos(1)=0.0,
+  FILE_EFieLD(2)='TWS_PSI_Sband_ASTRA.dat', Nue(2)=2.9985, C_Numb(2)=87, !A0-1,
+  FILE_EFieLD(3)='TWS_PSI_Sband_ASTRA.dat', Nue(3)=2.9985, C_Numb(3)=87, !A0-2,
+  FILE_EFieLD(4)='TWS_PSI_Sband_ASTRA.dat', Nue(4)=2.9985, C_Numb(4)=87, !TDS1 tbc,
+  FILE_EFieLD(5)='TWS_PSI_Sband_ASTRA.dat', Nue(5)=2.9985, C_Numb(5)=87, !A1-1,
+  FILE_EFieLD(6)='TWS_PSI_Sband_ASTRA.dat', Nue(6)=2.9985, C_Numb(6)=87, !A1-2,
+  FILE_EFieLD(7)='TWS_PSI_Sband_ASTRA.dat', Nue(7)=2.9985, C_Numb(7)=87, !A1-3,
+  FILE_EFieLD(8)='TWS_PSI_Sband_ASTRA.dat', Nue(8)=2.9985, C_Numb(8)=87, !A1-4,
+  FILE_EFieLD(9)='TWS_PSI_Xband_ASTRA.dat', Nue(9)=11.994, C_Numb(9)=87, !AX tbc,
+  MaxE(2)=25, Phi(2)=0,      C_pos(2)=1.5      !A0-1,
+  MaxE(3)=25, Phi(3)=0,      C_pos(3)=5.5      !A0-2,
+  MaxE(4)=0,   Phi(4)=0,      C_pos(4)=9.5      !TDS1 tbc,
+  MaxE(5)=25, Phi(5)=-25.0, C_pos(5)=13.5    !A1-1,
+  MaxE(6)=25, Phi(6)=-25.0, C_pos(6)=17.5    !A1-2,
+  MaxE(7)=25, Phi(7)=-25.0, C_pos(7)=21.5    !A1-3,
+  MaxE(8)=25, Phi(8)=-25.0, C_pos(8)=25.5    !A1-4,
+  MaxE(9)=44, Phi(9)=180,   C_pos(9)=29.5    !AX tbc, 44MV/m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!,
+ /
+
+ &SOLENOID
+  Loop=F,
+  LBFieLD=T,
+  FILE_BFieLD(1)='coil_for_emittance_compensation0idealshape1.dat' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'bfld_scand.dat',
+  MaxB(1)=0.17900005!0.10244  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!,
+  S_pos(1)=0.0, !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!0.2137m,
+  S_xoff(1)=0.0,
+  S_yoff(1)=0.0,
+  S_xrot(1)=0.0, S_yrot(1)=0.0  ! rotation and tilt,
+  S_higher_order(1)=T,
+  S_smooth(1)=4,
+  FILE_BFieLD(2)='soleniodfieldfor3mlinac_shifted.dat',  S_noscale(2)=f, S_smooth(2)=10, MaxB(2)=0.100030, S_pos(2)=1.5, S_xoff(2)=0.0, S_yoff(2)=0.0, S_higher_order=F !soleniod at A0-1,
+ /
+
+ &QUADRUPOLE
+  Loop=F,
+  Lquad=T,
+  Q_length(1)=0.13, Q_bore(1)=0.035, Q_grad(1)=1.0,  Q_pos(1)=8.7,
+  Q_length(2)=0.13, Q_bore(2)=0.035, Q_grad(2)=-2.0, Q_pos(2)=9.0,
+  Q_length(3)=0.13, Q_bore(3)=0.035, Q_grad(3)=1.0,  Q_pos(3)=9.3,
+  Q_length(4)=0.13, Q_bore(4)=0.035, Q_grad(4)=-1.0,  Q_pos(4)=20.7,
+  Q_length(5)=0.13, Q_bore(5)=0.035, Q_grad(5)=2.0, Q_pos(5)=21.0,
+  Q_length(6)=0.13, Q_bore(6)=0.035, Q_grad(6)=-1.0,  Q_pos(6)=21.3,
+  Q_length(7)=0.13, Q_bore(7)=0.035, Q_grad(7)=1.0,  Q_pos(7)=28.7,
+  Q_length(8)=0.13, Q_bore(8)=0.035, Q_grad(8)=-2.0, Q_pos(8)=29.0,
+  Q_length(9)=0.13, Q_bore(9)=0.035, Q_grad(9)=1.0,  Q_pos(9)=29.3,
+ /
+
+ &DIPOLE
+  Loop=F,
+  LDipole=T,
+  D1(1)=(0.555,0.0), D2(1)=(-0.555,0.0), D3(1)=(0.555,0.4), D4(1)=(-0.555,0.4), D_zoff(1)=32, D_Type(1)=hor, D_Gap(1,1)=0.045, D_Gap(2,1)=0.045, D_xrot(1)=0.00000,
+  D1(2)=(0.555,0.0), D2(2)=(-0.555,0.0), D3(2)=(0.555,0.4), D4(2)=(-0.555,0.4), D_zoff(2)=35.5, D_Type(2)=hor, D_Gap(1,2)=0.045, D_Gap(2,2)=0.045, D_xrot(2)=0.00000!3.14159,
+  D1(3)=(0.555,0.0), D2(3)=(-0.555,0.0), D3(3)=(0.555,0.4), D4(3)=(-0.555,0.4), D_zoff(3)=38.0, D_Type(3)=hor, D_Gap(1,3)=0.045, D_Gap(2,3)=0.045, D_xrot(3)=0.00000,
+  D1(4)=(0.555,0.0), D2(4)=(-0.555,0.0), D3(4)=(0.555,0.4), D4(4)=(-0.555,0.4), D_zoff(4)=41.5, D_Type(4)=hor, D_Gap(1,4)=0.045, D_Gap(2,4)=0.045, D_xrot(4)=0.00000!3.14159,
+  D_strength(1)=0.186!-0.08708   	!for 5 fs: D_strength(1)=-0.1023,
+  D_strength(2)=-0.186!0.08708 	!for 5 fs: D_strength(1)=0.1023,
+  D_strength(3)=-0.186!0.08708 	!for 5 fs: D_strength(1)=0.1023,
+  D_strength(4)=0.186!-0.08708 	!for 5 fs: D_strength(1)=-0.1023,
+ /
