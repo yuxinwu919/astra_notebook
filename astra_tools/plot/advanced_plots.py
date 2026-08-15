@@ -691,7 +691,7 @@ def plot_pscan_compression_time(pscan, ax=None, figsize=(8, 4), title=None):
     fig, ax = _ax(ax, figsize)
     ax.plot(pscan["phase_deg"], pscan["beta_ratio"], label=r"$\beta/\beta_0$")
     ax.set_xlabel("RF phase [deg]")
-    ax.set_ylabel("velocity ratio $\beta/\beta_0$")
+    ax.set_ylabel(r"velocity ratio $\beta/\beta_0$")
     ax.set_title(title or "compression factor (time)")
     ax.legend()
     fig.tight_layout()

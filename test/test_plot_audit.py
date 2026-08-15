@@ -81,7 +81,8 @@ def F():
     lm = dict(z=np.linspace(0, 1.5, 20), avr=np.linspace(0, 0.5, 20),
               rms=np.linspace(0.1, 0.3, 20))
     tc = dict(z=np.linspace(0, 1.5, 20),
-              scaling=np.random.default_rng(0).uniform(0.5, 1.5, (20, 5)))
+              scaling=np.random.default_rng(0).uniform(0.5, 1.5, (20, 5)),
+              counter=np.arange(20))
     err = dict(run=np.arange(30), z=np.full(30, 1.5),
                FOM=np.random.default_rng(1).normal(1e-6, 1e-8, (30, 10)))
     cz = np.linspace(0, 1.5, 10)
@@ -151,6 +152,15 @@ def _cases(F):
         ("pscan_dedz", lambda: _ap.plot_pscan_dedz(F["pscan"])),
         ("pscan_comp", lambda: _ap.plot_pscan_compression(F["pscan"])),
         ("scan_fom", lambda: _ap.plot_scan_fom(F["scan"], i=0)),
+        ("corr_energy_spread", lambda: _ep.plot_correlated_energy_spread(emit)),
+        ("ref_momentum", lambda: _ep.plot_ref_momentum(ref)),
+        ("pscan_comp_time", lambda: _ap.plot_pscan_compression_time(F["pscan"])),
+        ("scan_position", lambda: _ap.plot_scan_position(F["scan"])),
+        ("tcheck_counter", lambda: _ap.plot_tcheck_counter(F["tc"])),
+        ("core_emit_z", lambda: _ap.plot_core_emittance(F["ce"], plane="z")),
+        ("cr_emit", lambda: _ap.plot_cr_emit(dict(z=np.linspace(0, 1.5, 20),
+            eps_x=np.full(20, 1e-6), eps_y=np.full(20, 1e-6),
+            q_rest=np.linspace(1, 0.8, 20), q_cross=np.linspace(0, 0.2, 20)))),
         ("error_hist", lambda: _ap.plot_error_hist(F["err"], i=0)),
         ("reduced", lambda: _ap.plot_reduced_emittance(F["x2"], F["x2"])),
         ("trace", lambda: _ap.plot_trace_emittance(F["tr"])),
