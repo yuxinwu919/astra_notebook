@@ -38,13 +38,13 @@
 | 03 | postpro | postpro | 相空间分析/统计/切片/BFF/导出 (含孔径叠加与核心曲线) |
 | 04 | lineplot | lineplot | 束流参数演化 (九图 + 速度/步长 + t 轴变体) |
 | 05 | fieldplot | fieldplot | 腔场/螺线管/3D 场图/激光/等离子体 |
-| 06 | examples | — | DESY 官方算例展示 + 一键复现 + 黄金样本比对 |
+| 06 | examples | — | 教程与功能总览: 六章按 01→05 逐章教学并展示全部功能 (真实算例 + 合成教学数据) + 一键复现与黄金比对 |
 
 ## 目录结构
 
     astra_notebook/           # 复制这一层即可使用
     ├── astra_tools/          # 后端包 (io/analysis/plot/deck/run/widgets/export)
-    ├── notebooks/            # 8 个前端 Notebook + _bootstrap.py
+    ├── notebooks/            # 6 个前端 Notebook + _bootstrap.py
     ├── examples/             # DESY 官方算例 (输入 + 黄金输出)
     ├── test/                 # 五层测试
     ├── docs/                 # user_guide / dev_manual / physics_notes

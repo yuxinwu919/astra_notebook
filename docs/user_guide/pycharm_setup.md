@@ -45,3 +45,8 @@
   是否继承系统 PATH (默认继承); 或把可执行文件复制到项目
   ASTRA/ 目录 (后端第二搜索位置)。
 * matplotlib 字体缓存警告: 首次绘图会构建字体缓存, 属正常。
+* 若系统同时装了 anaconda 且 shell 里激活过 conda: Jupyter 内核列表
+  可能混入 anaconda 的 python3, 且 python -m jupyter 会误用其
+  site-packages。对策: 内核手动选 astra-notebook; 跑测试用仓库的
+  bash test/e2e_notebooks.sh (脚本已内置 JUPYTER_PATH 隔离, 不受
+  conda 影响)。

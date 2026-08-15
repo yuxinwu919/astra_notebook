@@ -3,9 +3,14 @@
 # 用法: bash test/e2e_notebooks.sh
 set -u
 cd "$(dirname "$0")/.."
+VENV="$PWD/.venv"
 KERNEL=${KERNEL:-astra-notebook}
-PYTHON=${PYTHON:-.venv/bin/python}
+PYTHON=${PYTHON:-"$VENV/bin/python"}
 export MPLCONFIGDIR=${MPLCONFIGDIR:-/tmp/mplcfg}
+# 隔离用户 shell 环境 (如激活的 anaconda/conda): 内核只从项目 venv
+# 查找, PYTHONPATH 清空, 避免混入其他 Python 发行版的 site-packages
+export JUPYTER_PATH="$VENV/share/jupyter"
+unset PYTHONPATH
 
 FAIL=0
 for nb in 01_generator 02_astra 03_postpro \
