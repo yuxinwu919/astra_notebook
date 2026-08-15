@@ -212,9 +212,10 @@ def test_wake_potential_guards(tmp_path):
     with pytest.raises(ValueError):
         read_wake_potential(pt)
     pok = tmp_path / "wok.dat"
-    pok.write_text("2 0\n0.0 1.0\n0.1 2.0\n")
+    pok.write_text("1 0\n2 0\n0.0 1.0\n0.1 2.0\n")
     w = read_wake_potential(pok)
     assert list(w.s) == [0.0, 0.1] and list(w.w) == [1.0, 2.0]
+    assert len(w.blocks) == 1
 
 def test_plots_empty_and_single_particle_graceful():
     """<3 活粒子/单粒子: 画空图并注明, 不抛异常、无 inf/nan。"""

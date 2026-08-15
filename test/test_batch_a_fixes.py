@@ -89,6 +89,29 @@ def test_3d_map_roundtrip_f_order(tmp_path):
     assert np.allclose(xr, x) and np.allclose(yr, y) and np.allclose(zr, z)
 
 
+def test_3d_map_compact_header(tmp_path):
+    """(n, min, spacing) 紧凑头 (DESY laser.dat 形式) 就地展开。"""
+    import numpy as np
+    from astra_tools.io.field_map import read_3d_field_map
+    nx, ny, nz = 4, 5, 6
+    f_true = np.zeros((nx, ny, nz))
+    for ix in range(nx):
+        for iy in range(ny):
+            for iz in range(nz):
+                f_true[ix, iy, iz] = ix + 10 * iy + 100 * iz
+    lines = [
+        "%d %.6e %.6e" % (nx, -0.01, 0.005),
+        "%d %.6e %.6e" % (ny, -0.02, 0.01),
+        "%d %.6e %.6e" % (nz, 0.0, 0.1),
+        " ".join("%.6e" % v for v in f_true.reshape(-1, order="F")),
+    ]
+    pth = tmp_path / "compact.dat"
+    pth.write_text(chr(10).join(lines))
+    x, y, z, f = read_3d_field_map(pth)
+    assert np.array_equal(f, f_true)
+    assert np.allclose(x[1] - x[0], 0.005)
+
+
 def test_3d_map_real_bx_symmetries():
     """The TDS dipole field Bx must vanish on axis and be odd in y.
 

@@ -9,7 +9,10 @@ modern frontend/backend split.
 
 * **Frontend**: 6 task-specific Jupyter notebooks in `notebooks/`
   (01_generator, 02_astra, 03_postpro, 04_lineplot, 05_fieldplot,
-  06_examples) - one per original program plus the examples showcase.
+  06_examples) - one per original program plus the examples summary.
+  In addition, examples/<name>/<name>.ipynb holds one detailed teaching
+  notebook per official example (8 total; shared spec in
+  examples/_examples_spec.py).
   UI text and parameter help are in Chinese; plot labels are in English.
 * **Backend**: the plain Python package `astra_tools/` (no packaging, no
   PyPI). The whole project folder is copied as-is to use it. Notebooks

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # 第 5 层端到端测试: 逐个执行全部 Notebook (需 ASTRA/Generator 可执行文件)
+# 覆盖 6 个任务式 notebook + 8 个单算例教学 notebook。
 # 用法: bash test/e2e_notebooks.sh
 set -u
 cd "$(dirname "$0")/.."
@@ -12,12 +13,28 @@ export MPLCONFIGDIR=${MPLCONFIGDIR:-/tmp/mplcfg}
 export JUPYTER_PATH="$VENV/share/jupyter"
 unset PYTHONPATH
 
+NOTEBOOKS="
+notebooks/01_generator.ipynb
+notebooks/02_astra.ipynb
+notebooks/03_postpro.ipynb
+notebooks/04_lineplot.ipynb
+notebooks/05_fieldplot.ipynb
+notebooks/06_examples.ipynb
+examples/Manual_Example/Manual_Example.ipynb
+examples/Aperture/Aperture.ipynb
+examples/Wake/Wake.ipynb
+examples/Cavity_Example/Cavity_Example.ipynb
+examples/Curved_Cathode_Example/Curved_Cathode_Example.ipynb
+examples/90deg_bend_Example/90deg_bend_Example.ipynb
+examples/Plasma_Example_1/Plasma_Example_1.ipynb
+examples/Plasma_Example_2/Plasma_Example_2.ipynb
+"
+
 FAIL=0
-for nb in 01_generator 02_astra 03_postpro \
-          04_lineplot 05_fieldplot 06_examples; do
+for nb in $NOTEBOOKS; do
   echo "=== $nb ==="
-  $PYTHON -m jupyter nbconvert --to notebook --execute "notebooks/$nb.ipynb" \
-    --output "/tmp/e2e_$nb.ipynb" \
+  $PYTHON -m jupyter nbconvert --to notebook --execute "$nb" \
+    --output "/tmp/e2e_$(basename "$nb" .ipynb).ipynb" \
     --ExecutePreprocessor.kernel_name="$KERNEL" \
     --ExecutePreprocessor.timeout=600 >/dev/null 2>&1
   rc=$?

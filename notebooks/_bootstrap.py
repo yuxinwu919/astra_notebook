@@ -10,8 +10,12 @@
 import sys
 from pathlib import Path
 
-# 项目根 = 本文件的上一级目录
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+# 项目根: 向上找到包含 astra_tools 的目录 (notebook 可位于任意
+# 深度, 例如 notebooks/ 或 examples/<算例>/ 下)
+_p = Path(__file__).resolve().parent
+while not (_p / "astra_tools").is_dir() and _p != _p.parent:
+    _p = _p.parent
+PROJECT_ROOT = _p
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 

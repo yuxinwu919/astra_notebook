@@ -204,22 +204,6 @@ def plot_trace_emittance(tr, ax=None, figsize=(8, 5), title=None):
     return fig
 
 
-def plot_core_emittance(ce, ax=None, figsize=(8, 5), title=None):
-    """核心发射度 (Cemit, 菜单 4 项 9-11): eps_n + C95/C90/C80."""
-    fig, ax = _ax(ax, figsize)
-    z = ce["mean_z"]
-    ax.plot(z, ce["norm_emit_x"] * 1e6, label="$\\varepsilon_{nx}$")
-    ax.plot(z, ce["core_emit_95percent_x"] * 1e6, ls="--", label="Cx_95")
-    ax.plot(z, ce["core_emit_90percent_x"] * 1e6, ls=":", label="Cx_90")
-    ax.plot(z, ce["core_emit_80percent_x"] * 1e6, ls="-.", label="Cx_80")
-    ax.set_xlabel("z [m]")
-    ax.set_ylabel("core emittance [$\\pi$ mm mrad]")
-    ax.set_title(title or "core emittance (x)")
-    ax.legend(fontsize=9)
-    fig.tight_layout()
-    return fig
-
-
 def plot_larmor(lm, ax=None, figsize=(8, 4), title=None):
     """拉莫尔角平均与 RMS (Larmor 文件)."""
     fig, ax = _ax(ax, figsize)
@@ -702,3 +686,81 @@ def plot_core_fraction_curves(dist, fractions=(0.1, 0.25, 0.5, 0.75, 0.9, 1.0),
     fig.tight_layout()
     return fig
 
+def plot_pscan_compression_time(pscan, ax=None, figsize=(8, 4), title=None):
+    """压缩因子 (时间, lineplot 菜单 2 项 4): PScan 第 4 列 beta/beta0。"""
+    fig, ax = _ax(ax, figsize)
+    ax.plot(pscan["phase_deg"], pscan["beta_ratio"], label=r"$\beta/\beta_0$")
+    ax.set_xlabel("RF phase [deg]")
+    ax.set_ylabel("velocity ratio $\beta/\beta_0$")
+    ax.set_title(title or "compression factor (time)")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_scan_position(scan, ax=None, figsize=(8, 4), title=None):
+    """FOM 保存位置 (lineplot 菜单 3 项 11): z vs 扫描参数。"""
+    fig, ax = _ax(ax, figsize)
+    ax.plot(scan["para"], scan["z"], "o-", label="FOM position")
+    ax.set_xlabel("scan parameter")
+    ax.set_ylabel("z [m]")
+    ax.set_title(title or "FOM evaluation position")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_tcheck_counter(tc, ax=None, figsize=(8, 4), title=None):
+    """空间电荷缩放计数器 (lineplot 菜单 2 项 10)。"""
+    fig, ax = _ax(ax, figsize)
+    ax.plot(tc["z"], tc["counter"], label="scaling counter")
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel("counter")
+    ax.set_title(title or "space charge scaling counter")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_core_emittance(ce, ax=None, figsize=(8, 5), title=None,
+                        plane: str = "x"):
+    """核心发射度 (Cemit, 菜单 4 项 9-11): eps_n + C95/C90/C80。
+
+    plane: 'x' / 'y' / 'z' (z 平面纵向, 单位 keV.mm)。
+    """
+    fig, ax = _ax(ax, figsize)
+    z = ce["mean_z"]
+    scale = 1e-3 if plane == "z" else 1e6
+    unit = "keV mm" if plane == "z" else r"$\pi$ mm mrad"
+    ax.plot(z, ce["norm_emit_" + plane] * scale, label=r"$\varepsilon_{n%s}$" % plane)
+    ax.plot(z, ce["core_emit_95percent_" + plane] * scale, ls="--",
+            label="C%s_95" % plane)
+    ax.plot(z, ce["core_emit_90percent_" + plane] * scale, ls=":",
+            label="C%s_90" % plane)
+    ax.plot(z, ce["core_emit_80percent_" + plane] * scale, ls="-.",
+            label="C%s_80" % plane)
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel("core emittance [%s]" % unit)
+    ax.set_title(title or ("core emittance (%s)" % plane))
+    ax.legend(fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def plot_cr_emit(cr, ax=None, figsize=(8, 5), title=None):
+    """交叉粒子 (Cr_emit, 菜单 4 项 12-14): 发射度与剩余/交叉电荷。"""
+    fig, ax = _ax(ax, figsize)
+    ax.plot(cr["z"], cr["eps_x"] * 1e6, label=r"$\varepsilon_x$")
+    ax.plot(cr["z"], cr["eps_y"] * 1e6, label=r"$\varepsilon_y$")
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel(r"emittance [$\pi$ mm mrad]")
+    ax.set_title(title or "cross-over particle emittance")
+    ax2 = ax.twinx()
+    ax2.plot(cr["z"], cr["q_rest"], color="C2", ls="--", label="rest charge")
+    ax2.plot(cr["z"], cr["q_cross"], color="C3", ls=":", label="cross charge")
+    ax2.set_ylabel("charge [nC]")
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax.legend(h1 + h2, l1 + l2, fontsize=9)
+    fig.tight_layout()
+    return fig

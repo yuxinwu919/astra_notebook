@@ -154,23 +154,37 @@ def read_solenoid_field(path) -> SolenoidField:
 
 
 def read_wake_potential(path) -> WakePotential:
-    """Read an ASTRA wake table: header line 'N 0' then N rows (s, W).
+    """Read an ASTRA wake table (manual section 6.8).
 
-    Multiple blocks (e.g. monopole + dipole) may follow each other;
-    only the first block is returned. See manual section 6.8.
+    格式: 首行 (nblocks, 0), 随后每个块一行头 (N, 0) 加 N 行 (s, W);
+    块 1 通常是单极分量, 其后为双极分量。返回第一块, 所有块挂在其
+    .blocks 属性上。
     """
     path = Path(path)
     lines = [ln.split() for ln in path.read_text().splitlines()
              if ln.strip() and not ln.strip().startswith(("#", "!"))]
     if not lines:
         raise ValueError("empty wake file: " + str(path))
-    n = int(float(lines[0][0]))
-    if n <= 0:
-        raise ValueError("wake file declares %d points: %s" % (n, path))
-    rows = np.asarray([[float(v) for v in ln] for ln in lines[1:1 + n]], dtype=float)
-    if rows.ndim != 2 or rows.shape[0] < n or rows.shape[1] < 2:
-        raise ValueError("wake file truncated: expected %d rows: %s" % (n, path))
-    return WakePotential(s=rows[:, 0], w=rows[:, 1], source=str(path))
+    nblocks = int(float(lines[0][0]))
+    if nblocks <= 0:
+        raise ValueError("wake file declares no blocks: " + str(path))
+    blocks = []
+    i = 1
+    for _ in range(nblocks):
+        if i >= len(lines):
+            raise ValueError("wake file truncated (block header): " + str(path))
+        n = int(float(lines[i][0]))
+        i += 1
+        rows = np.asarray([[float(v) for v in ln] for ln in lines[i:i + n]],
+                          dtype=float)
+        if rows.ndim != 2 or rows.shape[0] < n or rows.shape[1] < 2:
+            raise ValueError("wake block truncated: %s" % path)
+        blocks.append(WakePotential(s=rows[:, 0], w=rows[:, 1],
+                                     source=str(path)))
+        i += n
+    out = blocks[0]
+    out.blocks = blocks
+    return out
 
 
 # ============================================================
@@ -280,34 +294,63 @@ def fix_laser_map_header(path):
     return out
 
 def read_3d_field_map(path):
-    """读取 ASTRA 3D 场图 (如 3D_test.ex / 3D_Dipole.bx).
+    """读取 ASTRA 3D 场图 (如 3D_test.ex / 3D_Dipole.bx / laser.dat).
 
-    格式: 3 个网格行 (n 与 n 个网格值, 自由格式), 随后为数据值,
-    顺序为 x 最快、y 次之、z 最慢 (Fortran 序)。
+    网格头支持两种形式 (每行一个网格, 共 3 行):
+      * 逐值: n 后跟 n 个网格值 (手册格式)
+      * 紧凑: n, min, spacing (MATLAB/DESY 常见, 就地展开)
+    随后为数据值 (可跨行), 顺序 x 最快、y 次之、z 最慢 (Fortran 序)。
 
     Returns:
         (x, y, z, F) — F 为 (nx, ny, nz) 数组, 按 F[ix, iy, iz] 索引,
         SI 单位按文件名约定 (ex/ey/ez: V/m; bx/by/bz: T; 数值原样返回)。
     """
     path = Path(path)
-    toks = path.read_text().split()
-    vals = [float(t) for t in toks]
-    idx = 0
+    lines = [ln.split() for ln in path.read_text().splitlines() if ln.strip()]
+    if len(lines) < 4:
+        raise ValueError("3D map too short: " + str(path))
 
-    def read_grid():
-        nonlocal idx
-        n = int(vals[idx])
-        idx += 1
-        g = np.array(vals[idx:idx + n], dtype=float)
-        idx += n
-        return g
-
-    x = read_grid()
-    y = read_grid()
-    z = read_grid()
+    # 紧凑头 (n, min, spacing) 候选: 前 3 行各恰 3 个 token;
+    # 必须通过校验 (n>=1 且剩余数据长度与网格积精确相等) 才算数,
+    # 否则按逐值头解析 (自由格式允许换行, 3 个 token 可能只是
+    # 恰好每行 3 个网格值的巧合, 如 3D_Dipole.bx)
+    compact = len(lines[0]) == 3 and len(lines[1]) == 3 and len(lines[2]) == 3
+    if compact:
+        _grids = []
+        for i in range(3):
+            _n = int(float(lines[i][0]))
+            if _n < 1:
+                compact = False
+                break
+            _x0, _dx = float(lines[i][1]), float(lines[i][2])
+            _grids.append(np.array([_x0 + j * _dx for j in range(_n)],
+                                   dtype=float))
+        _rest = []
+        for ln in lines[3:]:
+            _rest.extend(ln)
+        if compact:
+            _data = np.array([float(v) for v in _rest], dtype=float)
+            _need = int(np.prod([len(g) for g in _grids]))
+            if len(_data) != _need:
+                compact = False
+        if compact:
+            grids, data = _grids, _data
+    if compact:
+        pass
+    else:
+        # 逐值头: 全局 token 流, 支持换行 (自由格式)
+        vals = [float(v) for v in path.read_text().split()]
+        idx = 0
+        grids = []
+        for _ in range(3):
+            n = int(vals[idx])
+            idx += 1
+            grids.append(np.array(vals[idx:idx + n], dtype=float))
+            idx += n
+        data = np.array(vals[idx:], dtype=float)
+    x, y, z = grids
     nx, ny, nz = len(x), len(y), len(z)
-    data = np.array(vals[idx:idx + nx * ny * nz], dtype=float)
     if len(data) < nx * ny * nz:
         raise ValueError("3D map data truncated: " + str(path))
-    f = data.reshape(nx, ny, nz, order="F")  # x fastest -> F[ix, iy, iz]
+    f = data[:nx * ny * nz].reshape(nx, ny, nz, order="F")
     return x, y, z, f

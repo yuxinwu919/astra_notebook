@@ -344,3 +344,47 @@ def plot_lineplot_overview(
         fig.suptitle(title)
     fig.tight_layout()
     return fig
+
+def plot_correlated_energy_spread(
+    emit: EmitSet,
+    ax=None,
+    figsize=(8, 5),
+    title: Optional[str] = None,
+    x_axis: str = "z",
+) -> plt.Figure:
+    """关联能散 (lineplot 菜单 1 项 7): Zemit 第 7 列 cov(z,E)/sigma_z。
+
+    内部单位 eV, 显示 keV。
+    """
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    else:
+        fig = ax.figure
+    xvals, xlab = _xvals(emit.z, x_axis)
+    ax.plot(xvals, emit.z.corr * 1e-3, label=r"correlated $\sigma_E$")
+    ax.set_xlabel(xlab)
+    ax.set_ylabel("correlated energy spread [keV]")
+    ax.set_title(title or "correlated energy spread")
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_ref_momentum(
+    ref: RefData,
+    ax=None,
+    figsize=(8, 5),
+    title: Optional[str] = None,
+) -> plt.Figure:
+    """参考粒子动量 (lineplot 菜单 1 项 10): pz vs z。"""
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    else:
+        fig = ax.figure
+    ax.plot(ref.z, ref.pz * 1e-6, label="$p_z$ (reference particle)")
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel("momentum [MeV/c]")
+    ax.set_title(title or "reference particle momentum")
+    ax.legend()
+    fig.tight_layout()
+    return fig
