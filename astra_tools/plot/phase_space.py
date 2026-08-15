@@ -1,4 +1,7 @@
-"""Phase-space density plots (postpro style, modern KDE rendering).
+"""Phase-space plots (postpro style).
+
+渲染方式: 普通散点图 (点数上限内确定性子采样), 显示范围仍用
+0.5-99.5 百分位裁剪, 离群点不会压扁主体分布。
 
 Physics conventions (audited against ASTRA Manual V3.2 and validated
 against ASTRA's own Xemit output):
@@ -6,10 +9,8 @@ against ASTRA's own Xemit output):
     (manual 4.13.1); pass bz_on_axis_T for bunches inside solenoids
   * dp/p from absolute pz (the reader converts the file's relative pz)
   * positive z = ahead of the reference particle (bunch head)
-
-Density rendering: unified 2D Gaussian-kernel KDE (plot._density);
-display range auto-clipped to the 0.5-99.5 percentile so outliers can
-never collapse the bulk of the distribution.
+  * normalize=True 除以各自 sigma: 高能束流 (µrad 级发散角) 的
+    相空间在原始单位下是一条贴地横线, 归一化后结构清晰可见
 """
 
 from __future__ import annotations
@@ -18,54 +19,66 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import LogNorm
 
-from ..analysis.emittance import canonical_divergence, compute_emittance_ellipse_params
+from ..analysis.emittance import canonical_divergence
 from ..distribution import Distribution
-from ._density import clip_percentile, density2d, outside_fraction
+from ._density import clip_percentile, outside_fraction
 
 PLANES = ("x", "y", "z")
+
+
+def scatter2d(ax, x, y, max_points=20000, color="#0077BB", s=2.0,
+              alpha=0.6, clip_q=0.5):
+    """确定性子采样的散点图 + 百分位裁剪范围。
+
+    返回 ((xr, yr), n_total), 供调用方设轴限与离群点注释。
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n = len(x)
+    if n > max_points:
+        idx = np.linspace(0, n - 1, max_points).astype(int)
+        x, y = x[idx], y[idx]
+    ax.scatter(x, y, s=s, alpha=alpha, color=color,
+               edgecolors="none", rasterized=True)
+    xr = clip_percentile(x, clip_q)
+    yr = clip_percentile(y, clip_q)
+    ax.set_xlim(*xr)
+    ax.set_ylim(*yr)
+    return (xr, yr), n
 
 
 def plot_phase_space(
     dist: Distribution,
     plane: str = "x",
-    bins: int = 160,
     ax=None,
     figsize=(6.5, 5),
     title: Optional[str] = None,
-    cmap: Optional[str] = None,
-    colorbar: bool = True,
-    show_ellipse: bool = False,
+    color: str = "#0077BB",
+    s: float = 2.0,
+    alpha: float = 0.6,
+    max_points: int = 20000,
     bz_on_axis_T: float = 0.0,
-    use_weights: bool = False,
     clip_q: float = 0.5,
     normalize: bool = False,
+    use_weights: bool = False,
 ) -> plt.Figure:
-    """KDE density plot of one 2D phase-space projection.
+    """2D 相空间投影散点图。
 
     Args:
-        dist: Distribution.
-        plane: 'x' (x-x'), 'y' (y-y') or 'z' (z-dp/p).
-        bins: KDE grid resolution.
-        show_ellipse: overlay the RMS emittance ellipse ('x'/'y').
-        bz_on_axis_T: on-axis solenoid field at bunch center [T].
-        use_weights: weight by macro-particle charge.
-        clip_q: display-range percentile clip [%] on each side.
-        normalize: divide both axes by their population std - the phase
-            space becomes a circle for a Gaussian and its structure stays
-            visible at ANY beam energy (e.g. 1 GeV beams with urad-level
-            divergence would otherwise render as a flat streak).
+        dist: Distribution。
+        plane: 'x' (x-x'), 'y' (y-y') 或 'z' (z-dp/p)。
+        max_points: 散点上限 (确定性子采样, 防百万粒子卡顿)。
+        bz_on_axis_T: 束心处螺线管轴上场 [T] (正则散角)。
+        clip_q: 显示范围百分位裁剪 [%]。
+        normalize: 两轴除以各自 sigma (任何能量下结构可见)。
+        use_weights: 兼容保留 (散点渲染不使用权重)。
     """
     if plane not in PLANES:
         raise ValueError("plane must be one of " + str(PLANES))
 
     mask = dist.active
-    # |q| 权重 (混合符号束团下带符号权重会产生负密度, 破坏 LogNorm)
-    w = np.abs(dist.charge[mask]) if use_weights else None
 
-    # Reference momentum guard: fall back to mean |pz| for synthetic
-    # distributions without a header reference.
     p_ref = dist.ref_momentum_eVc
     if p_ref <= 0:
         p_ref = float(np.mean(np.abs(dist.pz[mask])))
@@ -78,14 +91,12 @@ def plot_phase_space(
         y_data = (ptx - np.mean(ptx)) / p_ref * 1e3
         xlabel, ylabel = "x [mm]", "x' [mrad]"
         default_title = "x-x' phase space"
-        u, up = dist.x[mask] - np.mean(dist.x[mask]), (ptx - np.mean(ptx)) / p_ref
     elif plane == "y":
         pty = canonical_divergence(dist.py[mask], dist.x[mask], bz_on_axis_T, -1.0)
         x_data = dist.y[mask] * 1e3
         y_data = (pty - np.mean(pty)) / p_ref * 1e3
         xlabel, ylabel = "y [mm]", "y' [mrad]"
         default_title = "y-y' phase space"
-        u, up = dist.y[mask] - np.mean(dist.y[mask]), (pty - np.mean(pty)) / p_ref
     else:
         x_data = (dist.z[mask] - np.mean(dist.z[mask])) * 1e3
         mean_pz = np.mean(dist.pz[mask])
@@ -95,7 +106,6 @@ def plot_phase_space(
         xlabel = "z [mm]  (positive = ahead of reference)"
         ylabel = "dp/p [%]"
         default_title = "longitudinal phase space"
-        u = up = None
 
     if normalize:
         sx = float(np.std(x_data))
@@ -109,71 +119,30 @@ def plot_phase_space(
         else:
             xlabel, ylabel = "z/σz", "(dp/p)/σ"
         default_title += " (normalized)"
-        if u is not None and up is not None:
-            su = float(np.std(u))
-            sup = float(np.std(up))
-            if su > 0:
-                u = u / su
-            if sup > 0:
-                up = up / sup
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
 
-    xr = clip_percentile(x_data, clip_q)
-    yr = clip_percentile(y_data, clip_q)
-    try:
-        z, xe, ye = density2d(x_data, y_data, bins=bins,
-                              range_xy=(xr, yr), weights=w)
-    except ValueError:
-        # 少于 3 个活粒子: 画空图并注明, 不崩溃
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
-        ax.set_title(title or default_title)
-        ax.text(0.5, 0.5, "fewer than 3 active particles",
-                ha="center", va="center", transform=ax.transAxes,
-                color="0.4", fontsize=10)
-        fig.tight_layout()
-        return fig
-
-    z_plot = np.where(z > 0, z, np.nan)
-    im = ax.pcolormesh(xe, ye, z_plot.T, cmap=cmap, norm=LogNorm(),
-                       shading="auto", rasterized=True)
-    if colorbar:
-        cb = fig.colorbar(im, ax=ax)
-        if normalize:
-            cb.set_label("probability density")
-        else:
-            cb.set_label("probability density [1/mm/mrad]" if plane in ("x", "y")
-                         else "probability density")
-
-    ax.axhline(0, color="white", lw=0.6, ls="--", alpha=0.7)
-    ax.axvline(0, color="white", lw=0.6, ls="--", alpha=0.7)
+    (xr, yr), n_total = scatter2d(ax, x_data, y_data, max_points=max_points,
+                                  color=color, s=s, alpha=alpha,
+                                  clip_q=clip_q)
+    ax.axhline(0, color="0.6", lw=0.6, ls="--", alpha=0.7)
+    ax.axvline(0, color="0.6", lw=0.6, ls="--", alpha=0.7)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title or default_title)
 
-    if show_ellipse and plane in ("x", "y") and u is not None:
-        params = compute_emittance_ellipse_params(u, up, n_sigma=1.0, weights=w)
-        th = np.linspace(0, 2 * np.pi, 240)
-        uscale = 1.0 if normalize else 1e3
-        xe_ = params["a"] * np.cos(th) * uscale
-        ye_ = params["b"] * np.sin(th) * uscale
-        xr_ = xe_ * np.cos(params["theta"]) - ye_ * np.sin(params["theta"])
-        yr_ = xe_ * np.sin(params["theta"]) + ye_ * np.cos(params["theta"])
-        # 密度画在绝对 x (未居中), 椭圆必须平移到质心
-        ax.plot(xr_ + float(np.mean(x_data)), yr_,
-                color="#CC3311", lw=1.8, ls="-", label="1-RMS ellipse")
-        ax.legend(loc="best")
-
-    # 离群点裁剪说明
     f_out = outside_fraction(x_data, *xr) + outside_fraction(y_data, *yr)
+    notes = []
+    if n_total > max_points:
+        notes.append("showing %d / %d points" % (max_points, n_total))
     if f_out > 0.001:
-        ax.text(0.99, 0.02, "range clip: %.1f%% of points outside" % (100 * f_out),
-                transform=ax.transAxes, ha="right", va="bottom",
-                fontsize=8, color="0.35")
+        notes.append("range clip: %.1f%% outside" % (100 * f_out))
+    if notes:
+        ax.text(0.99, 0.02, "; ".join(notes), transform=ax.transAxes,
+                ha="right", va="bottom", fontsize=8, color="0.35")
 
     fig.tight_layout()
     return fig

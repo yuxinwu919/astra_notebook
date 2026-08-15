@@ -110,12 +110,12 @@ from astra_tools.plot import (phase_space as _ps, overview as _ov,
 def _cases(F):
     d, emit, ref, sigma = F["dist"], F["emit"], F["ref"], F["sigma"]
     return [
-        ("phase_space_x", lambda: _ps.plot_phase_space(d, plane="x", show_ellipse=True)),
+        ("phase_space_x", lambda: _ps.plot_phase_space(d, plane="x")),
         ("phase_space_x_norm", lambda: _ps.plot_phase_space(d, plane="x", normalize=True)),
         ("phase_space_x_weighted", lambda: _ps.plot_phase_space(d, plane="x", use_weights=True)),
         ("phase_space_y", lambda: _ps.plot_phase_space(d, plane="y")),
         ("phase_space_z", lambda: _ps.plot_phase_space(d, plane="z")),
-        ("transverse", lambda: _ps.plot_transverse_phase_space(d, show_ellipse=True)),
+        ("transverse", lambda: _ps.plot_transverse_phase_space(d)),
         ("overview", lambda: _ov.plot_overview(d)),
         ("transverse_profile", lambda: _ov.plot_transverse_profile(d)),
         ("distributions", lambda: _ds.plot_distributions(d)),

@@ -1,9 +1,9 @@
-"""6D phase-space overview (3x2 grid, postpro style, KDE density).
+"""6D phase-space overview (3x2 grid, postpro style, scatter).
 
 Column 1: phase spaces x-x', y-y', z-dp/p.
 Column 2: spatial correlations x-y, z-x, z-y.
-All panels use the unified KDE density engine with 0.5-99.5 percentile
-range clipping (outliers can never collapse the display).
+所有面板为普通散点图 (确定性子采样), 显示范围 0.5-99.5 百分位
+裁剪 (离群点不会压扁主体分布)。
 """
 
 from __future__ import annotations
@@ -12,11 +12,10 @@ from typing import Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import LogNorm
 
 from ..analysis.emittance import canonical_divergence
 from ..distribution import Distribution
-from ._density import clip_percentile, density2d
+from .phase_space import scatter2d
 
 
 def plot_overview(
@@ -30,9 +29,9 @@ def plot_overview(
     """3x2 overview: phase spaces + spatial correlations.
 
     Args:
-        dist: Distribution.
-        bz_on_axis_T: solenoid field at bunch center for canonical x'/y'.
-        use_weights: weight densities by macro-particle charge.
+        dist: Distribution。
+        bz_on_axis_T: solenoid field at bunch center for canonical x'/y'。
+        bins/use_weights: 兼容保留 (散点渲染不使用)。
     """
     m = dist.active
     p_ref = dist.ref_momentum_eVc
@@ -40,7 +39,6 @@ def plot_overview(
         p_ref = float(np.mean(np.abs(dist.pz[m])))
     if p_ref <= 0:
         raise ValueError("reference momentum is zero; cannot form x'")
-    w = np.abs(dist.charge[m]) if use_weights else None
 
     x = dist.x[m] * 1e3
     y = dist.y[m] * 1e3
@@ -67,25 +65,17 @@ def plot_overview(
     fig, axes = plt.subplots(3, 2, figsize=figsize)
     for row, col, xd, yd, t, xl, yl in panels:
         ax = axes[row, col]
-        try:
-            zz, xe, ye = density2d(
-                xd, yd, bins=bins,
-                range_xy=(clip_percentile(xd), clip_percentile(yd)),
-                weights=w)
-        except ValueError:
-            ax.text(0.5, 0.5, "fewer than 3 active particles",
+        if len(xd) == 0:
+            ax.text(0.5, 0.5, "no active particles",
                     ha="center", va="center", transform=ax.transAxes,
                     color="0.4", fontsize=9)
             ax.set_xlabel(xl)
             ax.set_ylabel(yl)
             ax.set_title(t)
             continue
-        im = ax.pcolormesh(xe, ye, np.where(zz > 0, zz, np.nan).T,
-                           cmap="viridis", norm=LogNorm(), shading="auto",
-                           rasterized=True)
-        fig.colorbar(im, ax=ax)
-        ax.axhline(0, color="w", lw=0.6, ls="--", alpha=0.6)
-        ax.axvline(0, color="w", lw=0.6, ls="--", alpha=0.6)
+        scatter2d(ax, xd, yd, max_points=20000)
+        ax.axhline(0, color="0.6", lw=0.6, ls="--", alpha=0.6)
+        ax.axvline(0, color="0.6", lw=0.6, ls="--", alpha=0.6)
         ax.set_xlabel(xl)
         ax.set_ylabel(yl)
         ax.set_title(t)
@@ -101,26 +91,17 @@ def plot_transverse_profile(
     figsize=(6.5, 5),
     title: Optional[str] = None,
 ) -> plt.Figure:
-    """Transverse x-y beam profile (KDE density, log scale)."""
+    """Transverse x-y beam profile (散点图)."""
     m = dist.active
     x = dist.x[m] * 1e3
     y = dist.y[m] * 1e3
     fig, ax = plt.subplots(1, 1, figsize=figsize)
-    try:
-        zz, xe, ye = density2d(x, y, bins=bins)
-    except ValueError:
-        ax.text(0.5, 0.5, "fewer than 3 active particles",
+    if len(x) == 0:
+        ax.text(0.5, 0.5, "no active particles",
                 ha="center", va="center", transform=ax.transAxes,
                 color="0.4", fontsize=10)
-        ax.set_xlabel("x [mm]")
-        ax.set_ylabel("y [mm]")
-        ax.set_title(title or "transverse beam profile (x-y)")
-        fig.tight_layout()
-        return fig
-    im = ax.pcolormesh(xe, ye, np.where(zz > 0, zz, np.nan).T,
-                       cmap="inferno", norm=LogNorm(), shading="auto",
-                       rasterized=True)
-    fig.colorbar(im, ax=ax, label="probability density [1/mm^2]")
+    else:
+        scatter2d(ax, x, y, max_points=30000)
     ax.set_xlabel("x [mm]")
     ax.set_ylabel("y [mm]")
     ax.set_aspect("equal")

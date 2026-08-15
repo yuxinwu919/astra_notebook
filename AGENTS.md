@@ -79,10 +79,12 @@ Run all tests:  .venv/bin/python -m pytest test/ -q
 * Do not reintroduce packaging (pyproject build systems, console
   scripts, version pinning machinery). Copy-the-folder is the delivery
   model.
-* Plot style: unified 2D Gaussian-kernel KDE density
-  (astra_tools/plot/_density.py), 0.5-99.5 percentile range clipping so
-  outliers can never collapse the display, complete legends and unit
-  strings. Keep this system for all new plots.
+* Plot style: 2D phase-space plots are plain SCATTER plots with
+  deterministic subsampling (max_points) and 0.5-99.5 percentile range
+  clipping so outliers can never collapse the display; complete legends
+  and unit strings everywhere. The RMS-ellipse overlay was removed
+  (user decision 2026-08); the KDE density engine stays available in
+  astra_tools/plot/_density.py for optional use, but is NOT the default.
 * Git: inputs and small golden samples are committed; large regenerable
   outputs stay local (see .gitignore).
 

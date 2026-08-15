@@ -231,7 +231,7 @@ def test_plots_empty_and_single_particle_graceful():
         px=np.zeros(n), py=np.zeros(n), pz=np.full(n, 5e6),
         clock=np.zeros(n), charge=np.ones(n))
     fig = plot_phase_space(d1, plane="x")
-    assert "fewer than 3" in fig.axes[0].texts[0].get_text()
+    assert len(fig.axes[0].collections) >= 1
     plt.close(fig)
     fig, _ = plot_overview(d1)
     plt.close(fig)
@@ -253,7 +253,7 @@ def test_plots_empty_and_single_particle_graceful():
         px=np.zeros(0), py=np.zeros(0), pz=np.zeros(0),
         clock=np.zeros(0), charge=np.zeros(0))
     fig = plot_phase_space(d0, plane="x")
-    assert "fewer than 3" in fig.axes[0].texts[0].get_text()
+    assert "x [mm]" in fig.axes[0].get_xlabel()
     plt.close(fig)
 
 
