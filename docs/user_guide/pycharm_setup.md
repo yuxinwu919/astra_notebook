@@ -24,7 +24,7 @@
 4. 打开 notebooks/ 下任意 .ipynb: 内核选 astra-notebook;
    按 01 → 02 → 03/04/05 → 06 顺序运行;
 5. 运行测试: 终端执行
-   .venv/bin/python -m pytest test/ -q  (83 项) 或
+   .venv/bin/python -m pytest test/ -q  (113 项) 或
    在 PyCharm 的 pytest 配置里选 .venv 解释器、目录 test/。
 
 ## 目录速览

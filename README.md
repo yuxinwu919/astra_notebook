@@ -3,7 +3,7 @@
 **ASTRA / Generator 前后处理工作台** — 以 Jupyter Notebook 为前端、Python 包为后端,
 替代 macOS 上缺失的官方 postpro / lineplot / fieldplot 图形程序。
 
-- **前端**: 8 个任务式 Notebook, 参数用表单点选 (元数据驱动, 覆盖 ASTRA 手册第 6 章
+- **前端**: 5 个任务式 Notebook (generator/astra/postpro/lineplot/fieldplot, 与原程序一一对应), 参数用表单点选 (元数据驱动, 覆盖 ASTRA 手册第 6 章
   全部 13 个 namelist 与第 7 章 Generator 全部参数), 也可直接使用现成 .in 文本;
   结果以统计表格 + 现代 KDE 密度图呈现, 支持 CSV/npz 数据导出。
 - **后端**: astra_tools 纯 Python 包 (不打包、不分发), **复制整个文件夹即可使用**;
@@ -12,8 +12,9 @@
   全部演化曲线 (z 或 t 轴)、发射度/能散/光学函数、场图 (1D/TWS/3D 截面/轴上
   剖面)、孔径叠加、阴极发射、激光与等离子体、核心电荷分数曲线、
   BFF (直接法 + FFT 快速路径)、PScan/Scan/Error 扫描图。
-- **验证**: 83 项测试 (五层, 见 docs/dev_manual/test_plan.md), 含真实 ASTRA
-  PScan/Scan 交叉验证; 官方 9 算例一键复现 + 黄金比对 (08 号 notebook)。
+- **验证**: 113 项测试 (五层, 见 docs/dev_manual/test_plan.md), 含真实 ASTRA
+  PScan/Scan 交叉验证; 官方 8 算例在 examples/ 教学 notebook 中逐例
+  复现与黄金比对。
 
 ## 快速开始
 

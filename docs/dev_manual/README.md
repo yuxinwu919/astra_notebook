@@ -59,6 +59,8 @@ examples/<name>/golden/ 由本地真跑生成 (data/golden_runs/, gitignore);
 
 ## 已知边界 (第 5 章展示类末梢)
 
+覆盖全量清单见 **coverage_audit.md** (手册 5.5-5.7 逐项对照)。
+
 已实现:
 * postpro: 三视图 vs 时间 (所有演化图的 x_axis='t' 参数)、核心束长/
   发射度 vs 电荷分数 (plot_core_fraction_curves, 自算)、含孔径几何

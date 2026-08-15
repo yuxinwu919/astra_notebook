@@ -31,7 +31,7 @@ examples/golden_expected.json。
 * 覆盖: 9 个官方算例的归档输出 (Xemit/Zemit/ref/Log/PScan/Scan) 与
   记录在 golden_expected.json 的期望末行值比对 (rel < 0.5%)。
 * 黄金样本生成流程 (仅在本地重跑后更新):
-  1. notebooks/06_examples.ipynb 的 run_example() 在 data/ 下真跑;
+  1. examples/ 下单算例教学 notebook 的 run_example() 在 data/ 下真跑;
   2. 核对新输出与 golden 的差异 (compare_xemit 打印 rel%);
   3. 确认差异为物理/版本变化后, 更新 golden 文件与
      golden_expected.json, 并在提交说明中记录原因。
@@ -87,9 +87,12 @@ examples/golden_expected.json。
 * 本机前提: astra/generator 在 PATH 或项目 ASTRA/ 目录;
   Plasma_Example_2 需要本地 laser.dat (65MB, gitignored)。
 
-## 测试清单 (当前 83 项)
+## 测试清单 (当前 113 项)
 
 * test_backend.py — 单元 + 导出 + 可执行文件
+* test_phase_stepper.py — postpro 步进器 (PhaseStepper)
+* test_misc_readers.py — read_error/read_lab_file 等 (M1/M2)
+* test_reader_probe.py — 文件格式探测 (.zpos/5 值头/场图拒绝)
 * test_format_input.py — namelist 生成
 * test_cross_validation.py — 统计链 vs ASTRA (4)
 * test_golden_examples.py — 9 算例黄金回归 (7)
@@ -97,6 +100,8 @@ examples/golden_expected.json。
 * test_batch_a_fixes.py — 批 A 物理修复红绿测试 (8)
 * test_batch_b_fixes.py — 批 B 工程修复 + BFF (12)
 * test_batch_c_fixes.py — 批 C 展示 + PScan/Scan 交叉验证 (14)
+* test_plot_audit.py — 全部绘图函数渲染审计 (70 图, 含标签/有限性)
+* test_review_fixes.py — 审查修复回归 (重复 z 假电流/零动量/椭圆角度/边界)
 
 ## 新增功能的标准流程 (写代码前先写测试)
 

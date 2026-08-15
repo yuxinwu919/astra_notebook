@@ -1,7 +1,10 @@
 # astra-notebook 用户手册
 
-astra-notebook 是 ASTRA / Generator 的前后处理工作台: 前端为 8 个
-Jupyter Notebook (表单点选 + 现代绘图), 后端为 Python 包 astra_tools。
+astra-notebook 是 ASTRA / Generator 的前后处理工作台: 前端为 5 个
+任务式 Jupyter Notebook (generator/astra/postpro/lineplot/fieldplot,
+与原程序一一对应, 表单点选 + 现代散点绘图), 另有 examples/ 目录下
+8 本单算例教学 notebook 与 postpro_step_demo.ipynb (步进演示)。后端
+为 Python 包 astra_tools。
 它替代 macOS 上缺失的官方 postpro / lineplot / fieldplot。
 
 ## 1. 安装
@@ -27,6 +30,14 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
 
 每个 Notebook 独立可运行 (复制项目文件夹到任意路径均可)。
 
+## 2.1 教学与演示 notebook (examples/)
+
+- examples/<算例>.ipynb: 8 本, 每本只跑一个官方算例, 逐步解读
+  输入卡并展示该算例最有代表性的图 (Manual_Example 最全);
+- examples/postpro_step_demo.ipynb: postpro 步进功能演示 — 真实
+  跑出 8 个 z 位置 monitor, 拖动滑块或点 ⏮◀▶⏭ 逐个查看每个 z
+  处的束团统计与相空间 (自动刷新)。
+
 ## 3. 参数表单用法
 
 - 表单由 ASTRA 手册第 6/7 章的参数元数据库自动生成, 悬停控件可见
@@ -44,17 +55,19 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
   "π keV mm" (数值 keV·mm)。
 - 相空间图: x/y [mm], x'/y' [mrad], z [mm], dp/p [%]; 束流统计:
   能量 MeV/keV, 电流 A, 电荷 nC, 场 MV/m 与 T。
-- 密度图默认裁剪 0.5% 极端离群点并在图上标注, 保证主体结构清晰。
+- 相空间为散点渲染 (点数上限内确定性子采样), 显示范围默认裁剪
+  0.5% 极端离群点并在图上标注, 保证主体结构清晰。
 - 螺线管中的发射度按手册 4.13.1 用正则动量计算 (自动处理)。
 
 ## 5. 数据导出
 
-07 中一键导出: CSV (表头带单位注释, 适合外部绘图) 与 npz (原始数组)。
+03_postpro 中一键导出: CSV (表头带单位注释, 适合外部绘图) 与
+npz (原始数组)。
 
 ## 6. 常见问题
 
 - 图太挤/点聚成一团: 已内置百分位裁剪; 若仍不满意可在绘图函数
-  调大 clip_q 参数。
+  调大 clip_q 参数; 点数过多时散点自动子采样 (max_points)。
 - 提示未找到可执行文件: 放入 PATH 或项目 ASTRA/ 目录。
 - ASTRA 报 Program stops / 输入卡解析失败: 用 02 的表单模式重新
   生成输入卡; 检查文件路径为相对路径。

@@ -123,6 +123,11 @@
 
 ## 交互逻辑检查 (2026-08)
 
+* 渲染方式: 2D 相空间为普通散点 (s=8, 确定性子采样 max_points,
+  0.5-99.5 百分位裁剪); RMS 椭圆叠加已按用户决定移除。
+* 步进: 03_postpro 内置 PhaseStepper; examples/postpro_step_demo.ipynb
+  是独立演示 (8 个 z monitor 自动刷新)。
+
 * 03_postpro: PhaseStepper 步进 (滑块+⏮◀▶⏭) 自动刷新统计与相空间;
   其余单元步进后重跑, 与原 postpro 逻辑一致 ✅
 * 04_lineplot: 改为 discover_sim_runs 自动发现 stem (原硬编码 astra,
