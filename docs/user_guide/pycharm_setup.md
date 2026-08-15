@@ -29,8 +29,8 @@
 
 ## 目录速览
 
-    notebooks/    6 个任务式 notebook (前端, 按编号使用)
-    examples/     官方算例 + 每例一本细分教学 notebook (可执行)
+    notebooks/    5 个任务式 notebook (前端, 按编号使用)
+    examples/     官方算例输入/输出 + 每例一本教学 notebook (可执行)
     astra_tools/  纯 Python 后端包 (复制即用, 无打包)
     examples/     9 个官方算例输入 + golden 输出 + 期望值
     test/         五层测试 (见 docs/dev_manual/test_plan.md)

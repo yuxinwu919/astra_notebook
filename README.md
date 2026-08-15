@@ -38,9 +38,8 @@
 | 03 | postpro | postpro | 相空间分析/统计/切片/BFF/导出 (含孔径叠加与核心曲线) |
 | 04 | lineplot | lineplot | 束流参数演化 (九图 + 速度/步长 + t 轴变体) |
 | 05 | fieldplot | fieldplot | 腔场/螺线管/3D 场图/激光/等离子体 |
-| 06 | examples | — | 官方算例汇总: 8 个单算例教学 notebook 的目录 + 一键复现与黄金比对 |
 
-另: examples/<算例>/<算例>.ipynb 每个官方算例各有一本细分教学 notebook。
+另: examples/ 目录下每个官方算例一本教学 notebook (如 Manual_Example.ipynb), 另有 postpro_step_demo.ipynb 演示步进功能。
 
 ## 目录结构
 

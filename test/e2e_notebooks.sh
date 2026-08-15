@@ -19,15 +19,15 @@ notebooks/02_astra.ipynb
 notebooks/03_postpro.ipynb
 notebooks/04_lineplot.ipynb
 notebooks/05_fieldplot.ipynb
-notebooks/06_examples.ipynb
-examples/Manual_Example/Manual_Example.ipynb
-examples/Aperture/Aperture.ipynb
-examples/Wake/Wake.ipynb
-examples/Cavity_Example/Cavity_Example.ipynb
-examples/Curved_Cathode_Example/Curved_Cathode_Example.ipynb
-examples/90deg_bend_Example/90deg_bend_Example.ipynb
-examples/Plasma_Example_1/Plasma_Example_1.ipynb
-examples/Plasma_Example_2/Plasma_Example_2.ipynb
+examples/Manual_Example.ipynb
+examples/Aperture.ipynb
+examples/Wake.ipynb
+examples/Cavity_Example.ipynb
+examples/Curved_Cathode_Example.ipynb
+examples/90deg_bend_Example.ipynb
+examples/Plasma_Example_1.ipynb
+examples/Plasma_Example_2.ipynb
+examples/postpro_step_demo.ipynb
 "
 
 FAIL=0

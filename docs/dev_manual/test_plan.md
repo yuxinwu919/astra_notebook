@@ -80,9 +80,9 @@ examples/golden_expected.json。
       jupyter nbconvert --to notebook --execute notebooks/XX.ipynb \
         --ExecutePreprocessor.kernel_name=astra-notebook
 
-* 06 汇总会真跑全部 8 个官方算例并做黄金比对; 8 本单算例教学
-  notebook (examples/<name>/<name>.ipynb) 各自只跑一个算例并展示其
-  代表性图 (共 14 本, 约 3-4 分钟)。
+* examples/ 下 8 本单算例教学 notebook (如 Manual_Example.ipynb)
+  各自只跑一个算例并展示其代表性图, postpro_step_demo.ipynb 演示
+  步进功能 (共 5+9 本, 约 3-4 分钟)。
 * 失败标准: 任何单元格异常或 nbconvert 返回非零。
 * 本机前提: astra/generator 在 PATH 或项目 ASTRA/ 目录;
   Plasma_Example_2 需要本地 laser.dat (65MB, gitignored)。

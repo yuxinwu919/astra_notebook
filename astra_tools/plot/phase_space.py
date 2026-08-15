@@ -27,8 +27,8 @@ from ._density import clip_percentile, outside_fraction
 PLANES = ("x", "y", "z")
 
 
-def scatter2d(ax, x, y, max_points=20000, color="#0077BB", s=2.0,
-              alpha=0.6, clip_q=0.5):
+def scatter2d(ax, x, y, max_points=20000, color="#0077BB", s=8.0,
+              alpha=0.55, clip_q=0.5):
     """确定性子采样的散点图 + 百分位裁剪范围。
 
     返回 ((xr, yr), n_total), 供调用方设轴限与离群点注释。
@@ -55,8 +55,8 @@ def plot_phase_space(
     figsize=(6.5, 5),
     title: Optional[str] = None,
     color: str = "#0077BB",
-    s: float = 2.0,
-    alpha: float = 0.6,
+    s: float = 8.0,
+    alpha: float = 0.55,
     max_points: int = 20000,
     bz_on_axis_T: float = 0.0,
     clip_q: float = 0.5,
