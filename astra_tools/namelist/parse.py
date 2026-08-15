@@ -62,9 +62,13 @@ def _parse_token(tok: str):
         if tok[0] == "'":
             return inner.replace("''", "'")
         return inner.replace('""', '"')
-    if tok.upper() in ("T", ".TRUE.", "TRUE"):
+    # 逻辑量: T/F 及 Fortran 点号形式 .T. / .F. (ASTRA 手册写法);
+    # 点号形式必须在此识别, 否则会落成字符串 ".F" 并在写出时被
+    # 加引号 (ADD='.F'), generator 会把引号内逻辑量判为非法并
+    # 整体回退默认值 (Error reading input parameters)。
+    if tok.upper() in ("T", ".T.", ".T", ".TRUE.", "TRUE"):
         return True
-    if tok.upper() in ("F", ".FALSE.", "FALSE"):
+    if tok.upper() in ("F", ".F.", ".F", ".FALSE.", "FALSE"):
         return False
     try:
         if re.fullmatch(r"[+-]?\d+", tok):

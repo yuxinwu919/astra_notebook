@@ -22,17 +22,16 @@
    完成后用 python -m ipykernel install --prefix .venv --name astra-notebook
    注册内核; 用自带 .venv 则跳过;
 4. 打开 notebooks/ 下任意 .ipynb: 内核选 astra-notebook;
-   按 01 → 02 → 03/04/05 → 06 顺序运行;
+   按 01 → 02 → 03/04/05 顺序运行;
 5. 运行测试: 终端执行
-   .venv/bin/python -m pytest test/ -q  (113 项) 或
+   .venv/bin/python -m pytest test/ -q  (114 项) 或
    在 PyCharm 的 pytest 配置里选 .venv 解释器、目录 test/。
 
 ## 目录速览
 
     notebooks/    5 个任务式 notebook (前端, 按编号使用)
-    examples/     官方算例输入/输出 + 每例一本教学 notebook (可执行)
+    examples/     官方算例输入/输出 + 教学 notebook + 功能演示 demo
     astra_tools/  纯 Python 后端包 (复制即用, 无打包)
-    examples/     9 个官方算例输入 + golden 输出 + 期望值
     test/         五层测试 (见 docs/dev_manual/test_plan.md)
     docs/         用户手册 / 开发手册 / 物理备忘录
     data/         本地运行产物 (gitignored)

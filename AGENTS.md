@@ -11,7 +11,10 @@ modern frontend/backend split.
   (01_generator, 02_astra, 03_postpro, 04_lineplot, 05_fieldplot) -
   one per original program. Teaching notebooks live flat in `examples/`
   (one per official example, e.g. Manual_Example.ipynb, plus
-  postpro_step_demo.ipynb); shared spec in examples/_examples_spec.py.
+  postpro_step_demo.ipynb and 4 capability demos: generator_demo /
+  bff_demo / stats_validation_demo / lineplot_demo; all demos are
+  generated from data/build_demos.py); shared spec in
+  examples/_examples_spec.py.
   UI text and parameter help are in Chinese; plot labels are in English.
 * **Backend**: the plain Python package `astra_tools/` (no packaging, no
   PyPI). The whole project folder is copied as-is to use it. Notebooks

@@ -150,6 +150,21 @@ def test_namelist_uppercase_true_false():
     assert d["A"] is True and d["B"] is False and d["C"] is True
 
 
+def test_namelist_dotted_logicals_round_trip():
+    """点号逻辑量 .F/.T 是 ASTRA 手册写法, 必须解析成 bool.
+
+    回归: 曾落成字符串 ".F", 重写 deck 时被加引号 (ADD='.F'),
+    generator 对引号内逻辑量判非法并整体回退默认值
+    (Error reading input parameters)。"""
+    from astra_tools.namelist.parse import parse_namelists
+    from astra_tools.namelist.write import write_namelist
+    d = parse_namelists("&INPUT\nADD=.F, Probe=.T,\n/\n")["INPUT"]
+    assert d["ADD"] is False and d["Probe"] is True
+    text = write_namelist("INPUT", d)
+    assert "ADD=F," in text and "Probe=T," in text
+    assert "'.F'" not in text and "'.T'" not in text
+
+
 def test_forms_array_params_are_numbers():
     """表单数组参数 (如 Nue/MaxE) 输出数值列表, 不是带引号字符串."""
     from astra_tools.widgets import forms as F

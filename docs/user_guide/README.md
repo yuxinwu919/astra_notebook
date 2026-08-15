@@ -3,8 +3,9 @@
 astra-notebook 是 ASTRA / Generator 的前后处理工作台: 前端为 5 个
 任务式 Jupyter Notebook (generator/astra/postpro/lineplot/fieldplot,
 与原程序一一对应, 表单点选 + 现代散点绘图), 另有 examples/ 目录下
-8 本单算例教学 notebook 与 postpro_step_demo.ipynb (步进演示)。后端
-为 Python 包 astra_tools。
+8 本单算例教学 notebook、postpro_step_demo.ipynb (步进演示) 与 4 本
+功能演示 demo (generator 参数化 / BFF / 统计量交叉验证 / lineplot
+专题)。后端为 Python 包 astra_tools。
 它替代 macOS 上缺失的官方 postpro / lineplot / fieldplot。
 
 ## 1. 安装
@@ -36,7 +37,16 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
   输入卡并展示该算例最有代表性的图 (Manual_Example 最全);
 - examples/postpro_step_demo.ipynb: postpro 步进功能演示 — 真实
   跑出 8 个 z 位置 monitor, 拖动滑块或点 ⏮◀▶⏭ 逐个查看每个 z
-  处的束团统计与相空间 (自动刷新)。
+  处的束团统计与相空间 (自动刷新);
+- 4 本功能演示 demo (可直接运行, 展示后端能力):
+  - examples/generator_demo.ipynb: 解析现成 INPUT 卡 -> 改 Nemit
+    -> 重写 -> 跑 Generator -> 验证发射度回到输入值;
+  - examples/bff_demo.ipynb: 束团形状因子 BFF 三方对照 (直接法 /
+    FFT 快速路径 / 高斯解析式) + 真实束团 CSR 特征点;
+  - examples/stats_validation_demo.ipynb: 我们的统计量逐列对照
+    ASTRA 自身 Xemit/Zemit 输出 (含螺线管正则动量修正);
+  - examples/lineplot_demo.ipynb: lineplot 全菜单专题 (九图 / t
+    轴 / 光学函数 / Sigma / PScan+Scan / 稀有文件类型读法)。
 
 ## 3. 参数表单用法
 

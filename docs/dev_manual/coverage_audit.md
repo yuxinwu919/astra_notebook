@@ -127,6 +127,11 @@
   0.5-99.5 百分位裁剪); RMS 椭圆叠加已按用户决定移除。
 * 步进: 03_postpro 内置 PhaseStepper; examples/postpro_step_demo.ipynb
   是独立演示 (8 个 z monitor 自动刷新)。
+* 功能演示 demo (2026-08 新增, examples/ 下 4 本): generator_demo
+  (INPUT 卡改参重跑 + 发射度回读)、bff_demo (直接法/FFT/解析式
+  三方对照 + CSR 特征点)、stats_validation_demo (统计量逐列对照
+  ASTRA Xemit/Zemit + 螺线管正则动量)、lineplot_demo (lineplot 全
+  菜单 + 稀有文件类型合成教学数据)。
 
 * 03_postpro: PhaseStepper 步进 (滑块+⏮◀▶⏭) 自动刷新统计与相空间;
   其余单元步进后重跑, 与原 postpro 逻辑一致 ✅
