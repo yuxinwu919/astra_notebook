@@ -63,10 +63,10 @@ Example.0150.001 做 slice_analysis, 与 compute_slice_analysis 对照;
 
 # 第二部分: Codex (PyCharm MCP) 专属任务 (只有 IDE 做得好)
 
-## C1: 5 本任务式 + examples/ 教学/演示 notebook 的交互 UX 审阅 (推荐先做)
+## C1: 5 本任务式 + examples/ 示例/演示 notebook 的交互 UX 审阅 (推荐先做)
 
 * 背景: notebook 刚精简为 01_generator / 02_astra / 03_postpro /
-  04_lineplot / 05_fieldplot 以及 examples/ 下 13 本教学/演示
+  04_lineplot / 05_fieldplot 以及 examples/ 下 13 本示例/演示
   notebook (含 postpro_step_demo.ipynb 与 4 本功能演示 demo),
   从未做过人工交互审阅。
 * 步骤: 在 PyCharm 的 Jupyter 面板逐个打开运行 (内核

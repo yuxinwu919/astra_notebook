@@ -3,7 +3,7 @@
 astra-notebook 是 ASTRA / Generator 的前后处理工作台: 前端为 5 个
 任务式 Jupyter Notebook (generator/astra/postpro/lineplot/fieldplot,
 与原程序一一对应, 表单点选 + 现代散点绘图), 另有 examples/ 目录下
-8 本单算例教学 notebook、postpro_step_demo.ipynb (步进演示) 与 4 本
+8 本单算例示例 notebook、postpro_step_demo.ipynb (步进演示) 与 4 本
 功能演示 demo (generator 参数化 / BFF / 统计量交叉验证 / lineplot
 专题)。后端为 Python 包 astra_tools。
 它替代 macOS 上缺失的官方 postpro / lineplot / fieldplot。
@@ -31,7 +31,7 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
 
 每个 Notebook 独立可运行 (复制项目文件夹到任意路径均可)。
 
-## 2.1 教学与演示 notebook (examples/)
+## 2.1 示例与演示 notebook (examples/)
 
 - examples/<算例>.ipynb: 8 本, 每本只跑一个官方算例, 逐步解读
   输入卡并展示该算例最有代表性的图 (Manual_Example 最全);

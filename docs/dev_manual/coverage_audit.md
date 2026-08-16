@@ -131,13 +131,13 @@
   (INPUT 卡改参重跑 + 发射度回读)、bff_demo (直接法/FFT/解析式
   三方对照 + CSR 特征点)、stats_validation_demo (统计量逐列对照
   ASTRA Xemit/Zemit + 螺线管正则动量)、lineplot_demo (lineplot 全
-  菜单 + 稀有文件类型合成教学数据)。
+  菜单 + 稀有文件类型合成示例数据)。
 
 * 03_postpro: PhaseStepper 步进 (滑块+◀◀ ◀ ▶ ▶▶) 自动刷新统计与相空间;
   其余单元步进后重跑, 与原 postpro 逻辑一致 ✅
 * 04_lineplot: 改为 discover_sim_runs 自动发现 stem (原硬编码 astra,
   换了 deck 名就会 FileNotFoundError — 已修) ✅
-* 05_fieldplot: 场文件固定指向 examples/ (教学定位, 注释说明) ✅
+* 05_fieldplot: 场文件固定指向 examples/ (示例定位, 注释说明) ✅
 * 02_astra 表单 -> 写入: 数组参数数值化、TRUE/FALSE 语义已修 (前轮) ✅
 * 空/单粒子/缺文件: 各图有守卫与中文提示 ✅
 

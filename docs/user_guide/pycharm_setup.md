@@ -30,7 +30,7 @@
 ## 目录速览
 
     notebooks/    5 个任务式 notebook (前端, 按编号使用)
-    examples/     官方算例输入/输出 + 教学 notebook + 功能演示 demo
+    examples/     官方算例输入/输出 + 示例 notebook + 功能演示 demo
     astra_tools/  纯 Python 后端包 (复制即用, 无打包)
     test/         五层测试 (见 docs/dev_manual/test_plan.md)
     docs/         用户手册 / 开发手册 / 物理备忘录

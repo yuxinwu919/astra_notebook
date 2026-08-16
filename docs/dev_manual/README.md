@@ -3,7 +3,7 @@
 ## 架构
 
 前端 (notebooks/, 共 5 本: 01_generator 02_astra 03_postpro
-04_lineplot 05_fieldplot; 教学 notebook 平铺在 examples/) 只做编排与
+04_lineplot 05_fieldplot; 示例 notebook 平铺在 examples/) 只做编排与
 呈现; 一切数据逻辑
 在后端包 astra_tools/
 (import astra_tools)。复制文件夹即用, 无打包。

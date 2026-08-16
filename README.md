@@ -13,7 +13,7 @@
   剖面)、孔径叠加、阴极发射、激光与等离子体、核心电荷分数曲线、
   BFF (直接法 + FFT 快速路径)、PScan/Scan/Error 扫描图。
 - **验证**: 118 项测试 (五层, 见 docs/dev_manual/test_plan.md), 含真实 ASTRA
-  PScan/Scan 交叉验证; 官方 8 算例在 examples/ 教学 notebook 中逐例
+  PScan/Scan 交叉验证; 官方 8 算例在 examples/ 示例 notebook 中逐例
   复现与黄金比对。
 
 ## 快速开始
@@ -40,7 +40,7 @@
 | 04 | lineplot | lineplot | 束流参数演化 (九图 + 速度/步长 + t 轴变体) |
 | 05 | fieldplot | fieldplot | 腔场/螺线管/3D 场图/激光/等离子体 |
 
-另: examples/ 目录下每个官方算例一本教学 notebook (如
+另: examples/ 目录下每个官方算例一本示例 notebook (如
 Manual_Example.ipynb), 另有 postpro_step_demo.ipynb 演示步进功能, 以及
 4 本功能演示 demo: generator_demo (参数化发射度) / bff_demo (束团形状
 因子对照) / stats_validation_demo (统计量 vs ASTRA 交叉验证) /

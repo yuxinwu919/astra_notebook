@@ -9,7 +9,7 @@ modern frontend/backend split.
 
 * **Frontend**: 5 task-specific Jupyter notebooks in `notebooks/`
   (01_generator, 02_astra, 03_postpro, 04_lineplot, 05_fieldplot) -
-  one per original program. Teaching notebooks live flat in `examples/`
+  one per original program. Example notebooks live flat in `examples/`
   (one per official example, e.g. Manual_Example.ipynb, plus
   postpro_step_demo.ipynb and 4 capability demos: generator_demo /
   bff_demo / stats_validation_demo / lineplot_demo; all demos are

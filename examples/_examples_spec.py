@@ -1,7 +1,7 @@
 """官方算例共享规格: 文件清单/运行步骤/黄金比对目标。
 
 供 notebooks/06_examples.ipynb (汇总) 与 examples/<name>/<name>.ipynb
-(单算例教学) 共用 - 单一数据源, 避免 9 份拷贝漂移。
+(单算例示例) 共用 - 单一数据源, 避免 9 份拷贝漂移。
 """
 
 import json
