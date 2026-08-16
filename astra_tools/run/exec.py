@@ -81,8 +81,9 @@ def run_program(
     Args:
         exe_path: executable path.
         work_dir: working directory (input files live here).
-        input_file: optional input deck file name (ASTRA reads it from
-            stdin when omitted; Generator takes it as argument).
+        input_file: optional input deck file name (passed as command
+            line argument). stdin is always /dev/null so a batch binary
+            can never block waiting for console input.
         timeout: wall-clock limit [s] (default 1 h; ASTRA runs can be long).
         stream: stream output live instead of buffering.
 
@@ -98,6 +99,10 @@ def run_program(
             proc = subprocess.Popen(
                 cmd, cwd=str(work_dir), text=True,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                # Jupyter 内核的 stdin 是无人写入的阻塞管道, 若批处理
+                # 程序意外读 stdin 会永久挂起 ("跑几分钟不结束")。
+                # 一律给 /dev/null: 读 stdin 立即得到 EOF。
+                stdin=subprocess.DEVNULL,
             )
             lines = []
 
@@ -122,7 +127,7 @@ def run_program(
         else:
             result = subprocess.run(
                 cmd, cwd=str(work_dir), capture_output=True, text=True,
-                timeout=timeout,
+                timeout=timeout, stdin=subprocess.DEVNULL,
             )
     except subprocess.TimeoutExpired:
         raise RuntimeError("%s timed out after %d s" % (exe_name, timeout))

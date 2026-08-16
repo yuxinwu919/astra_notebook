@@ -79,6 +79,23 @@ def test_stream_success_returns_output(tmp_path):
     assert "hello astra" in r.stdout
 
 
+@pytest.mark.parametrize("stream", [True, False])
+def test_stdin_is_null_no_block(tmp_path, stream):
+    """子进程读 stdin 必须立即 EOF, 不能挂起 (Jupyter 内核 stdin 无人写入).
+
+    回归: Popen/subprocess.run 未接 stdin=DEVNULL 时, 批处理程序一旦
+    意外读 stdin 就永久阻塞 (症状: notebook 单元跑几分钟不结束)。
+    """
+    from astra_tools.run.exec import run_program
+    script = tmp_path / "readstdin.py"
+    script.write_text(
+        "import sys\ndata = sys.stdin.read()\nprint('len', len(data))\n")
+    r = run_program(sys.executable, tmp_path, "readstdin.py",
+                    timeout=10, stream=stream)
+    assert r.returncode == 0
+    assert "len 0" in r.stdout
+
+
 # ---------------------------------------------------------------
 # B15: BFF FFT fast path
 # ---------------------------------------------------------------

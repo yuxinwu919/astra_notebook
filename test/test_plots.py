@@ -237,3 +237,9 @@ class TestCutsAndMisc:
         assert fam[0] == "Times New Roman"
         assert "STIXGeneral" in fam and "DejaVu Sans" in fam
         assert plt.rcParams["mathtext.fontset"] == "stix"
+        # 回退链里绝不能残留本机不存在的字体: 否则每个文字对象都会
+        # 为每个缺失家族发一条 findfont 警告 (数千条 IOPub 消息,
+        # Jupyter 单元会被拖到几分钟不结束)。
+        from matplotlib import font_manager
+        installed = {f.name for f in font_manager.fontManager.ttflist}
+        assert all(f in installed for f in fam)

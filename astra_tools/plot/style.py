@@ -11,9 +11,13 @@ font.family 列表逐字形回退: 缺字形时依次尝试 STIXGeneral (数学
 
 from __future__ import annotations
 
-from matplotlib import rcParams
+from matplotlib import font_manager, rcParams
 
-# 正文字体回退链: 拉丁 -> 数学符号 -> 通用衬线 -> 中文 (macOS/Windows/Linux)
+# 正文字体回退链 (候选池): 拉丁 -> 数学符号 -> 通用衬线 -> 中文。
+# 运行时只保留本机真实存在的字体: 若把不存在的家族留在
+# font.family 里, matplotlib 对每个文字对象都会为每个缺失家族
+# 发一条 findfont 警告 —— 一张图数千条警告, Jupyter 前端渲染
+# 这些消息流会把 notebook 拖到"几分钟跑不完"。
 FONT_FAMILY = [
     "Times New Roman",
     "STIXGeneral",
@@ -30,6 +34,24 @@ FONT_FAMILY = [
     "Arial Unicode MS",
     "DejaVu Sans",    # 兜底: 覆盖面最广
 ]
+
+_AVAILABLE_FONTS: list | None = None
+
+
+def available_font_family() -> list:
+    """FONT_FAMILY 中本机真实存在的字体 (按原顺序), 末尾兜底 DejaVu Sans.
+
+    matplotlib 自带的 DejaVu Sans 必然存在; 扫描结果缓存一次。
+    """
+    global _AVAILABLE_FONTS
+    if _AVAILABLE_FONTS is None:
+        installed = {f.name for f in font_manager.fontManager.ttflist}
+        keep = [f for f in FONT_FAMILY if f in installed]
+        if "DejaVu Sans" not in keep:
+            keep.append("DejaVu Sans")
+        _AVAILABLE_FONTS = keep
+    return _AVAILABLE_FONTS
+
 
 # Colorblind-friendly qualitative palette (Paul Tol)
 COLORS = ["#0077BB", "#EE7733", "#009988", "#CC3311", "#33BBEE", "#EE3377"]
@@ -53,8 +75,10 @@ def set_style(
         "font.size": font_size,
         # 统一 Times New Roman; 列表即 matplotlib 的字形回退链,
         # 缺字形 (π/′/中文等) 自动落到后续字体, 不再出现方框。
-        "font.family": FONT_FAMILY,
-        "font.serif": FONT_FAMILY,
+        # 只含本机存在的字体, 避免缺失家族引发 findfont 警告洪流
+        # (数千条 IOPub 消息会把 Jupyter 单元拖到几分钟不结束)。
+        "font.family": available_font_family(),
+        "font.serif": available_font_family(),
         "font.sans-serif": ["DejaVu Sans", "Arial", "Helvetica"],
         # mathtext 用 Times 风格的 STIX 字库 ($\beta$ 等数学符号)
         "mathtext.fontset": "stix",
