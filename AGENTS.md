@@ -90,6 +90,12 @@ Run all tests:  .venv/bin/python -m pytest test/ -q
   and unit strings everywhere. The RMS-ellipse overlay was removed
   (user decision 2026-08); the KDE density engine stays available in
   astra_tools/plot/_density.py for optional use, but is NOT the default.
+* Fonts: every figure uses Times New Roman (user decision 2026-08) via
+  the font.family fallback chain in plot/style.py (TNR -> STIXGeneral ->
+  DejaVu Serif -> CJK fonts -> DejaVu Sans) so missing glyphs (pi /
+  prime / Chinese) can never render as boxes; mathtext uses the STIX
+  fontset to match the serif theme. Any new plot must go through
+  set_style() (it does, via _bootstrap.py).
 * Git: inputs and small golden samples are committed; large regenerable
   outputs stay local (see .gitignore).
 

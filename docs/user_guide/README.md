@@ -60,6 +60,9 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
 
 ## 4. 单位与物理约定 (重要)
 
+- 绘图字体: 全部图统一使用 Times New Roman (含图例与刻度); 若字形
+  缺失 (π / ′ / 中文等) 会沿内置回退链自动落到 STIX / 宋体 / 黑体,
+  任何平台都不出现方框; mathtext 数学符号 ($\beta$ 等) 用 STIX 字库。
 - 发射度: 图与表均显示 "π mm mrad", 数值与 ASTRA 打印完全一致
   (π 表示 RMS 相空间椭圆面积语义, 数值上即 mm·mrad); 纵向为
   "π keV mm" (数值 keV·mm)。

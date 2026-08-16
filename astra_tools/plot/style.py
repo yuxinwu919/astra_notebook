@@ -1,11 +1,35 @@
 """Matplotlib style presets for modern, publication-quality figures.
 
 No import-time side effects; call set_style() once per notebook.
+
+字体策略 (2026-08): 正文统一 Times New Roman (用户要求), 按
+font.family 列表逐字形回退: 缺字形时依次尝试 STIXGeneral (数学
+符号) -> DejaVu Serif -> 各中文宋/黑体, 保证 π/′/中文等符号在任何
+平台都不出现方框 (matplotlib >= 3.6 的字体回退机制)。数学模式
+(mathtext) 用 'stix' 字库, 与 Times 风格一致。
 """
 
 from __future__ import annotations
 
 from matplotlib import rcParams
+
+# 正文字体回退链: 拉丁 -> 数学符号 -> 通用衬线 -> 中文 (macOS/Windows/Linux)
+FONT_FAMILY = [
+    "Times New Roman",
+    "STIXGeneral",
+    "DejaVu Serif",
+    "Liberation Serif",
+    "Songti SC",      # macOS 宋体
+    "STSong",
+    "SimSun",         # Windows 宋体
+    "Noto Serif CJK SC",
+    "WenQuanYi Zen Hei",
+    "Microsoft YaHei",
+    "PingFang SC",
+    "Heiti SC",
+    "Arial Unicode MS",
+    "DejaVu Sans",    # 兜底: 覆盖面最广
+]
 
 # Colorblind-friendly qualitative palette (Paul Tol)
 COLORS = ["#0077BB", "#EE7733", "#009988", "#CC3311", "#33BBEE", "#EE3377"]
@@ -27,8 +51,13 @@ def set_style(
         "figure.figsize": (fig_width_inches, fig_height_inches),
         "savefig.bbox": "tight",
         "font.size": font_size,
-        "font.family": "sans-serif",
+        # 统一 Times New Roman; 列表即 matplotlib 的字形回退链,
+        # 缺字形 (π/′/中文等) 自动落到后续字体, 不再出现方框。
+        "font.family": FONT_FAMILY,
+        "font.serif": FONT_FAMILY,
         "font.sans-serif": ["DejaVu Sans", "Arial", "Helvetica"],
+        # mathtext 用 Times 风格的 STIX 字库 ($\beta$ 等数学符号)
+        "mathtext.fontset": "stix",
         "axes.labelsize": font_size + 1,
         "axes.titlesize": font_size + 2,
         "axes.linewidth": 1.0,

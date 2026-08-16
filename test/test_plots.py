@@ -230,3 +230,10 @@ class TestCutsAndMisc:
         fig = plot_curved_cathode_contour(p)
         assert any("[mm]" in l for l in _labels(fig))
         plt.close(fig)
+
+    def test_font_policy_times_new_roman(self):
+        """绘图字体统一 Times New Roman (用户决定 2026-08), 回退链兜底."""
+        fam = plt.rcParams["font.family"]
+        assert fam[0] == "Times New Roman"
+        assert "STIXGeneral" in fam and "DejaVu Sans" in fam
+        assert plt.rcParams["mathtext.fontset"] == "stix"
