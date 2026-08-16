@@ -46,8 +46,9 @@ class CavityField:
     source: str = ""
 
     @property
-    def peak_field_MVpm(self) -> float:
-        return float(np.max(np.abs(self.ez0)))   # 任意单位峰值
+    def peak_field_arb(self) -> float:
+        """任意单位峰值 (批 5: 不再伪装 MV/m, 见手册 6.9)。"""
+        return float(np.max(np.abs(self.ez0)))
 
     def field_at(self, r: np.ndarray, z: np.ndarray, omega: float = 0.0):
         """Off-axis field components at (r, z) via the axis expansion.
@@ -174,31 +175,16 @@ def read_wake_potential(path) -> WakePotential:
     if nblocks <= 0:
         raise ValueError("wake file declares no blocks: " + str(path))
 
-    # 单块探测: 第二行不是 "(N, 0)" 块头 -> 首行即单块头 "N 0"
-    single = (
-        len(lines) < 2
-        or len(lines[1]) != 2
-        or float(lines[1][1]) != 0
-    )
-    blocks: list = []
-    if single:
-        n = nblocks
-        rows_raw = lines[1:1 + n]
-        if len(rows_raw) < n:
-            raise ValueError("wake block truncated: " + str(path))
-        rows = np.asarray([[float(v) for v in ln] for ln in rows_raw],
-                          dtype=float)
-        if rows.ndim != 2 or rows.shape[1] < 2:
-            raise ValueError("wake block truncated: " + str(path))
-        blocks.append(WakePotential(s=rows[:, 0], w=rows[:, 1],
-                                     source=str(path)))
-    else:
+    def _parse_multi():
+        blocks = []
         i = 1
         for _ in range(nblocks):
             if i >= len(lines):
                 raise ValueError(
                     "wake file truncated (block header): " + str(path))
             n = int(float(lines[i][0]))
+            if len(lines[i]) < 2 or float(lines[i][1]) != 0 or n < 1:
+                raise ValueError("wake block header invalid: " + str(path))
             i += 1
             rows = np.asarray([[float(v) for v in ln] for ln in lines[i:i + n]],
                               dtype=float)
@@ -207,6 +193,28 @@ def read_wake_potential(path) -> WakePotential:
             blocks.append(WakePotential(s=rows[:, 0], w=rows[:, 1],
                                          source=str(path)))
             i += n
+        if i != len(lines):
+            raise ValueError("wake file has trailing data: %s" % path)
+        return blocks
+
+    def _parse_single():
+        n = nblocks
+        rows_raw = lines[1:1 + n]
+        if len(rows_raw) < n or len(lines) != 1 + n:
+            raise ValueError("wake block truncated: " + str(path))
+        rows = np.asarray([[float(v) for v in ln] for ln in rows_raw],
+                          dtype=float)
+        if rows.ndim != 2 or rows.shape[1] < 2:
+            raise ValueError("wake block truncated: " + str(path))
+        return [WakePotential(s=rows[:, 0], w=rows[:, 1],
+                              source=str(path))]
+
+    # 批 5 复核修正: 先尝试多块解析 (含 nblocks=1), 失败再按单块;
+    # 两者都能解析时以多块为准 (单块文件首数据行 W=0 会被旧探测误判)
+    try:
+        blocks = _parse_multi()
+    except ValueError:
+        blocks = _parse_single()
     out = blocks[0]
     out.blocks = blocks
     return out

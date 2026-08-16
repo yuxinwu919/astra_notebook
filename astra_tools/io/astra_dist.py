@@ -215,12 +215,20 @@ class AstraDistributionReader:
 
     def _read_ascii(self, path: Path) -> Distribution:
         # 批 5: 向量化 (np.loadtxt), 不再逐行 split+float 循环;
-        # 5 值头行与 9/10 列粒子行不齐, 先探测首行决定 skiprows。
+        # 5 值头行与 9/10 列粒子行不齐, 先探测首内容行决定 skiprows。
+        # 复核修正: 跳过前导空行与 #/! 注释行 (原实现先过滤, 不可回归)。
+        raw_skip = 0
+        first_parts = None
         with open(path, encoding="utf-8") as f:
-            first_line = f.readline()
-        if not first_line.strip():
+            for ln in f:
+                s = ln.strip()
+                if not s or s.startswith(("#", "!")):
+                    raw_skip += 1
+                    continue
+                first_parts = s.split()
+                break
+        if first_parts is None:
             raise ValueError("empty ASTRA ASCII file: " + str(path))
-        first_parts = first_line.split()
         # A header line has exactly 5 values; a particle row has 9 or 10.
         has_header = len(first_parts) == 5
         data_start = 1 if has_header else 0
@@ -230,7 +238,7 @@ class AstraDistributionReader:
             header[: min(5, len(first_parts))] = [float(v) for v in first_parts[:5]]
 
         try:
-            p = np.loadtxt(path, ndmin=2, skiprows=data_start,
+            p = np.loadtxt(path, ndmin=2, skiprows=raw_skip + data_start,
                            comments=("#", "!"), encoding="utf-8")
         except ValueError as e:
             raise ValueError(

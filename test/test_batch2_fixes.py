@@ -65,7 +65,8 @@ def test_beta_alpha_uses_geometric_emittance():
     beta = fig.axes[0].lines[0].get_ydata()
     beta_gamma = 1000.5 / 0.51099895        # beta*gamma = p/mc
     expected = (1e-3) ** 2 * beta_gamma / 1e-6   # sigma^2 * beta_gamma / eps_n
-    assert beta[0] == pytest.approx(expected, rel=1e-6)
+    # rel=1e-9: p/mc 与 sqrt((p/mc)^2-1) 差 1.3e-7, 旧实现在此容差下必失败
+    assert beta[0] == pytest.approx(expected, rel=1e-9)
     plt.close(fig)
 
 
@@ -79,7 +80,7 @@ def test_phase_advance_uses_geometric_emittance():
     beta_gamma = 1000.5 / 0.51099895        # beta*gamma = p/mc
     beta_geom = (1e-3) ** 2 * beta_gamma / 1e-6   # sigma^2 * beta_gamma / eps_n
     expected = np.cumsum(dz / beta_geom)
-    assert np.allclose(theta, expected, rtol=1e-6)
+    assert np.allclose(theta, expected, rtol=1e-9)
     plt.close(fig)
 
 

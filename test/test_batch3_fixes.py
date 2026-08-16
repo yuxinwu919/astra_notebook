@@ -106,6 +106,11 @@ def test_wake_single_block_format(tmp_path):
     w = read_wake_potential(p)
     assert len(w.s) == 3 and w.w[-1] == 3.0
     assert len(w.blocks) == 1
+    # 复核回归: 首数据行 W=0 的单块文件不能被误判为多块
+    p3 = tmp_path / "wake3.dat"
+    p3.write_text("3 0\n0.0 0.0\n0.1 1.0\n0.2 2.0\n")
+    w3 = read_wake_potential(p3)
+    assert len(w3.s) == 3 and w3.w[0] == 0.0
     # 多块格式仍正常 (块头 "N 0" 使第二行第二列为 0)
     p2 = tmp_path / "wake2.dat"
     p2.write_text("2 0\n2 0\n0.0 1.0\n0.1 2.0\n3 0\n0.0 4.0\n0.1 5.0\n0.2 6.0\n")
