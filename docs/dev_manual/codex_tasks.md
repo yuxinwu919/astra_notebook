@@ -8,7 +8,7 @@
 
 ## 环境接入 (Codex 使用前)
 
-当前状态 (2026-08): 118 项测试、e2e 18 本 (5 任务式 + 13 examples/)。
+当前状态 (2026-08): 232 项测试、e2e 18 本 (5 任务式 + 13 examples/)。
 已完成: 示例 notebook 拆分与平铺、postpro 步进器 + 演示 notebook、
 手册 5.5-5.7 覆盖审计 (coverage_audit.md)、散点渲染替换 KDE、
 4 本功能演示 demo (generator_demo / bff_demo /

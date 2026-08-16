@@ -6,12 +6,11 @@
 The bunch form factor is the squared magnitude of the Fourier transform
 of the longitudinal charge distribution; it describes the coherent
 radiation spectrum of the bunch (CSR, ISR, FEL) and enters wakefield
-convolutions (ASTRA Manual V3.2, section 6.8).
+convolutions.
 
 References
 ----------
-* ASTRA Manual V3.2, section 6.8 (wakefield convolution)
-* M. Dohlus et al., CSR in bunch compressors, DESY 12-012
+* M. Dohlus et al., CSR in bunch compressors, DESY 12-012 (批 5: 手册 6.8 实为 WAKE namelist 章, 不定义 BFF; 原引用不实已删)
 """
 
 from __future__ import annotations
@@ -54,7 +53,8 @@ def compute_bff(
     Args:
         z: longitudinal positions [m] (active particles).
         charge: macro-particle charges [nC].
-        kmin, kmax: wavenumber range [1/m].
+        kmin: minimum wavenumber [1/m].
+        kmax: maximum wavenumber [1/m].
         nk: number of k points.
         log_spaced: log-spaced k grid (recommended for CSR).
         detect_features: compute CSR characteristic k values.
@@ -65,10 +65,11 @@ def compute_bff(
     z = np.asarray(z, dtype=float)
     charge = np.asarray(charge, dtype=float)
 
+    k: np.ndarray
     if log_spaced:
-        k = np.logspace(np.log10(kmin), np.log10(kmax), nk)
+        k = np.asarray(np.logspace(np.log10(kmin), np.log10(kmax), nk))
     else:
-        k = np.linspace(kmin, kmax, nk)
+        k = np.asarray(np.linspace(kmin, kmax, nk))
 
     q_total = float(np.sum(charge))
     # 近中性束团 (|Σq| << Σ|q|): 归一化发散, 按中性处理返回零
@@ -80,24 +81,26 @@ def compute_bff(
         )
 
     use_fft = method == "fft" or (method == "auto" and len(z) * nk > 2_000_000)
+    bff: np.ndarray
+    bff_amplitude: np.ndarray
     if use_fft:
         # |sum_j q_j exp(i k z_j)| on the requested k grid
-        f_amp = _bff_fft(z, charge, k)
-        bff = (f_amp / q_total) ** 2
-        bff_amplitude = f_amp / abs(q_total)
+        f_amp: np.ndarray = _bff_fft(z, charge, k)
+        bff = np.asarray((f_amp / q_total) ** 2)
+        bff_amplitude = np.asarray(f_amp / abs(q_total))
     else:
         # Direct summation, memory-friendly for large N
-        f = np.zeros(nk, dtype=complex)
+        f: np.ndarray = np.zeros(nk, dtype=complex)
         for zi, qi in zip(z, charge):
-            f += qi * np.exp(1j * k * zi)
+            f += np.asarray(qi * np.exp(1j * k * zi))
         f /= q_total
-        bff = np.abs(f) ** 2
-        bff_amplitude = np.abs(f)
+        bff = np.asarray(np.abs(f) ** 2)
+        bff_amplitude = np.asarray(np.abs(f))
 
     with np.errstate(divide="ignore"):
-        wavelength = 2.0 * np.pi / k
+        wavelength: np.ndarray = np.asarray(2.0 * np.pi / k)
         wavelength[k == 0] = np.inf
-    frequency = k * C_LIGHT / (2.0 * np.pi)
+    frequency: np.ndarray = np.asarray(k * C_LIGHT / (2.0 * np.pi))
 
     csr_critical_k = 0.0
     csr_cutoff_k = 0.0
@@ -149,9 +152,11 @@ def _bff_fft(z: np.ndarray, charge: np.ndarray, k: np.ndarray) -> np.ndarray:
 
     n_fft = 1 << (16 * n_grid - 1).bit_length()   # >= 16x zero padding
     f = np.fft.rfft(rho, n=n_fft)
-    k_fft = 2.0 * np.pi * np.arange(len(f)) / (n_fft * dz_bin)
+    k_fft: np.ndarray = np.asarray(
+        2.0 * np.pi * np.arange(len(f)) / (n_fft * dz_bin)
+    )
 
-    bff_grid = np.abs(f) ** 2
+    bff_grid: np.ndarray = np.asarray(np.abs(f) ** 2)
     # quadratic (3-point) interpolation of |F|^2: reproduces the sharp
     # minima (deep nulls) exactly, unlike a linear chord
     j = np.clip(np.searchsorted(k_fft, k, side="right") - 1,

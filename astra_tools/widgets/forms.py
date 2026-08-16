@@ -27,7 +27,8 @@ def _widget_for_param(entry, value=None):
         elif isinstance(value, str):
             # 只有明确的真值拼写才勾选 (字符串 "FALSE" 不得翻成 True)
             default = value.strip().upper() in ("T", "TRUE")
-        elif entry["default"] and entry["default"].upper() in ("T", "TRUE"):
+        elif (isinstance(entry["default"], str)
+              and entry["default"].strip().upper() in ("T", "TRUE")):
             default = True
         w = widgets.Checkbox(value=default, description=name, tooltip=tip)
     elif "Integer" in ptype and "array" not in ptype.lower():

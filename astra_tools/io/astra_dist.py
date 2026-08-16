@@ -214,12 +214,13 @@ class AstraDistributionReader:
     # -- ASCII --------------------------------------------------------
 
     def _read_ascii(self, path: Path) -> Distribution:
+        # 批 5: 向量化 (np.loadtxt), 不再逐行 split+float 循环;
+        # 5 值头行与 9/10 列粒子行不齐, 先探测首行决定 skiprows。
         with open(path, encoding="utf-8") as f:
-            lines = [ln.strip() for ln in f if ln.strip() and not ln.startswith(("#", "!"))]
-        if not lines:
+            first_line = f.readline()
+        if not first_line.strip():
             raise ValueError("empty ASTRA ASCII file: " + str(path))
-
-        first_parts = lines[0].split()
+        first_parts = first_line.split()
         # A header line has exactly 5 values; a particle row has 9 or 10.
         has_header = len(first_parts) == 5
         data_start = 1 if has_header else 0
@@ -228,19 +229,19 @@ class AstraDistributionReader:
         if has_header:
             header[: min(5, len(first_parts))] = [float(v) for v in first_parts[:5]]
 
-        rows = []
-        for ln in lines[data_start:]:
-            vals = ln.split()
-            if len(vals) not in (9, 10):
-                raise ValueError(
-                    "malformed particle row in " + str(path.name)
-                    + ": expected 9-10 columns, got " + str(len(vals))
-                )
-            rows.append([float(v) for v in vals])
-
-        p = np.asarray(rows, dtype=float)
+        try:
+            p = np.loadtxt(path, ndmin=2, skiprows=data_start,
+                           comments=("#", "!"), encoding="utf-8")
+        except ValueError as e:
+            raise ValueError(
+                "malformed particle row in " + str(path.name)
+                + ": expected 9-10 columns (" + str(e) + ")")
         n = p.shape[0]
         ncols = p.shape[1]
+        if ncols not in (9, 10):
+            raise ValueError(
+                "malformed particle row in " + str(path.name)
+                + ": expected 9-10 columns, got " + str(ncols))
         status_col = 9 if ncols == 10 else 8
         index = p[:, 8].astype(np.int32) if ncols == 10 else None
 

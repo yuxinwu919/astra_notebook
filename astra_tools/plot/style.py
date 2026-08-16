@@ -11,7 +11,7 @@ font.family 列表逐字形回退: 缺字形时依次尝试 STIXGeneral (数学
 
 from __future__ import annotations
 
-from matplotlib import font_manager, rcParams
+from matplotlib import font_manager, rcParams, rcsetup
 
 # 正文字体回退链 (候选池): 拉丁 -> 数学符号 -> 通用衬线 -> 中文。
 # 运行时只保留本机真实存在的字体: 若把不存在的家族留在
@@ -90,7 +90,7 @@ def set_style(
         "grid.linestyle": "--",
         "grid.linewidth": 0.6,
         "axes.unicode_minus": False,
-        "axes.prop_cycle": __import__("matplotlib").rcsetup.cycler("color", COLORS),
+        "axes.prop_cycle": rcsetup.cycler("color", COLORS),
         "xtick.labelsize": font_size - 1,
         "ytick.labelsize": font_size - 1,
         "xtick.direction": "in",

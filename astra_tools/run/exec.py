@@ -108,10 +108,13 @@ def run_program(
 
             def _drain() -> None:
                 assert proc.stdout is not None
+                # 批 5: 只保留尾部 (长跑数万行时内存有界); 失败回放用尾部
                 for line in proc.stdout:
                     line = line.rstrip("\n")
                     print(line)
                     lines.append(line)
+                    if len(lines) > 2000:
+                        del lines[:1000]
 
             reader = threading.Thread(target=_drain, daemon=True)
             reader.start()

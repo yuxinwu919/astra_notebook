@@ -4,7 +4,7 @@ All formats per ASTRA Manual V3.2, Table 4. Units are converted to SI
 on read; the original display units are documented per column.
 
     Xemit / Yemit   (7 cols): z[m] t[ns] u_avr[mm] u_rms[mm]
-                              u'_rms[mrad] eps_n[1e-6 m.rad] <uu'>_avr[mm.mrad]
+                              u'_rms[mrad] eps_n[1e-6 m.rad] <uu'>_avr/sigma_u[mrad]
     Zemit           (7 cols): z[m] t[ns] E_kin[MeV] z_rms[mm]
                               dE_rms[keV] eps_zn[keV.mm] <z E'>_avr[keV]
     ref             (9 cols): z[m] t[ns] pz[MeV/c] dE/dz[MeV/m]
@@ -76,7 +76,7 @@ class EmitData:
     """Single-plane emittance evolution (7 columns, SI units).
 
     For Xemit/Yemit: avg=<u> [m], rms=sigma_u [m], rmsprime=sigma_u' [rad],
-    emit=eps_n [m.rad], corr=<u u'> [m.rad].
+    emit=eps_n [m.rad], corr=<u u'>/sigma_u [rad] (手册第 7 列语义).
     For Zemit: avg=E_kin [eV], rms=sigma_z [m], rmsprime=sigma_E [eV],
     emit=eps_zn [eV.m], corr=<z E'> [eV].
     """
@@ -108,8 +108,9 @@ class SigmaData:
     """6x6 beam covariance matrix evolution (23 columns).
 
     Covariance in canonical coordinates (x, p~x, y, p~y, z, E_kin),
-    manual 4.13. 文件把动量列归一化到 mc、能量列归一化到 mc^2
-    (无量纲) - 这就是历史"3.83 因子"的来源 (1/mc^2 = 3.83);
+    manual 4.13. 文件把动量列与能量列都归一化到 mc
+    (无量纲); 方差元 (能量平方) 随之是 mc^2 因子 — 历史"3.83 因子"
+    即 1/mc^2 = 3.83 (1/mc[MeV]^2);
     读取时统一转换为 SI: 位置 [m], 动量 [eV/c], 能量 [eV]。
     """
 
@@ -215,7 +216,7 @@ def read_sigma_file(rootname: str, run: str = "001") -> SigmaData:
       * sig(1,1) [m^2] = sigma_x^2, sig(5,5) = sigma_z^2 (与
         Xemit/Zemit 精确一致)
       * sig(2,2)/(mc)^2 = (sigma_x' * p_ref)^2, sig(6,6)/(mc)^2 =
-        sigma_E^2 - 文件把动量列归一化到 mc、能量列归一化到 mc^2;
+        sigma_E^2 - 文件把动量列与能量列都归一化到 mc (方差元 mc^2);
         历史上"3.83 因子"即 1/mc^2 = 3.83 (见 physics_notes/06)
       * 由 Sigma 导出的归一化 eigen-emittance 与 Xemit 的 eps_n
         逐行对照 < 2% (test/test_cross_validation.py)
@@ -238,8 +239,7 @@ def read_sigma_file(rootname: str, run: str = "001") -> SigmaData:
                 matrix[:, j, i] = cov_elements[:, idx]
             idx += 1
 
-    # 文件单位 -> SI: 列 2/4 (p~x/p~y) 归一化到 mc, 列 6 (E_kin)
-    # 归一化到 mc (两者在文件里都是"除以 mc"后的无量纲量)。
+    # 文件单位 -> SI: 列 2/4 (p~x/p~y) 与列 6 (E_kin) 均"除以 mc"。
     # 协方差按元素对缩放: matrix[i,j] *= s_i * s_j, 因此对角元
     # sig66 乘 mc^2, 混合元 (z,E) 乘 mc。
     mc = M_E_C2_EV

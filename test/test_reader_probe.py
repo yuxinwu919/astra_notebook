@@ -10,7 +10,8 @@ from astra_tools.io.astra_dist import AstraDistributionReader
 
 
 def _write(suffix, text):
-    p = Path("/tmp") / ("probe_test" + suffix)
+    import tempfile
+    p = Path(tempfile.gettempdir()) / ("probe_test" + suffix)
     p.write_text(text)
     return p
 

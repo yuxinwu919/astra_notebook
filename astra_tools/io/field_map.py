@@ -25,7 +25,7 @@ Off-axis field expansion (used by fieldplot, manual chapter 8):
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -126,6 +126,7 @@ class WakePotential:
     s: np.ndarray
     w: np.ndarray
     source: str = ""
+    blocks: list = field(default_factory=list)   # 多块读取时的全部块 (批 5: 声明字段)
 
 
 def read_cavity_field(path) -> CavityField:
@@ -330,44 +331,39 @@ def read_3d_field_map(path):
         SI 单位按文件名约定 (ex/ey/ez: V/m; bx/by/bz: T; 数值原样返回)。
     """
     path = Path(path)
-    lines = [ln.split() for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
-    if len(lines) < 4:
+    # 批 5: 单次读入, 全局 token 流 (此前紧凑分支读一遍、逐值分支
+    # 又 read_text() 读第二遍并逐 token 转 float, 65MB laser.dat 翻倍)
+    vals = [float(v) for v in path.read_text(encoding="utf-8").split()]
+    if len(vals) < 4:
         raise ValueError("3D map too short: " + str(path))
 
-    # 紧凑头 (n, min, spacing) 候选: 前 3 行各恰 3 个 token;
-    # 必须通过校验 (n>=1 且剩余数据长度与网格积精确相等) 才算数,
-    # 否则按逐值头解析 (自由格式允许换行, 3 个 token 可能只是
-    # 恰好每行 3 个网格值的巧合, 如 3D_Dipole.bx)
-    compact = len(lines[0]) == 3 and len(lines[1]) == 3 and len(lines[2]) == 3
-    if compact:
-        _grids = []
-        for i in range(3):
-            _n = int(float(lines[i][0]))
-            if _n < 1:
-                compact = False
-                break
-            _x0, _dx = float(lines[i][1]), float(lines[i][2])
-            _grids.append(np.array([_x0 + j * _dx for j in range(_n)],
-                                   dtype=float))
-        _rest = []
-        for ln in lines[3:]:
-            _rest.extend(ln)
-        if compact:
-            _data = np.array([float(v) for v in _rest], dtype=float)
-            _need = int(np.prod([len(g) for g in _grids]))
-            if len(_data) != _need:
-                compact = False
-        if compact:
-            grids, data = _grids, _data
-    if compact:
-        pass
-    else:
+    # 紧凑头 (n, min, spacing) 候选: 前 9 个 token 恰为
+    # n1,min1,dx1, n2,min2,dx2, n3,min3,dx3 且各自 n>=1,
+    # 且剩余数据长度与网格积精确相等 — 才按紧凑头解析;
+    # 否则按逐值头解析 (3 个 token 可能只是恰好每行 3 个网格值
+    # 的巧合, 如 3D_Dipole.bx)
+    head9 = vals[:9]
+    compact = False
+    if all(float(h) >= 1 for h in (head9[0], head9[3], head9[6])):
+        ns = [int(head9[0]), int(head9[3]), int(head9[6])]
+        need = ns[0] * ns[1] * ns[2]
+        if len(vals) - 9 == need:
+            compact = True
+            grids = [np.array([head9[1] + j * head9[2] for j in range(ns[0])],
+                              dtype=float),
+                     np.array([head9[4] + j * head9[5] for j in range(ns[1])],
+                              dtype=float),
+                     np.array([head9[7] + j * head9[8] for j in range(ns[2])],
+                              dtype=float)]
+            data = np.array(vals[9:], dtype=float)
+    if not compact:
         # 逐值头: 全局 token 流, 支持换行 (自由格式)
-        vals = [float(v) for v in path.read_text().split()]
         idx = 0
         grids = []
         for _ in range(3):
             n = int(vals[idx])
+            if n < 1:
+                raise ValueError("3D map grid size invalid: " + str(path))
             idx += 1
             grids.append(np.array(vals[idx:idx + n], dtype=float))
             idx += n

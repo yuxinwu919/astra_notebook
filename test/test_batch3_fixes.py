@@ -204,6 +204,49 @@ def test_run_program_crash_markers(tmp_path):
         run_program(_sys.executable, tmp_path, "crash.py", timeout=30)
 
 
+def test_ascii_reader_vectorized_perf(tmp_path):
+    """批 5: 2e5 粒子 ASCII 文件读取应在秒级 (旧逐行循环需数十秒)。"""
+    import time
+    from astra_tools.io import read_distribution
+    rng = np.random.default_rng(1)
+    n = 200000
+    rows = ["%g %g %g %g %g %g %g %g %d %d" % (
+        rng.normal(0, 1e-3), rng.normal(0, 1e-3), rng.normal(0, 1e-3),
+        rng.normal(0, 1e3), rng.normal(0, 1e3), 1.0005e9,
+        rng.normal(0, 1e-3), -2e-3, 1, 5) for _ in range(n)]
+    p = tmp_path / "big.ini"
+    p.write_text("\n".join(rows))
+    t0 = time.time()
+    d = read_distribution(p)
+    dt = time.time() - t0
+    assert d.n_particle == n
+    assert dt < 5.0, "读取 2e5 粒子耗时 %.1fs (向量化失效?)" % dt
+
+
+def test_3d_map_single_line_compact_header(tmp_path):
+    """批 5: 紧凑头写在同一行 (9 token) 也能解析。"""
+    from astra_tools.io.field_map import read_3d_field_map
+    p = tmp_path / "m.ex"
+    vals = [3, 0.0, 1.0, 2, 0.0, 2.0, 2, 0.0, 3.0]
+    vals += [float(i) for i in range(3 * 2 * 2)]
+    p.write_text(" ".join(str(v) for v in vals))
+    x, y, z, f = read_3d_field_map(p)
+    assert f.shape == (3, 2, 2) and x[1] == 1.0
+
+
+def test_density_engine_smoke():
+    """批 5: KDE 引擎 (非默认) 至少一个 smoke 测试防止悄悄腐坏。"""
+    from astra_tools.plot._density import density2d, clip_percentile
+    rng = np.random.default_rng(0)
+    x = rng.normal(0, 1e-3, 5000)
+    y = rng.normal(0, 1e-3, 5000)
+    hist, xe, ye = density2d(x, y, bins=50)
+    assert hist.shape == (50, 50)
+    assert np.all(np.isfinite(hist)) and np.max(hist) > 0
+    lo, hi = clip_percentile(x, q=0.5)
+    assert lo < 0 < hi and np.abs(lo) == pytest.approx(np.abs(hi), rel=0.1)
+
+
 def test_io_reexports_complete():
     import astra_tools.io as io
     for name in ["read_cemit_file", "read_pscan", "read_cavity_field",

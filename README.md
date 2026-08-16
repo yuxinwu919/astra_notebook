@@ -5,14 +5,14 @@
 
 - **前端**: 5 个任务式 Notebook (generator/astra/postpro/lineplot/fieldplot, 与原程序一一对应), 参数用表单点选 (元数据驱动, 覆盖 ASTRA 手册第 6 章
   全部 13 个 namelist 与第 7 章 Generator 全部参数), 也可直接使用现成 .in 文本;
-  结果以统计表格 + 现代 KDE 密度图呈现, 支持 CSV/npz 数据导出。
+  结果以统计表格 + 现代散点图呈现, 支持 CSV/npz 数据导出。
 - **后端**: astra_tools 纯 Python 包 (不打包、不分发), **复制整个文件夹即可使用**;
   统计与绘图代码全部经物理审查, 与 ASTRA 自身输出交叉验证 (误差 < 0.02%)。
 - **覆盖**: postpro/lineplot/fieldplot 三大图形程序的功能替代 — 相空间与切片、
   全部演化曲线 (z 或 t 轴)、发射度/能散/光学函数、场图 (1D/TWS/3D 截面/轴上
   剖面)、孔径叠加、阴极发射、激光与等离子体、核心电荷分数曲线、
   BFF (直接法 + FFT 快速路径)、PScan/Scan/Error 扫描图。
-- **验证**: 118 项测试 (五层, 见 docs/dev_manual/test_plan.md), 含真实 ASTRA
+- **验证**: 232 项测试 (五层, 见 docs/dev_manual/test_plan.md), 含真实 ASTRA
   PScan/Scan 交叉验证; 官方 8 算例在 examples/ 示例 notebook 中逐例
   复现与黄金比对。
 
@@ -67,7 +67,7 @@ lineplot_demo (lineplot 全菜单专题)。
 ## 测试
 
     .venv/bin/python -m pytest test/ -q     # 单元 + 黄金回归 + 交叉验证 + 绘图正确性
-    # 端到端 (需可执行文件): 逐个执行 notebooks/ 下的 8 个 Notebook
+    # 端到端 (需可执行文件): 逐个执行 18 本 notebook (5 任务式 + 13 examples/)
 
 ## 文档
 

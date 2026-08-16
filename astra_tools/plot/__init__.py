@@ -1,6 +1,6 @@
 """Plotting layer: postpro / lineplot / fieldplot replacements.
 
-All plots: unified 2D Gaussian-kernel KDE density, 0.5-99.5 percentile
+All plots: plain 2D scatter with deterministic subsampling, 0.5-99.5 percentile
 range clipping (outlier-proof), SI input / display-unit output with
 complete legends. Call plot.style.set_style() once before plotting.
 """

@@ -26,8 +26,9 @@ def stats_table_html(stats) -> HTML:
 
 
 def distribution_summary_html(dist) -> HTML:
-    """分布概要面板."""
-    return HTML("<pre>" + dist.summary() + "</pre>")
+    """分布概要面板 (批 5: HTML 转义 source 路径)。"""
+    import html
+    return HTML("<pre>" + html.escape(dist.summary()) + "</pre>")
 
 
 def display_bz_warning(sim_dir) -> bool:

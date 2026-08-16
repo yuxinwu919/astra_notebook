@@ -50,7 +50,8 @@ def export_distribution(dist, out_dir, stem: str = "distribution"):
     npz_path = out_dir / (stem + ".npz")
     np.savez(npz_path, **arrays,
              ref_time_ns=dist.ref_time_ns, ref_momentum_eVc=dist.ref_momentum_eVc,
-             ref_z_m=dist.ref_z_m, total_charge_nC=dist.total_charge_nC,
+             ref_z_m=dist.ref_z_m, ref_x_m=dist.ref_x_m, ref_y_m=dist.ref_y_m,
+             total_charge_nC=dist.total_charge_nC,
              source=dist.source, format=dist.format)
 
     csv_path = _write_csv_units(

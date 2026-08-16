@@ -66,7 +66,7 @@ examples/golden_expected.json。
 文件: test/test_plots.py, test/test_batch_c_fixes.py 的绘图部分。
 
 * 每个绘图函数断言: 轴标签含正确单位串 (如 "z [m]", "t [ns]",
-  "[pi mm mrad]")、图例含物理量名、KDE 密度系统被使用。
+  "[pi mm mrad]")、图例含物理量名、散点渲染系统被使用 (KDE 引擎保留为非默认)。
 * 黄金场图 (3D_test.*) 的真实对称性作为场图数据正确性的物理锚点。
 * 新增绘图必须: (1) 标签/单位断言; (2) 若涉及新数据源, 加一层
   第 3 层的数据对照。
@@ -88,13 +88,13 @@ examples/golden_expected.json。
 * 本机前提: astra/generator 在 PATH 或项目 ASTRA/ 目录;
   Plasma_Example_2 需要本地 laser.dat (65MB, gitignored)。
 
-## 测试清单 (当前 118 项)
+## 测试清单 (当前 232 项)
 
 * test_backend.py — 单元 + 导出 + 可执行文件
 * test_phase_stepper.py — postpro 步进器 (PhaseStepper)
 * test_misc_readers.py — read_error/read_lab_file 等 (M1/M2)
 * test_reader_probe.py — 文件格式探测 (.zpos/5 值头/场图拒绝)
-* test_format_input.py — namelist 生成
+* test_backend.py 内 namelist 生成用例 + test_reader_coverage.py (批 1 新增)
 * test_cross_validation.py — 统计链 vs ASTRA (4)
 * test_golden_examples.py — 9 算例黄金回归 (7)
 * test_plots.py — 绘图标签/单位 + 字体策略/字形覆盖 (26)
