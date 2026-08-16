@@ -195,29 +195,41 @@ def _cases(F):
     ]
 
 
-def test_all_plots_render_cleanly(F):
+
+# 68 个绘图用例逐一参数化: 任一失败可精确定位到具体图 (批 1c)。
+AUDIT_CASE_IDS = ["phase_space_x","phase_space_x_norm","phase_space_x_weighted","phase_space_y","phase_space_z","transverse","overview","transverse_profile","distributions","energy_dist","envelope","envelope_t","divergence","emittance","energy","bunch_length","energy_spread","ref_traj","velocity","step_size","eigen","emit_dashboard","lineplot_overview","current","slice_emit","slice_sizes","chirp","slice_dashboard","bff","bff_amp","cavity","solenoid","losses","beam_loading","beta_alpha","phase_advance","coherence","phase_scan","pscan_dedz","pscan_comp","scan_fom","corr_energy_spread","ref_momentum","pscan_comp_time","scan_position","tcheck_counter","core_emit_z","cr_emit","error_hist","reduced","trace","core_emit","core_brightness","larmor","tcheck","z_plot","probe_traj","sc_fields","cathode","slice_mismatch","3d_map_slices","field_profile","curved_cathode","laser_on_axis","plasma_profile","envelope_aperture","core_fraction","slice_ellipses_3d"]
+
+
+@pytest.mark.parametrize("case_name", AUDIT_CASE_IDS)
+def test_all_plots_render_cleanly(F, case_name):
     """每个绘图函数: 不抛异常、标签齐全、数据有限。"""
-    for name, fn in _cases(F):
-        fig = fn()
-        try:
-            if not isinstance(fig, plt.Figure):
-                fig = fig[0]
-            for ax in fig.axes:
-                if ax.get_label() == "<colorbar>":
-                    continue
-                has_lines = len(ax.lines) > 0 or len(ax.collections) > 0
-                if not has_lines:
-                    continue
-                if not _is_twinx(ax):
-                    assert ax.get_xlabel().strip(), name + ": missing xlabel"
-                assert ax.get_ylabel().strip(), name + ": missing ylabel"
-                for ln in ax.lines:
-                    assert np.all(np.isfinite(ln.get_xdata())), name + ": non-finite x"
-                    assert np.all(np.isfinite(ln.get_ydata())), name + ": non-finite y"
-                for coll in ax.collections:
-                    arr = coll.get_array()
-                    if arr is not None and len(arr):
-                        assert np.all(np.isfinite(arr)), name + ": non-finite collection"
-                assert np.isfinite(ax.get_xlim()).all() and np.isfinite(ax.get_ylim()).all(), name + ": bad limits"
-        finally:
-            plt.close("all")
+    fn = dict(_cases(F))[case_name]
+    fig = fn()
+    try:
+        if not isinstance(fig, plt.Figure):
+            fig = fig[0]
+        for ax in fig.axes:
+            if ax.get_label() == "<colorbar>":
+                continue
+            has_lines = len(ax.lines) > 0 or len(ax.collections) > 0
+            if not has_lines:
+                continue
+            if not _is_twinx(ax):
+                assert ax.get_xlabel().strip(), case_name + ": missing xlabel"
+            assert ax.get_ylabel().strip(), case_name + ": missing ylabel"
+            for ln in ax.lines:
+                assert np.all(np.isfinite(ln.get_xdata())), case_name + ": non-finite x"
+                assert np.all(np.isfinite(ln.get_ydata())), case_name + ": non-finite y"
+            for coll in ax.collections:
+                arr = coll.get_array()
+                if arr is not None and len(arr):
+                    assert np.all(np.isfinite(arr)), case_name + ": non-finite collection"
+            assert np.isfinite(ax.get_xlim()).all() and np.isfinite(ax.get_ylim()).all(), case_name + ": bad limits"
+    finally:
+        plt.close("all")
+
+
+def test_audit_case_ids_complete(F):
+    """ID 清单与 _cases 同步防漂移。"""
+    assert [n for n, _ in _cases(F)] == AUDIT_CASE_IDS
+

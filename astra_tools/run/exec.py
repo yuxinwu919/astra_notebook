@@ -202,6 +202,11 @@ def backup_directory(src: Path, backup_root: Path):
         raise FileNotFoundError("simulation directory not found: " + str(src))
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     dst = Path(backup_root) / timestamp
+    # 同秒内多次备份: 追加 -1/-2 后缀, 不覆盖不抛异常
+    n = 0
+    while dst.exists():
+        n += 1
+        dst = Path(backup_root) / (timestamp + "-" + str(n))
     dst.parent.mkdir(parents=True, exist_ok=True)
     _shutil.copytree(src, dst)
     logger.info("backed up %s -> %s", src, dst)

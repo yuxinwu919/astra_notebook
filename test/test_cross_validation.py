@@ -105,3 +105,27 @@ def test_sigma_eigen_emittances():
     assert np.max(np.abs(sig.enz - zeps) / zeps) < 5e-3
     assert np.max(np.abs(sig.enx - xeps) / xeps) < 0.10
 
+
+def test_canonical_momentum_at_solenoid_center():
+    """螺线管场心 (z=1.2 m, Bz=0.35 T) 交叉验证: 强场样本.
+
+    批 1b golden: ZSTOP=1.2 真跑 (束团末端恰在螺线管中心)。
+    ASTRA Xemit 末行 = 场心处的正则动量统计; 我们的 canonical
+    结果必须 <0.5% 吻合, 且裸动量结果必须显著偏离 (判别力断言,
+    防止测试退化)。实测: canonical 1.0025 vs Xemit 1.0022;
+    裸动量 57.68 (57 倍) — 见 data/review/phaseB/merged_report.md。
+    """
+    dist = read_distribution(DATA / "golden" / "Example.0120.001")
+    xemit = np.loadtxt(DATA / "golden" / "Example.SolenoidCenter.Xemit.001")
+    last = xemit[-1]
+    assert last[0] == pytest.approx(1.2, abs=1e-6)   # 样本确在场心
+
+    bz_center = 0.35   # Solenoid.dat 峰值处 MaxB(1)=0.35
+    s_can = compute_statistics(dist, bz_on_axis_T=bz_center)
+    s_bare = compute_statistics(dist, bz_on_axis_T=0.0)
+
+    assert s_can.sig_xp * 1e3 == pytest.approx(last[4], rel=5e-3)
+    assert s_can.emit_x_norm * 1e6 == pytest.approx(last[5], rel=5e-3)
+    # 判别力: 裸动量必须显著偏离 canonical (场心 trace-space 膨胀)
+    assert abs(s_bare.emit_x_norm - s_can.emit_x_norm) / s_can.emit_x_norm > 10.0
+
