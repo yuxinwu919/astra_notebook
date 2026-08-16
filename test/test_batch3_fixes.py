@@ -142,6 +142,56 @@ def test_solenoid_bz_at_z(tmp_path):
     assert solenoid_bz_at_z(tmp_path / "astra.in", 1.45) == pytest.approx(0.315)
 
 
+def test_cemit_golden_semantics():
+    """ASTRA 真跑 Cemit golden: 核心发射度随分数递减且小于全束团 (4.13.5 口径)。
+
+    与 compute_central_charge_fraction_curves (纵向中心电荷分数) 对照,
+    锁定两种定义的分野 — 见 core.py docstring 的裁决记录。
+    """
+    from astra_tools.io.astra_emit import parse_output_file
+    ce = parse_output_file(
+        PROJECT_ROOT / "examples/Manual_Example/golden/Example.Cemit.001")
+    last = {k: v[-1] for k, v in ce.items()}
+    eps = last["norm_emit_x"]
+    assert 0 < last["core_emit_80percent_x"] < last["core_emit_90percent_x"] < last["core_emit_95percent_x"] < eps
+    assert last["norm_emit_z"] == pytest.approx(0.96725, rel=1e-4)   # keV.mm -> eV.m x1
+
+
+def test_central_charge_fraction_renamed():
+    import warnings
+    from astra_tools.analysis.core import (
+        compute_central_charge_fraction_curves,
+        compute_core_fraction_curves)
+    assert compute_central_charge_fraction_curves is not compute_core_fraction_curves
+    d = _dist(np.full(60, 1e9), ref=1e9)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        compute_core_fraction_curves(d)   # 弃用别名仍可用且告警
+        assert any("DeprecationWarning" in str(x.category) for x in w)
+
+
+def test_cavity_field_arbitrary_units(tmp_path):
+    from astra_tools.io.field_map import read_cavity_field
+    p = tmp_path / "cav.dat"
+    p.write_text("0 100\n0.1 200\n0.2 300\n")
+    f = read_cavity_field(p)
+    # 原始任意单位: 不再乘 1e6
+    assert np.max(np.abs(f.ez0)) == 300.0
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from astra_tools.plot.field_plots import plot_cavity_field
+    fig = plot_cavity_field(f, maxE_MVpm=40)
+    labels = [ax.get_ylabel() for ax in fig.axes] + \
+             [ax.get_title() for ax in fig.axes]
+    assert any("MV/m" in (l or "") for l in labels)
+    plt.close(fig)
+    fig2 = plot_cavity_field(f)
+    labels2 = [ax.get_ylabel() for ax in fig2.axes]
+    assert any("arb" in (l or "") for l in labels2)
+    plt.close(fig2)
+
+
 def test_io_reexports_complete():
     import astra_tools.io as io
     for name in ["read_cemit_file", "read_pscan", "read_cavity_field",

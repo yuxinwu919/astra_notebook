@@ -23,13 +23,19 @@ from .emittance import compute_geometric_emittance
 # 命名约定: 参数使用"物理量+单位"后缀 (ref_momentum_eVc, bz_on_axis_T),
 # 与 slices.py / phase_space.py / overview.py 保持一致。
 # noinspection PyPep8Naming
-def compute_core_fraction_curves(
+def compute_central_charge_fraction_curves(
     dist: Distribution,
     fractions=(0.1, 0.25, 0.5, 0.75, 0.9, 1.0),
     ref_momentum_eVc: Optional[float] = None,
     bz_on_axis_T: float = 0.0,
 ) -> dict:
-    """按纵向电荷分数取核心并计算参数曲线。
+    """按纵向中心电荷分数切核心并计算参数曲线 (批 3 裁决后更名).
+
+    注意: 这不是手册 4.13.5/4.13.8 的 Cemit 核心发射度 (单粒子贡献
+    排序取核)。实测 ASTRA Cemit golden (examples/Manual_Example/golden/
+    Example.Cemit.001): C95x=0.81*eps_n 且随分数递减, 本函数在 0.1-1.0
+    分数下 emit_xn 反而递增且大于全束团值 — 两者是不同物理量。
+    ASTRA 口径的核心发射度请用 plot_core_emittance + parse_output_file。
 
     Args:
         dist: 粒子分布 (使用活粒子)。
@@ -94,3 +100,15 @@ def compute_core_fraction_curves(
         "sig_z": sig_z, "sig_x": sig_x, "sig_y": sig_y,
         "emit_xn": emit_xn, "emit_yn": emit_yn,
     }
+
+
+
+def compute_core_fraction_curves(*args, **kwargs):
+    """已弃用别名 (批 3): 语义与手册 Cemit 不同, 请用
+    compute_central_charge_fraction_curves。"""
+    import warnings
+    warnings.warn(
+        "compute_core_fraction_curves 已更名为 "
+        "compute_central_charge_fraction_curves (与 ASTRA Cemit 口径区分)",
+        DeprecationWarning, stacklevel=2)
+    return compute_central_charge_fraction_curves(*args, **kwargs)

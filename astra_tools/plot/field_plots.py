@@ -32,10 +32,15 @@ def plot_cavity_field(
         maxE_MVpm: scale the field to this peak [MV/m] (like ASTRA's
             MaxE(n)); None = raw file values.
     """
+    # 批 3: ez0 为原始任意单位 (手册 6.9); 给 maxE 时按峰值缩放并
+    # 以 MV/m 显示, 否则按任意单位显示 (不再假装 V/m)。
+    peak = float(np.max(np.abs(field.ez0)))
     if maxE_MVpm is not None:
-        scale = maxE_MVpm * 1e6 / np.max(np.abs(field.ez0))
+        scale = maxE_MVpm / peak if peak > 0 else 0.0
+        ez_unit, b_unit = "MV/m", "T"
     else:
         scale = 1.0
+        ez_unit, b_unit = "arb. units", "arb. units"
 
     z0, z1 = float(field.z.min()), float(field.z.max())
     if rmax is None:
@@ -50,8 +55,8 @@ def plot_cavity_field(
     bphi = bphi * scale
 
     fig, axes = plt.subplots(2, 2, figsize=figsize)
-    maps = [(ez * 1e-6, "Ez [MV/m]"), (er * 1e-6, "Er [MV/m]"),
-            (bphi, "Bphi [T]")]
+    maps = [(ez, "Ez [%s]" % ez_unit), (er, "Er [%s]" % ez_unit),
+            (bphi, "Bphi [%s]" % b_unit)]
     for ax, (m, label) in zip(axes.flat[:3], maps):
         vmax = float(np.max(np.abs(m)))
         if vmax == 0:
@@ -63,9 +68,9 @@ def plot_cavity_field(
         ax.set_ylabel("r [mm]")
 
     ax = axes[1, 1]
-    ax.plot(field.z * 1e3, field.ez0 * scale * 1e-6, color="C0")
+    ax.plot(field.z * 1e3, field.ez0 * scale, color="C0")
     ax.set_xlabel("z [mm]")
-    ax.set_ylabel("Ez on axis [MV/m]")
+    ax.set_ylabel("Ez on axis [%s]" % ez_unit)
     ax.set_title("on-axis field")
     if title:
         fig.suptitle(title)

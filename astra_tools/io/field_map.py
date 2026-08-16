@@ -37,7 +37,8 @@ from ..constants import C_LIGHT
 class CavityField:
     """On-axis cavity field table.
 
-    z [m], ez0 [V/m] (raw file values in MV/m converted to V/m).
+    z [m], ez0 原始任意单位 (手册 6.9: 场表第 2 列为任意单位,
+    峰值按 deck 的 MaxE 缩放; C_noscale=T 时数值才直接是 MV/m)。
     """
 
     z: np.ndarray
@@ -46,7 +47,7 @@ class CavityField:
 
     @property
     def peak_field_MVpm(self) -> float:
-        return float(np.max(np.abs(self.ez0))) * 1e-6
+        return float(np.max(np.abs(self.ez0)))   # 任意单位峰值
 
     def field_at(self, r: np.ndarray, z: np.ndarray, omega: float = 0.0):
         """Off-axis field components at (r, z) via the axis expansion.
@@ -136,7 +137,7 @@ def read_cavity_field(path) -> CavityField:
     if data.shape[1] < 2:
         raise ValueError("cavity field file must have >= 2 columns: " + str(path))
     return CavityField(z=data[:, 0].astype(float),
-                       ez0=data[:, 1].astype(float) * 1e6,  # MV/m -> V/m
+                       ez0=data[:, 1].astype(float),          # 原始任意单位 (手册 6.9)
                        source=str(path))
 
 

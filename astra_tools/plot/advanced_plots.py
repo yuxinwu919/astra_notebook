@@ -685,11 +685,19 @@ def plot_plasma_profile(path, peak_density_cm3=None, ax=None, figsize=(8, 5),
     return fig
 
 
-def plot_core_fraction_curves(dist, fractions=(0.1, 0.25, 0.5, 0.75, 0.9, 1.0),
+def plot_core_fraction_curves(*args, **kwargs):
+    """已弃用别名 (批 3): 请用 plot_central_charge_fraction_curves。"""
+    import warnings
+    warnings.warn("plot_core_fraction_curves 已更名为 "
+                  "plot_central_charge_fraction_curves", DeprecationWarning, stacklevel=2)
+    return plot_central_charge_fraction_curves(*args, **kwargs)
+
+
+def plot_central_charge_fraction_curves(dist, fractions=(0.1, 0.25, 0.5, 0.75, 0.9, 1.0),
                               figsize=(10, 4), title=None):
-    """核心束长/发射度 vs 电荷分数 (postpro 核心曲线, 自算)."""
-    from ..analysis.core import compute_core_fraction_curves
-    c = compute_core_fraction_curves(dist, fractions=fractions)
+    """束长/发射度 vs 纵向中心电荷分数 (批 3 更名; 非 ASTRA Cemit 口径)."""
+    from ..analysis.core import compute_central_charge_fraction_curves
+    c = compute_central_charge_fraction_curves(dist, fractions=fractions)
     fig, axes = plt.subplots(1, 2, figsize=figsize)
     axes[0].plot(c["fractions"] * 100, c["sig_z"] * 1e3, "o-", label="$\\sigma_z$")
     axes[0].plot(c["fractions"] * 100, c["sig_x"] * 1e3, "s-", label="$\\sigma_x$")
