@@ -17,7 +17,7 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..constants import C_LIGHT
+from ..constants import C_LIGHT, M_E_C2_EV
 from ..io.astra_misc import read_track_file, read_cathode_file
 
 HBAR_EVS = 6.582119569e-16   # hbar [eV.s]
@@ -61,14 +61,25 @@ def plot_beam_loading(landf, ax=None, figsize=(8, 4), title=None):
     return fig
 
 
-def plot_beta_alpha(emit, ax=None, figsize=(8, 5), title=None):
+def plot_beta_alpha(emit, ref=None, ax=None, figsize=(8, 5), title=None):
     """光学 beta/alpha 函数 (菜单 2 项 12/13):
-    beta = sigma_u^2 / eps_u,  alpha = -(cov/sigma_u)*beta。"""
+    beta = sigma_u^2 / eps_geom,  alpha = -cov(u,u')/eps_geom。
+
+    手册 5.5.2 项 12/13 用几何 RMS 发射度 (项 15 相干长度才用
+    归一化 ε_n): eps_geom = eps_n / (beta*gamma), 其中 beta*gamma
+    由参考粒子动量轨迹 ref.pz [eV/c] 给出 (批 2 修复: 此前误用
+    ε_n 使 β/α 小 βγ≈1958 倍)。
+    """
+    if ref is None:
+        raise ValueError(
+            "plot_beta_alpha 需要参考粒子轨迹 (ref) 以计算 beta*gamma")
     fig, ax = _ax(ax, figsize)
     ax2 = ax.twinx()   # 只建一次右轴, 避免两个 twinx 重叠
+    bg = np.interp(emit.x.z, ref.z,
+                   np.sqrt(np.maximum((ref.pz / M_E_C2_EV) ** 2 - 1.0, 0.0)))
     for e, lbl in ((emit.x, "x"), (emit.y, "y")):
-        eps = np.maximum(e.emit, 1e-30)
-        beta = e.rms**2 / eps
+        eps_geom = np.maximum(e.emit / bg, 1e-30)
+        beta = e.rms**2 / eps_geom
         alpha = -e.corr / np.maximum(e.rms, 1e-30) * beta
         ax.plot(e.z, beta, label="$\\beta_%s$ [m]" % lbl)
         ax2.plot(e.z, alpha, ls="--", label="$\\alpha_%s$" % lbl)
@@ -83,11 +94,20 @@ def plot_beta_alpha(emit, ax=None, figsize=(8, 5), title=None):
     return fig
 
 
-def plot_phase_advance(emit, ax=None, figsize=(8, 4), title=None):
-    """相位推进 theta = int(1/beta) dz (菜单 2 项 14)."""
+def plot_phase_advance(emit, ref=None, ax=None, figsize=(8, 4), title=None):
+    """相位推进 theta = int(1/beta) dz (菜单 2 项 14).
+
+    与 plot_beta_alpha 同口径: beta 由几何发射度给出 (批 2 修复)。
+    """
+    if ref is None:
+        raise ValueError(
+            "plot_phase_advance 需要参考粒子轨迹 (ref) 以计算 beta*gamma")
     fig, ax = _ax(ax, figsize)
+    bg = np.interp(emit.x.z, ref.z,
+                   np.sqrt(np.maximum((ref.pz / M_E_C2_EV) ** 2 - 1.0, 0.0)))
     for e, lbl in ((emit.x, "x"), (emit.y, "y")):
-        beta = e.rms**2 / np.maximum(e.emit, 1e-30)
+        eps_geom = np.maximum(e.emit / bg, 1e-30)
+        beta = e.rms**2 / eps_geom
         theta = np.cumsum(np.gradient(e.z) / np.maximum(beta, 1e-12))
         ax.plot(e.z, theta, label="$\\theta_%s$ [rad]" % lbl)
     ax.set_xlabel("z [m]")
@@ -308,8 +328,11 @@ def slice_mismatch(dist, n_slices=20, bz_on_axis_T: float = 0.0):
         yi = d.y[mask]
         if len(xi) < 3:
             continue
-        bxi, axi, gxi = compute_twiss_parameters(xi - np.mean(xi), (d.px[mask] - np.mean(d.px[mask])) / p_ref)
-        byi, ayi, gyi = compute_twiss_parameters(yi - np.mean(yi), (d.py[mask] - np.mean(d.py[mask])) / p_ref)
+        # 与投影分支同口径: slice 散角也用正则动量 (手册 4.13.1, 批 2 修复)
+        pxi = (d.px[mask] + 0.5 * C_LIGHT * bz_on_axis_T * yi)
+        pyi = (d.py[mask] - 0.5 * C_LIGHT * bz_on_axis_T * xi)
+        bxi, axi, gxi = compute_twiss_parameters(xi - np.mean(xi), (pxi - np.mean(pxi)) / p_ref)
+        byi, ayi, gyi = compute_twiss_parameters(yi - np.mean(yi), (pyi - np.mean(pyi)) / p_ref)
         zeta_x[i] = 0.5 * (b0x * gxi - 2 * a0x * axi + g0x * bxi)
         zeta_y[i] = 0.5 * (b0y * gyi - 2 * a0y * ayi + g0y * byi)
     return z, zeta_x, zeta_y
@@ -361,13 +384,13 @@ def plot_3d_map_slices(path, axis="z", n_slices=3, figsize=(13, 4), title=None,
             im = ax.pcolormesh(x * 1e3, z * 1e3, f[:, i, :].T, cmap="RdBu_r",
                                vmin=-vmax, vmax=vmax, shading="auto")
             ax.set_xlabel("x [mm]")
-            ax.set_ylabel("z [m]")
+            ax.set_ylabel("z [mm]")
             ax.set_title("y = %.4g mm" % (y[i] * 1e3))
         else:
             im = ax.pcolormesh(y * 1e3, z * 1e3, f[i, :, :].T, cmap="RdBu_r",
                                vmin=-vmax, vmax=vmax, shading="auto")
             ax.set_xlabel("y [mm]")
-            ax.set_ylabel("z [m]")
+            ax.set_ylabel("z [mm]")
             ax.set_title("x = %.4g mm" % (x[i] * 1e3))
     fig.colorbar(im, ax=axs, label=unit or "field")
     if title:
@@ -730,7 +753,9 @@ def plot_core_emittance(ce, ax=None, figsize=(8, 5), title=None,
     """
     fig, ax = _ax(ax, figsize)
     z = ce["mean_z"]
-    scale = 1e-3 if plane == "z" else 1e6
+    # Cemit z 列内部单位 eV·m (OUTPUT_TABLES 因子 1), 1 keV·mm ≡ 1 eV·m,
+    # 显示 keV·mm 的缩放系数为 1 (此前 1e-3 使值小 1000 倍 — 批 2 修复)。
+    scale = 1.0 if plane == "z" else 1e6
     unit = "keV mm" if plane == "z" else r"$\pi$ mm mrad"
     ax.plot(z, ce["norm_emit_" + plane] * scale, label=r"$\varepsilon_{n%s}$" % plane)
     ax.plot(z, ce["core_emit_95percent_" + plane] * scale, ls="--",

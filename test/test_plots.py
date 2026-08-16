@@ -155,15 +155,16 @@ class TestAdvancedPlots:
 
     def test_beta_alpha_units(self):
         from astra_tools.plot.advanced_plots import plot_beta_alpha
-        fig = plot_beta_alpha(EMIT)
+        fig = plot_beta_alpha(EMIT, ref=REF)
         labs = _labels(fig)
         assert any("beta function [m]" in l for l in labs)
         assert fig.axes[0].get_legend() is not None
+        # 批 2: beta 用几何发射度, 数值按 sigma^2/eps_geom 给出
         plt.close(fig)
 
     def test_phase_advance(self):
         from astra_tools.plot.advanced_plots import plot_phase_advance
-        fig = plot_phase_advance(EMIT)
+        fig = plot_phase_advance(EMIT, ref=REF)
         assert any("phase advance [rad]" in l for l in _labels(fig))
         plt.close(fig)
 

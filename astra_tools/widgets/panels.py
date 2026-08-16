@@ -30,6 +30,33 @@ def distribution_summary_html(dist) -> HTML:
     return HTML("<pre>" + dist.summary() + "</pre>")
 
 
+def display_bz_warning(sim_dir) -> bool:
+    """deck 含螺线管且统计未传 bz 时的黄色告警 (批 2, P0-4 兜底).
+
+    从 astra.in 解析 &SOLENOID: LBField=T 即认为束线含螺线管场;
+    此时默认 compute_statistics(bz=0) 的结果与 ASTRA Xemit 口径
+    不一致 (正则动量, 手册 4.13.1)。不自动改数值, 只提醒。
+    返回是否有告警; 找不到 deck 时静默返回 False。
+    """
+    from pathlib import Path
+    from IPython.display import display
+    from ..namelist.parse import parse_namelists
+    deck = Path(sim_dir) / "astra.in"
+    if not deck.exists():
+        return False
+    blocks = parse_namelists(deck)
+    sol = blocks.get("SOLENOID")
+    if not sol or not sol.get("LBField", False):
+        return False
+    display(HTML(
+        "<div style='background:#fff8e1;border:1px solid #e0c36a;"
+        "padding:6px 10px;margin:4px 0'>注意: 该 deck 含螺线管场, "
+        "以下统计未应用正则动量 (bz=0), 发射度/散角与 ASTRA Xemit "
+        "口径可能不一致 (手册 4.13.1); 参见 stats_validation_demo "
+        "或显式传入 bz_on_axis_T。</div>"))
+    return True
+
+
 _UNITS = {
     "total_charge_nC": "nC",
     "mean_x_mm": "mm", "mean_y_mm": "mm", "mean_z_mm": "mm",

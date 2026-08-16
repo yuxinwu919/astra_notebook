@@ -126,7 +126,7 @@ def test_read_cemit_file_columns(tmp_path):
 
 def test_read_cemit_file_rejects_short(tmp_path):
     p = _w(tmp_path, "c.Cemit.001", "0 1 2\n")
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         read_cemit_file(p)
 
 
@@ -167,6 +167,7 @@ def test_fix_laser_map_header(tmp_path):
     out = fm.fix_laser_map_header(p)
     lines = p.read_text().splitlines()
     assert lines[0].split()[0] == "81"
+    assert lines[1].split()[0] == "9"      # 中间头行同样取整
     assert lines[2].split()[0] == "40"
     assert lines[3] == "0.1"   # 数据原样保留
     assert len(out) == 3
@@ -208,9 +209,11 @@ def test_backup_directory(tmp_path):
     backup_directory(src, root)
     assert any(root.iterdir())
     assert len(list(root.iterdir())) == 1
-    # 第二次备份产生新目录, 不覆盖
+    # 第二次备份产生新目录, 不覆盖; 同秒碰撞走 -1 后缀
     backup_directory(src, root)
-    assert len(list(root.iterdir())) == 2
+    dirs = sorted(p.name for p in root.iterdir())
+    assert len(dirs) == 2 and dirs[1].endswith("-1")
+    assert (root / dirs[1] / "a.txt").read_text() == "x"
 
 
 def test_get_version(tmp_path):

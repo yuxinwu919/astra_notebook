@@ -263,14 +263,13 @@ def test_plots_empty_and_single_particle_graceful():
     for ln in fig.axes[0].lines:
         assert np.all(np.isfinite(ln.get_ydata()))
     plt.close(fig)
-    # 空束团 (0 活粒子)
+    # 空束团 (0 活粒子): 批 2 起显式抛 ValueError, 不再静默画空轴
     d0 = Distribution.from_arrays(
         x=np.zeros(0), y=np.zeros(0), z=np.zeros(0),
         px=np.zeros(0), py=np.zeros(0), pz=np.zeros(0),
         clock=np.zeros(0), charge=np.zeros(0))
-    fig = plot_phase_space(d0, plane="x")
-    assert "x [mm]" in fig.axes[0].get_xlabel()
-    plt.close(fig)
+    with pytest.raises(ValueError, match="active"):
+        plot_phase_space(d0, plane="x")
 
 
 

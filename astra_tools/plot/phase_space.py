@@ -79,6 +79,11 @@ def plot_phase_space(
 
     mask = dist.active
 
+    if not np.any(mask):
+        raise ValueError(
+            "no active particles (status>1): cannot plot phase space "
+            "(batch-2 fix: empty-bunch fallback used to produce nan, "
+            "and nan<=0 is False so no error was raised)")
     p_ref = dist.ref_momentum_eVc
     if p_ref <= 0:
         p_ref = float(np.mean(np.abs(dist.pz[mask])))
