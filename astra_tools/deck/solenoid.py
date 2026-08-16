@@ -15,8 +15,13 @@ from scipy.interpolate import interp1d
 from ..namelist.parse import parse_namelists
 
 
+def _as_list(v):
+    """参数可能是标量或数组 (MaxB(1)/MaxB(2)...)。"""
+    return list(v) if isinstance(v, (list, tuple)) else [v]
+
+
 def _first(v):
-    """数组参数取第一个元素 (File_Bfield(1)/MaxB(1)/S_pos(1))。"""
+    """数组参数取第一个元素 (向后兼容)。"""
     return v[0] if isinstance(v, (list, tuple)) else v
 
 
@@ -25,12 +30,14 @@ def solenoid_bz_at_z(
     z_m: float,
     field_dir=None,
 ) -> Optional[float]:
-    """束团中心 z 处的螺线管轴上场 [T]。
+    """束团中心 z 处的螺线管轴上场 [T] (全部螺线管叠加).
 
-    从 deck 的 &SOLENOID 解析 File_Bfield(1)/MaxB(1)/S_pos(1),
-    按场表插值: Bz(z) = interp(z - s_pos, table) * MaxB / max(|table|)。
-    deck 无螺线管 (LBField!=T) 或任何解析失败时返回 None (调用方降级
-    为告警, 不自动给错误数值)。
+    从 deck 的 &SOLENOID 解析 File_Bfield(n)/MaxB(n)/S_pos(n),
+    逐个元素按场表插值: Bz_i(z) = interp(z - s_pos_i, table_i) *
+    MaxB_i / max(|table_i|), 求和 (ASTRA 追踪时所有螺线管场叠加)。
+    批 6: 此前只取第一个元素, 多螺线管束线会静默用错场。
+    deck 无螺线管 (LBField!=T) 或任何解析失败时返回 None (调用方
+    降级为告警, 不自动给错误数值)。
     """
     deck = Path(deck_path)
     if not deck.exists():
@@ -42,24 +49,42 @@ def solenoid_bz_at_z(
     sol = blocks.get("SOLENOID")
     if not sol or not sol.get("LBField", False):
         return None
-    try:
-        fname = str(_first(sol.get("File_Bfield", ""))).strip("'").strip(chr(34))
-        maxB = float(_first(sol.get("MaxB", 0.0)))
-        s_pos = float(_first(sol.get("S_pos", 0.0)))
-    except (TypeError, ValueError):
-        return None
-    if not fname or maxB <= 0:
-        return None
+    fnames = _as_list(sol.get("File_Bfield", ""))
+    maxbs = _as_list(sol.get("MaxB", 0.0))
+    sposs = _as_list(sol.get("S_pos", 0.0))
+    n = max(len(fnames), len(maxbs), len(sposs))
     base = Path(field_dir) if field_dir else deck.parent
-    fpath = base / fname
-    if not fpath.exists():
-        return None
-    try:
-        table = np.loadtxt(fpath, ndmin=2, encoding="utf-8")
-        if table.shape[1] < 2:
-            return None
-    except Exception:
-        return None
+    total = 0.0
+    found_any = False
+    for i in range(n):
+        try:
+            fname = str(fnames[min(i, len(fnames) - 1)]).strip("'").strip(chr(34))
+            maxB = float(maxbs[min(i, len(maxbs) - 1)])
+            s_pos = float(sposs[min(i, len(sposs) - 1)])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if not fname or maxB <= 0:
+            continue
+        fpath = base / fname
+        if not fpath.exists():
+            continue
+        try:
+            table = np.loadtxt(fpath, ndmin=2, encoding="utf-8")
+            if table.shape[1] < 2:
+                continue
+        except Exception:
+            continue
+        zcol, bcol = table[:, 0], table[:, 1]
+        bmax = float(np.max(np.abs(bcol)))
+        if bmax == 0:
+            continue
+        val = float(interp1d(
+            zcol, bcol, bounds_error=False,
+            fill_value=(bcol[0], bcol[-1]))(z_m - s_pos))
+        total += val * maxB / bmax
+        found_any = True
+    return total if found_any else None
+
     zcol, bcol = table[:, 0], table[:, 1]
     bmax = float(np.max(np.abs(bcol)))
     if bmax == 0:

@@ -31,7 +31,8 @@ def test_phase_stepper(tmp_path):
 def test_phase_stepper_negative_z(tmp_path):
     from astra_tools.widgets.selectors import PhaseStepper
     f = tmp_path / "astra.-050.001"
-    f.write_text("0 0 0\n")
+    # 批 6: 标签改读文件首行绝对 z (第 3 列)
+    f.write_text("0 0 -0.5 0 0 1e9 0 -0.002 1 5\n")
     st = PhaseStepper([f])
     assert st.path == f
-    assert "z = -0.500 m" in st.label
+    assert "z = -0.5000 m" in st.label

@@ -252,6 +252,36 @@ def test_density_engine_smoke():
     assert lo < 0 < hi and np.abs(lo) == pytest.approx(np.abs(hi), rel=0.1)
 
 
+def test_solenoid_multi_element(tmp_path):
+    """批 6: 多螺线管束线各元素场叠加, 不再只取第一个。"""
+    from astra_tools.deck.solenoid import solenoid_bz_at_z
+    (tmp_path / "s1.dat").write_text("-0.5 1.0\n0.0 1.0\n0.5 1.0\n")
+    (tmp_path / "s2.dat").write_text("-0.5 1.0\n0.0 1.0\n0.5 1.0\n")
+    (tmp_path / "astra.in").write_text(
+        "&SOLENOID\n LBField=T,\n File_Bfield(1)='s1.dat', File_Bfield(2)='s2.dat',\n"
+        " MaxB(1)=0.35, MaxB(2)=0.2,\n S_pos(1)=1.0, S_pos(2)=2.0,\n /\n")
+    # z=1.0: 螺线管 1 场心 0.35 + 螺线管 2 在 offset -1.0 (表外, fill 1.0) -> 0.2
+    bz = solenoid_bz_at_z(tmp_path / "astra.in", 1.0)
+    assert bz == pytest.approx(0.35 + 0.2)
+    # z=2.0: 螺线管 1 在 offset 1.0 (fill 1.0) 0.35 + 螺线管 2 场心 0.2
+    bz2 = solenoid_bz_at_z(tmp_path / "astra.in", 2.0)
+    assert bz2 == pytest.approx(0.35 + 0.2)
+
+
+def test_phase_label_reads_file_z(tmp_path):
+    """批 6: 标签优先读文件首行绝对 z, mm/cm 命名不再 10 倍错。"""
+    from astra_tools.widgets.selectors import _phase_label
+    f = tmp_path / "Example.1500.001"
+    f.write_text("0 0 1.5 0 0 1e9 0 -0.002 1 5\n")
+    lab = _phase_label(f)
+    assert "1.5000 m" in lab
+    # 二进制回退: mm 命名 (>=1000) 除 1000
+    f2 = tmp_path / "Example.1500.001"
+    f2.write_bytes(b"\x00\x01\x02\x03")
+    lab2 = _phase_label(f2)
+    assert "1.5000 m" in lab2
+
+
 def test_io_reexports_complete():
     import astra_tools.io as io
     for name in ["read_cemit_file", "read_pscan", "read_cavity_field",

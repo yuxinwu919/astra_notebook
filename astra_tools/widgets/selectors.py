@@ -92,10 +92,27 @@ def phase_selector(phase_files):
 
 
 def _phase_label(f):
-    """相空间文件 -> 显示标签 (z 位置)。"""
+    """相空间文件 -> 显示标签 (z 位置)。
+
+    批 6: 优先读文件首行绝对 z (ASCII 首行=参考粒子, 第 3 列);
+    二进制回退文件名启发 (cm: 0150=1.5m 与 mm: 1500=1.5m 双约定,
+    此前一律按 cm 除 100, mm 命名的 dump 会显示 10 倍大的 z)。
+    """
     try:
-        z_cm = int(f.name.split(".")[1])
-        return "z = %.3f m  (%s)" % (z_cm / 100.0, f.name)
+        with open(f, "rb") as fh:
+            head = fh.read(4096)
+        if b"\x00" not in head:
+            rows = [ln for ln in head.decode("ascii", "ignore").splitlines()
+                    if ln.strip() and not ln.strip().startswith(("#", "!"))]
+            if rows:
+                z_m = float(rows[0].split()[2])
+                return "z = %.4f m  (%s)" % (z_m, f.name)
+    except Exception:
+        pass
+    try:
+        v = int(f.name.split(".")[1])
+        z_m = v / 1000.0 if v >= 1000 else v / 100.0
+        return "z = %.4f m  (%s)" % (z_m, f.name)
     except ValueError:
         return f.name
 
