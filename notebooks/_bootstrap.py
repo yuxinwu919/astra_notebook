@@ -15,6 +15,10 @@ from pathlib import Path
 _p = Path(__file__).resolve().parent
 while not (_p / "astra_tools").is_dir() and _p != _p.parent:
     _p = _p.parent
+if not (_p / "astra_tools").is_dir():
+    raise RuntimeError(
+        "找不到 astra_tools 后端包: 请确认本 notebook 位于 astra-notebook "
+        "项目文件夹内 (复制整个项目文件夹后从任意深度运行均可)")
 PROJECT_ROOT = _p
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))

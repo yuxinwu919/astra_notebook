@@ -192,6 +192,18 @@ def test_cavity_field_arbitrary_units(tmp_path):
     plt.close(fig2)
 
 
+def test_run_program_crash_markers(tmp_path):
+    """批 4: ASTRA 段错误可能以 0 退出, 崩溃标记必须触发失败。"""
+    from astra_tools.run.exec import run_program
+    import sys as _sys
+    script = tmp_path / "crash.py"
+    script.write_text(
+        "print('Segmentation fault')\nprint('core dumped')\n")
+    import pytest as _pytest
+    with _pytest.raises(RuntimeError, match="Segmentation fault"):
+        run_program(_sys.executable, tmp_path, "crash.py", timeout=30)
+
+
 def test_io_reexports_complete():
     import astra_tools.io as io
     for name in ["read_cemit_file", "read_pscan", "read_cavity_field",

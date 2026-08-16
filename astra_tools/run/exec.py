@@ -140,7 +140,9 @@ def run_program(
     # ASTRA 解析失败时可能仍以 0 退出, 检查失败标记。
     # 注: "ERROR" 只认行首独立出现, 避免 Head 等正常文本里含
     # "ERROR" 字样时误报 (例如 'ERROR STUDY' 作为标题)。
-    for marker in ("Program stops", "Error reading"):
+    # 批 4: 补崩溃类标记 (ASTRA 段错误时可能仍以 0 退出)
+    for marker in ("Program stops", "Error reading", "Segmentation fault",
+                   "SIGSEGV", "core dumped", "Abort trap", "Trace/BPT trap"):
         if marker in combined:
             raise RuntimeError("%s 失败 (%s):\n%s" % (exe_name, marker, combined[-2000:]))
     if re.search(r"(?m)^\s*ERROR\b", combined):
