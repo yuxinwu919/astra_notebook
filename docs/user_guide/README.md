@@ -36,7 +36,7 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
 - examples/<算例>.ipynb: 8 本, 每本只跑一个官方算例, 逐步解读
   输入卡并展示该算例最有代表性的图 (Manual_Example 最全);
 - examples/postpro_step_demo.ipynb: postpro 步进功能演示 — 真实
-  跑出 8 个 z 位置 monitor, 拖动滑块或点 ⏮◀▶⏭ 逐个查看每个 z
+  跑出 8 个 z 位置 monitor, 拖动滑块或点 ◀◀ ◀ ▶ ▶▶ 逐个查看每个 z
   处的束团统计与相空间 (自动刷新);
 - 4 本功能演示 demo (可直接运行, 展示后端能力):
   - examples/generator_demo.ipynb: 解析现成 INPUT 卡 -> 改 Nemit

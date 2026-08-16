@@ -133,7 +133,7 @@
   ASTRA Xemit/Zemit + 螺线管正则动量)、lineplot_demo (lineplot 全
   菜单 + 稀有文件类型合成教学数据)。
 
-* 03_postpro: PhaseStepper 步进 (滑块+⏮◀▶⏭) 自动刷新统计与相空间;
+* 03_postpro: PhaseStepper 步进 (滑块+◀◀ ◀ ▶ ▶▶) 自动刷新统计与相空间;
   其余单元步进后重跑, 与原 postpro 逻辑一致 ✅
 * 04_lineplot: 改为 discover_sim_runs 自动发现 stem (原硬编码 astra,
   换了 deck 名就会 FileNotFoundError — 已修) ✅

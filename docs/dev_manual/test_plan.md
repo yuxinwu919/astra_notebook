@@ -88,7 +88,7 @@ examples/golden_expected.json。
 * 本机前提: astra/generator 在 PATH 或项目 ASTRA/ 目录;
   Plasma_Example_2 需要本地 laser.dat (65MB, gitignored)。
 
-## 测试清单 (当前 117 项)
+## 测试清单 (当前 118 项)
 
 * test_backend.py — 单元 + 导出 + 可执行文件
 * test_phase_stepper.py — postpro 步进器 (PhaseStepper)
@@ -97,11 +97,11 @@ examples/golden_expected.json。
 * test_format_input.py — namelist 生成
 * test_cross_validation.py — 统计链 vs ASTRA (4)
 * test_golden_examples.py — 9 算例黄金回归 (7)
-* test_plots.py — 绘图标签/单位 + 字体策略 (25)
+* test_plots.py — 绘图标签/单位 + 字体策略/字形覆盖 (26)
 * test_batch_a_fixes.py — 批 A 物理修复红绿测试 (8)
 * test_batch_b_fixes.py — 批 B 工程修复 + BFF + 运行器 (14)
 * test_batch_c_fixes.py — 批 C 展示 + PScan/Scan 交叉验证 (14)
-* test_plot_audit.py — 全部绘图函数渲染审计 (70 图, 含标签/有限性)
+* test_plot_audit.py — 全部绘图函数渲染审计 (70 图, 含标签/有限性/字体熔断)
 * test_review_fixes.py — 审查修复回归 (重复 z 假电流/零动量/椭圆角度/边界)
 
 ## 新增功能的标准流程 (写代码前先写测试)

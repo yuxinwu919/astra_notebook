@@ -243,3 +243,32 @@ class TestCutsAndMisc:
         from matplotlib import font_manager
         installed = {f.name for f in font_manager.fontManager.ttflist}
         assert all(f in installed for f in fam)
+
+    def test_font_chain_covers_every_used_glyph(self):
+        """包内所有字符串字面量用到的每个非 ASCII 字符, 回退链都必须覆盖.
+
+        "字体显示不全"的根治验证: 逐个字形查 charmap, 任何字符无字体
+        覆盖即为方框来源。mathtext 字符 (\beta 等) 由 STIX 字库渲染,
+        不在此检查范围。"""
+        import ast
+        import pathlib
+        from matplotlib import font_manager
+        from matplotlib.ft2font import FT2Font
+        fam = plt.rcParams["font.family"]
+        installed = {f.name: f.fname for f in font_manager.fontManager.ttflist}
+        cmaps = {}
+        for name in fam:
+            if name in installed:
+                cmaps[name] = set(FT2Font(installed[name]).get_charmap().keys())
+        used = set()
+        for f in pathlib.Path(PROJECT_ROOT, "astra_tools").rglob("*.py"):
+            try:
+                tree = ast.parse(f.read_text())
+            except SyntaxError:
+                continue
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                    used |= {c for c in node.value if ord(c) > 127}
+        uncovered = [c for c in sorted(used)
+                     if not any(ord(c) in cm for cm in cmaps.values())]
+        assert not uncovered, "无字体覆盖的字形: %s" % "".join(uncovered)

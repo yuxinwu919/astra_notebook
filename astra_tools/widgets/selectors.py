@@ -103,7 +103,7 @@ def _phase_label(f):
 class PhaseStepper(widgets.VBox):
     """z 位置步进器 (对应 postpro 的步进功能)。
 
-    滑块 (0..N-1) 是状态源; ⏮◀▶⏭ 按钮切换; 底部标签显示当前 z。
+    滑块 (0..N-1) 是状态源; ◀◀ ◀ ▶ ▶▶ 按钮切换; 底部标签显示当前 z。
     属性: .index (IntSlider), .path (当前相空间文件 Path)。配合
     ipywidgets.interactive_output 可步进时自动刷新统计/相空间
     (见 03_postpro.ipynb)。
@@ -122,13 +122,13 @@ class PhaseStepper(widgets.VBox):
         )
         self.lab = widgets.Label(
             value=self.labels[i0] if self.files else "无相空间文件")
-        btn_first = widgets.Button(description="⏮", tooltip="第一个 z 位置",
+        btn_first = widgets.Button(description="◀◀", tooltip="第一个 z 位置",
                                    layout=widgets.Layout(width="40px"))
         btn_prev = widgets.Button(description="◀", tooltip="上一个 z 位置 (步进)",
                                   layout=widgets.Layout(width="40px"))
         btn_next = widgets.Button(description="▶", tooltip="下一个 z 位置 (步进)",
                                   layout=widgets.Layout(width="40px"))
-        btn_last = widgets.Button(description="⏭", tooltip="最后一个 z 位置",
+        btn_last = widgets.Button(description="▶▶", tooltip="最后一个 z 位置",
                                   layout=widgets.Layout(width="40px"))
 
         def _go(delta):

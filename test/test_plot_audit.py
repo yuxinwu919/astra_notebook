@@ -4,8 +4,12 @@
   * 不抛异常
   * 每个含曲线的轴都有 x/y 标签 (twinx 共享 x 轴除外)
   * 所有线/集合/轴范围数据有限
+  * 字体: 任何 findfont / 缺字形警告一律视为错误 (字体回退链必须
+    覆盖全部使用到的字形; 历史事故: 缺失字体家族产生上万条警告
+    把 notebook 拖到几分钟不结束)
 """
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +18,13 @@ import pytest
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+# 字体熔断: 本模块渲染全部绘图函数, findfont 或缺字形警告一旦出现
+# 立即失败 (而不是让 Jupyter 前端去消化几千条警告消息)。
+warnings.filterwarnings(
+    "error", message=r".*(findfont|missing from font).*",
+    category=UserWarning)
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
