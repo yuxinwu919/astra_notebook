@@ -75,8 +75,9 @@ def plot_beta_alpha(emit, ref=None, ax=None, figsize=(8, 5), title=None):
             "plot_beta_alpha 需要参考粒子轨迹 (ref) 以计算 beta*gamma")
     fig, ax = _ax(ax, figsize)
     ax2 = ax.twinx()   # 只建一次右轴, 避免两个 twinx 重叠
+    # beta*gamma = p/mc (由 gamma=sqrt(1+(p/mc)^2) 严格推出; 复核纠正)
     bg = np.interp(emit.x.z, ref.z,
-                   np.sqrt(np.maximum((ref.pz / M_E_C2_EV) ** 2 - 1.0, 0.0)))
+                   np.maximum(ref.pz / M_E_C2_EV, 0.0))
     for e, lbl in ((emit.x, "x"), (emit.y, "y")):
         eps_geom = np.maximum(e.emit / bg, 1e-30)
         beta = e.rms**2 / eps_geom
@@ -103,8 +104,9 @@ def plot_phase_advance(emit, ref=None, ax=None, figsize=(8, 4), title=None):
         raise ValueError(
             "plot_phase_advance 需要参考粒子轨迹 (ref) 以计算 beta*gamma")
     fig, ax = _ax(ax, figsize)
+    # beta*gamma = p/mc (由 gamma=sqrt(1+(p/mc)^2) 严格推出; 复核纠正)
     bg = np.interp(emit.x.z, ref.z,
-                   np.sqrt(np.maximum((ref.pz / M_E_C2_EV) ** 2 - 1.0, 0.0)))
+                   np.maximum(ref.pz / M_E_C2_EV, 0.0))
     for e, lbl in ((emit.x, "x"), (emit.y, "y")):
         eps_geom = np.maximum(e.emit / bg, 1e-30)
         beta = e.rms**2 / eps_geom
@@ -303,7 +305,7 @@ def slice_mismatch(dist, n_slices=20, bz_on_axis_T: float = 0.0):
     from ..analysis.slices import compute_slice_analysis
 
     d = dist.filter_active()
-    p_ref = dist.ref_momentum_eVc or float(np.mean(np.abs(d.pz)))
+    p_ref = dist.ref_momentum_or_mean()
     sa = compute_slice_analysis(dist, n_slices=n_slices, bz_on_axis_T=bz_on_axis_T)
 
     # 投影 Twiss (x / y), 使用正则散角 x' = p~x/p_ref
@@ -528,7 +530,7 @@ def plot_slice_ellipses_3d(dist, n_slices=10, figsize=(9, 6), title=None,
 
     sa = compute_slice_analysis(dist, n_slices=n_slices, bz_on_axis_T=bz_on_axis_T)
     d = dist.filter_active()
-    p_ref = dist.ref_momentum_eVc or float(np.mean(np.abs(d.pz)))
+    p_ref = dist.ref_momentum_or_mean()
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection="3d")
     for i in range(sa.n_slices):

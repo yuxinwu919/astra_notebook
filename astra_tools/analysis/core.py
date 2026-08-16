@@ -20,6 +20,9 @@ from ..distribution import Distribution
 from .emittance import compute_geometric_emittance
 
 
+# 命名约定: 参数使用"物理量+单位"后缀 (ref_momentum_eVc, bz_on_axis_T),
+# 与 slices.py / phase_space.py / overview.py 保持一致。
+# noinspection PyPep8Naming
 def compute_core_fraction_curves(
     dist: Distribution,
     fractions=(0.1, 0.25, 0.5, 0.75, 0.9, 1.0),
@@ -43,10 +46,7 @@ def compute_core_fraction_curves(
     if d.n_active < 6:
         raise ValueError("too few active particles for core analysis")
     if ref_momentum_eVc is None:
-        ref_momentum_eVc = (
-            d.ref_momentum_eVc if d.ref_momentum_eVc != 0
-            else float(np.mean(d.pz))
-        )
+        ref_momentum_eVc = d.ref_momentum_or_mean()
     if ref_momentum_eVc <= 0:
         raise ValueError(
             "reference momentum is zero/negative (beam at rest?); "

@@ -192,47 +192,16 @@ def _read_emit_plane(path: Path, label: str, plane: str, u_is_energy: bool) -> E
                     emit=emit, corr=corr, label=label, plane=plane)
 
 
-def read_cemit_file(path) -> EmitData:
-    """Read a Cemit (core emittance) file: 13 columns.
+def read_cemit_file(path) -> dict:
+    """Read a Cemit (core emittance) file: 13 columns (批 3 统一).
 
-    z + (eps_xn, Cx95, Cx90, Cx80) + (eps_yn, Cy95, Cy90, Cy80)
-      + (eps_zn, Cz95, Cz90, Cz80)
-    Transverse core emittances in 1e-6 m.rad units, longitudinal in
-    keV.mm. Stored in the generic EmitData model: avg/rms/rmsprime carry
-    C95/C90/C80 (x-plane), corr unused.
+    与 parse_output_file 同一表驱动实现, 返回标准化 dict:
+      mean_z, norm_emit_x / core_emit_95percent_x / ... / norm_emit_z ...
+    横向 m.rad (文件值 x1e-6), 纵向 eV.m (文件值 x1, keV.mm 数值一致)。
+    此前这里用 EmitData + 动态 _cemit 属性塞 8 列 (数据模型 hack),
+    与表驱动读取器并存且单位表重复 — 已收敛为单一实现。
     """
-    path = Path(path)
-    data = _load_columns(path, 13)
-    z = data[:, 0]
-    # x plane: eps_n at cols 1..4; store C95/C90/C80 in avg/rms/rmsprime
-    emit_x = data[:, 1] * 1e-6   # eps_xn [m.rad]
-    c95_x = data[:, 2] * 1e-6
-    c90_x = data[:, 3] * 1e-6
-    c80_x = data[:, 4] * 1e-6
-    # y plane
-    emit_y = data[:, 5] * 1e-6
-    c95_y = data[:, 6] * 1e-6
-    c90_y = data[:, 7] * 1e-6
-    c80_y = data[:, 8] * 1e-6
-    # z plane (keV.mm)
-    emit_z = data[:, 9] * (KEV_TO_EV * MM_TO_M)
-    c95_z = data[:, 10] * (KEV_TO_EV * MM_TO_M)
-    c90_z = data[:, 11] * (KEV_TO_EV * MM_TO_M)
-    c80_z = data[:, 12] * (KEV_TO_EV * MM_TO_M)
-
-    emit = EmitData(
-        z=z, t=np.zeros(len(z)),
-        avg=c95_x, rms=c90_x, rmsprime=c80_x,
-        emit=emit_x, corr=np.zeros(len(z)),
-        label="core_x", plane="horizontal",
-    )
-    # Store the other planes in attrs-like arrays via a dict attribute
-    emit._cemit = {
-        "x": {"eps_n": emit_x, "c95": c95_x, "c90": c90_x, "c80": c80_x},
-        "y": {"eps_n": emit_y, "c95": c95_y, "c90": c90_y, "c80": c80_y},
-        "z": {"eps_n": emit_z, "c95": c95_z, "c90": c90_z, "c80": c80_z},
-    }
-    return emit
+    return parse_output_file(path)
 
 
 def read_sigma_file(rootname: str, run: str = "001") -> SigmaData:
@@ -425,10 +394,13 @@ def parse_output_file(path, standardize_labels: bool = True) -> dict:
         raise ValueError("unsupported output type: " + ftype)
 
     names, _, factors, _ = OUTPUT_TABLES[key]
+    if data.shape[1] < len(names):
+        # 批 3: 截断文件显式报错 (此前静默返回部分列)
+        raise ValueError(
+            "%s: 需要 >= %d 列, 实际 %d"
+            % (path, len(names), data.shape[1]))
     d = {}
     for i, name in enumerate(names):
-        if data.shape[1] <= i:
-            break
         d[name] = data[:, i] * factors[i]
 
     if standardize_labels:

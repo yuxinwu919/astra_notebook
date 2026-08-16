@@ -63,8 +63,8 @@ def test_beta_alpha_uses_geometric_emittance():
     ref = _ref_data()
     fig = plot_beta_alpha(emit, ref=ref)
     beta = fig.axes[0].lines[0].get_ydata()
-    beta_gamma = np.sqrt((1000.5 / 0.51099895) ** 2 - 1)
-    expected = 1e-6 / (1e-6 / beta_gamma)   # sigma^2 * beta_gamma / eps_n
+    beta_gamma = 1000.5 / 0.51099895        # beta*gamma = p/mc
+    expected = (1e-3) ** 2 * beta_gamma / 1e-6   # sigma^2 * beta_gamma / eps_n
     assert beta[0] == pytest.approx(expected, rel=1e-6)
     plt.close(fig)
 
@@ -76,8 +76,8 @@ def test_phase_advance_uses_geometric_emittance():
     fig = plot_phase_advance(emit, ref=ref)
     theta = fig.axes[0].lines[0].get_ydata()
     dz = np.gradient(emit.x.z)
-    beta_gamma = np.sqrt((1000.5 / 0.51099895) ** 2 - 1)
-    beta_geom = 1e-6 / (1e-6 / beta_gamma)
+    beta_gamma = 1000.5 / 0.51099895        # beta*gamma = p/mc
+    beta_geom = (1e-3) ** 2 * beta_gamma / 1e-6   # sigma^2 * beta_gamma / eps_n
     expected = np.cumsum(dz / beta_geom)
     assert np.allclose(theta, expected, rtol=1e-6)
     plt.close(fig)
@@ -117,10 +117,13 @@ def test_slice_mismatch_uses_canonical_in_slices():
     ptx = d.px + 0.5 * C_LIGHT * bz * d.y
     pty = d.py - 0.5 * C_LIGHT * bz * d.x
     xp = (ptx - np.mean(ptx)) / p_ref
+    yp = (pty - np.mean(pty)) / p_ref
     b0x, a0x, g0x = compute_twiss_parameters(d.x - np.mean(d.x), xp)
+    b0y, a0y, g0y = compute_twiss_parameters(d.y - np.mean(d.y), yp)
     sa = compute_slice_analysis(dist, n_slices=5, bz_on_axis_T=bz)
     edges = sa.z_edges
     zeta_x_manual = np.full(sa.n_slices, np.nan)
+    zeta_y_manual = np.full(sa.n_slices, np.nan)
     for i in range(sa.n_slices):
         if sa.n_particles[i] < 3:
             continue
@@ -129,10 +132,15 @@ def test_slice_mismatch_uses_canonical_in_slices():
             mask = (d.z >= edges[i]) & (d.z <= edges[i + 1])
         xi, yi = d.x[mask], d.y[mask]
         pxi = d.px[mask] + 0.5 * C_LIGHT * bz * yi
+        pyi = d.py[mask] - 0.5 * C_LIGHT * bz * xi
         bxi, axi, gxi = compute_twiss_parameters(xi - np.mean(xi), (pxi - np.mean(pxi)) / p_ref)
+        byi, ayi, gyi = compute_twiss_parameters(yi - np.mean(yi), (pyi - np.mean(pyi)) / p_ref)
         zeta_x_manual[i] = 0.5 * (b0x * gxi - 2 * a0x * axi + g0x * bxi)
+        zeta_y_manual[i] = 0.5 * (b0y * gyi - 2 * a0y * ayi + g0y * byi)
     ok = np.isfinite(zeta_x_manual) & np.isfinite(zx)
     assert np.allclose(zx[ok], zeta_x_manual[ok], rtol=1e-9)
+    oky = np.isfinite(zeta_y_manual) & np.isfinite(zy)
+    assert np.allclose(zy[oky], zeta_y_manual[oky], rtol=1e-9)
 
 
 def test_3d_map_slices_z_label_mm(tmp_path):
@@ -141,7 +149,7 @@ def test_3d_map_slices_z_label_mm(tmp_path):
     f = np.random.rand(nx, ny, nz)
     p = tmp_path / "map.ex"
     lines = ["%d -1.0 0.5" % nx, "%d -1.0 0.666" % ny, "%d 0.0 0.2" % nz]
-    lines += [str(v) for v in f.ravel()]   # x-fastest (Fortran 序)
+    lines += [str(v) for v in f.ravel(order="F")]   # x-fastest (Fortran 序, 与读取器 reshape(order="F") 一致)
     p.write_text("\n".join(lines))
     fig = plot_3d_map_slices(p, axis="y")
     labels = [ax.get_ylabel() for ax in fig.axes]

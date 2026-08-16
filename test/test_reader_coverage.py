@@ -112,16 +112,18 @@ def test_readers_reject_short_files(tmp_path):
 # ---------------- Cemit 读取器 ----------------
 
 def test_read_cemit_file_columns(tmp_path):
+    # 批 3: read_cemit_file 与 parse_output_file 同一表驱动, 返回标准化 dict
     # 13 列: z + 4x + 4y + 4z; 纵向 keV.mm -> eV.m (x1), 横向 1e-6
     row = "0 " + " ".join(str(v) for v in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) + "\n"
     p = _w(tmp_path, "c.Cemit.001", row)
-    emit = read_cemit_file(p)
-    assert emit.emit[0] == pytest.approx(1e-6)        # eps_xn
-    assert emit.avg[0] == pytest.approx(2e-6)         # C95 x
-    ce = emit._cemit
-    assert ce["y"]["eps_n"][0] == pytest.approx(5e-6)
-    assert ce["z"]["eps_n"][0] == pytest.approx(9.0)  # keV.mm -> eV.m = x1
-    assert ce["z"]["c80"][0] == pytest.approx(12.0)
+    ce = read_cemit_file(p)
+    assert isinstance(ce, dict)
+    assert ce["norm_emit_x"][0] == pytest.approx(1e-6)      # eps_xn
+    assert ce["core_emit_95percent_x"][0] == pytest.approx(2e-6)
+    assert ce["norm_emit_y"][0] == pytest.approx(5e-6)
+    assert ce["norm_emit_z"][0] == pytest.approx(9.0)       # keV.mm -> eV.m = x1
+    assert ce["core_emit_80percent_z"][0] == pytest.approx(12.0)
+    assert not hasattr(ce, "_cemit")
 
 
 def test_read_cemit_file_rejects_short(tmp_path):
@@ -209,10 +211,11 @@ def test_backup_directory(tmp_path):
     backup_directory(src, root)
     assert any(root.iterdir())
     assert len(list(root.iterdir())) == 1
-    # 第二次备份产生新目录, 不覆盖; 同秒碰撞走 -1 后缀
+    # 第二次备份产生新目录, 不覆盖 (同名时走 -N 后缀; 跨秒边界
+    # 目录名不带后缀, 故这里只断言数量与内容, 不依赖同秒碰撞)
     backup_directory(src, root)
     dirs = sorted(p.name for p in root.iterdir())
-    assert len(dirs) == 2 and dirs[1].endswith("-1")
+    assert len(dirs) == 2
     assert (root / dirs[1] / "a.txt").read_text() == "x"
 
 

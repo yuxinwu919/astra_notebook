@@ -34,11 +34,10 @@ def plot_overview(
         bins/use_weights: 兼容保留 (散点渲染不使用)。
     """
     m = dist.active
-    p_ref = dist.ref_momentum_eVc
-    if p_ref <= 0:
-        p_ref = float(np.mean(np.abs(dist.pz[m])))
-    if p_ref <= 0:
-        raise ValueError("reference momentum is zero; cannot form x'")
+    if not np.any(m):
+        raise ValueError(
+            "no active particles (status>1): cannot plot overview")
+    p_ref = dist.ref_momentum_or_mean()
 
     x = dist.x[m] * 1e3
     y = dist.y[m] * 1e3

@@ -78,6 +78,7 @@ class BeamStatistics:
     sig_E_over_E: float = 0.0     # sigma_E / E  (kinetic energies)
     sig_E_eV: float = 0.0         # RMS kinetic-energy spread [eV]
     mean_E_kin_eV: float = 0.0    # mean kinetic energy [eV]
+    emit_z_eVm: float = 0.0       # 纵向 RMS 发射度 [eV.m] (含 <zE> 协方差, 批 3)
 
     # RMS divergences [rad] (canonical momentum, divided by p_ref)
     sig_xp: float = 0.0
@@ -129,6 +130,7 @@ class BeamStatistics:
             "mean_E_kin_MeV": self.mean_E_kin_eV * EV_TO_MEV,
             "sig_E_keV": self.sig_E_eV * EV_TO_KEV,
             "sig_E_over_E_pct": self.sig_E_over_E * 100,
+            "emit_z_keV_mm": self.emit_z_eVm,   # keV.mm 数值上 = eV.m
             "sig_xp_mrad": self.sig_xp * 1e3,
             "sig_yp_mrad": self.sig_yp * 1e3,
             "emit_x_geom_um": self.emit_x_geom * 1e6,
@@ -191,10 +193,7 @@ def compute_statistics(
     charge = dist.charge[mask]
 
     if ref_momentum_eVc is None:
-        ref_momentum_eVc = (
-            dist.ref_momentum_eVc if dist.ref_momentum_eVc != 0
-            else float(np.mean(pz))
-        )
+        ref_momentum_eVc = dist.ref_momentum_or_mean()
     if ref_momentum_eVc <= 0:
         raise ValueError(
             "reference momentum is zero/negative (beam at rest?); "
@@ -239,6 +238,20 @@ def compute_statistics(
     sig_E = _std(e_kin, mean_E_kin)
     sig_E_over_E = sig_E / mean_E_kin if mean_E_kin != 0 else 0.0
 
+    # -- 粒子级纵向发射度 (手册 4.13: sqrt(<z^2><E^2> - <zE>^2), 批 3) --
+    zc = z - _mean(z)
+    ec = e_kin - mean_E_kin
+    if weights is not None and np.sum(weights) > 0:
+        w = weights / np.sum(weights)
+        z2 = float(np.sum(w * zc**2))
+        e2 = float(np.sum(w * ec**2))
+        ze = float(np.sum(w * zc * ec))
+    else:
+        z2 = float(np.mean(zc**2))
+        e2 = float(np.mean(ec**2))
+        ze = float(np.mean(zc * ec))
+    emit_z = float(np.sqrt(max(z2 * e2 - ze**2, 0.0)))
+
     # -- Canonical divergences (manual 4.13.1) --
     ptx = canonical_divergence(px, y, bz_on_axis_T, sign=+1.0)
     pty = canonical_divergence(py, x, bz_on_axis_T, sign=-1.0)
@@ -276,6 +289,7 @@ def compute_statistics(
         sig_E_over_E=sig_E_over_E,
         sig_E_eV=sig_E,
         mean_E_kin_eV=mean_E_kin,
+        emit_z_eVm=emit_z,
         sig_xp=sig_xp, sig_yp=sig_yp,
         emit_x_geom=emit_x_geom, emit_y_geom=emit_y_geom,
         emit_x_norm=emit_x_norm, emit_y_norm=emit_y_norm,

@@ -109,6 +109,25 @@ class Distribution:
         """Mean longitudinal momentum of active particles [eV/c]."""
         return float(np.mean(self.pz[self.active]))
 
+    def ref_momentum_or_mean(self) -> float:
+        """参考动量 [eV/c]: 头信息优先, 否则活粒子平均 pz (批 3 统一口径).
+
+        此前散落在 6 处: 有的用 mean(pz)、有的用 mean(|pz|), 口径不一。
+        用户决策 (2026-08): 维持 mean(pz); 混合符号束团平均接近 0 时
+        显式报错, 不静默回退。
+        """
+        if self.ref_momentum_eVc and self.ref_momentum_eVc > 0:
+            return float(self.ref_momentum_eVc)
+        pz_active = self.pz[self.active]
+        if len(pz_active) == 0:
+            raise ValueError("no active particles (status>1) to form reference momentum")
+        val = float(np.mean(pz_active))
+        if val <= 0:
+            raise ValueError(
+                "reference momentum is zero/negative (beam at rest or "
+                "mixed-sign bunch); divergences and emittance are undefined")
+        return val
+
     @property
     def reference_kinetic_energy_eV(self) -> float:
         """Reference kinetic energy [eV] from the reference momentum."""

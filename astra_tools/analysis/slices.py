@@ -94,10 +94,7 @@ def compute_slice_analysis(
         n_slices = max(n // 3, 1)
 
     if ref_momentum_eVc is None:
-        ref_momentum_eVc = (
-            d.ref_momentum_eVc if d.ref_momentum_eVc != 0
-            else float(np.mean(d.pz))
-        )
+        ref_momentum_eVc = d.ref_momentum_or_mean()
     if ref_momentum_eVc <= 0:
         raise ValueError(
             "reference momentum is zero/negative (beam at rest?); "
