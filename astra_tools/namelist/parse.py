@@ -7,7 +7,9 @@ or ints. Unknown tokens stay strings.
 
 from __future__ import annotations
 
+import math
 import re
+import warnings
 from pathlib import Path
 
 
@@ -73,7 +75,13 @@ def _parse_token(tok: str):
     try:
         if re.fullmatch(r"[+-]?\d+", tok):
             return int(tok)
-        return float(tok.replace("D", "E").replace("d", "e"))
+        v = float(tok.replace("D", "E").replace("d", "e"))
+        if math.isnan(v) or math.isinf(v):
+            # 批 3: nan/inf 静默透传会污染重写后的 deck, 显式告警
+            warnings.warn(
+                "namelist token %r parses to %s (deck 将被写出 nan/inf)"
+                % (tok, v), UserWarning, stacklevel=2)
+        return v
     except ValueError:
         return tok
 

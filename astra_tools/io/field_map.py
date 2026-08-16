@@ -156,32 +156,55 @@ def read_solenoid_field(path) -> SolenoidField:
 def read_wake_potential(path) -> WakePotential:
     """Read an ASTRA wake table (manual section 6.8).
 
-    格式: 首行 (nblocks, 0), 随后每个块一行头 (N, 0) 加 N 行 (s, W);
-    块 1 通常是单极分量, 其后为双极分量。返回第一块, 所有块挂在其
-    .blocks 属性上。
+    两种格式 (批 3 起都支持):
+      多块: 首行 (nblocks, 0), 随后每块一行头 (N, 0) 加 N 行 (s, W);
+      单块 (手册 6.8 原文): 首行 (N, 0) 即块头, 后接 N 行 (s, W)。
+    返回第一块, 所有块挂在其 .blocks 属性上。
     """
     path = Path(path)
-    lines = [ln.split() for ln in path.read_text().splitlines()
+    lines = [ln.split() for ln in path.read_text(encoding="utf-8").splitlines()
              if ln.strip() and not ln.strip().startswith(("#", "!"))]
     if not lines:
         raise ValueError("empty wake file: " + str(path))
+    if len(lines[0]) < 2 or float(lines[0][1]) != 0:
+        raise ValueError("wake header must be '<N> 0': " + str(path))
     nblocks = int(float(lines[0][0]))
     if nblocks <= 0:
         raise ValueError("wake file declares no blocks: " + str(path))
-    blocks = []
-    i = 1
-    for _ in range(nblocks):
-        if i >= len(lines):
-            raise ValueError("wake file truncated (block header): " + str(path))
-        n = int(float(lines[i][0]))
-        i += 1
-        rows = np.asarray([[float(v) for v in ln] for ln in lines[i:i + n]],
+
+    # 单块探测: 第二行不是 "(N, 0)" 块头 -> 首行即单块头 "N 0"
+    single = (
+        len(lines) < 2
+        or len(lines[1]) != 2
+        or float(lines[1][1]) != 0
+    )
+    blocks: list = []
+    if single:
+        n = nblocks
+        rows_raw = lines[1:1 + n]
+        if len(rows_raw) < n:
+            raise ValueError("wake block truncated: " + str(path))
+        rows = np.asarray([[float(v) for v in ln] for ln in rows_raw],
                           dtype=float)
-        if rows.ndim != 2 or rows.shape[0] < n or rows.shape[1] < 2:
-            raise ValueError("wake block truncated: %s" % path)
+        if rows.ndim != 2 or rows.shape[1] < 2:
+            raise ValueError("wake block truncated: " + str(path))
         blocks.append(WakePotential(s=rows[:, 0], w=rows[:, 1],
                                      source=str(path)))
-        i += n
+    else:
+        i = 1
+        for _ in range(nblocks):
+            if i >= len(lines):
+                raise ValueError(
+                    "wake file truncated (block header): " + str(path))
+            n = int(float(lines[i][0]))
+            i += 1
+            rows = np.asarray([[float(v) for v in ln] for ln in lines[i:i + n]],
+                              dtype=float)
+            if rows.ndim != 2 or rows.shape[0] < n or rows.shape[1] < 2:
+                raise ValueError("wake block truncated: %s" % path)
+            blocks.append(WakePotential(s=rows[:, 0], w=rows[:, 1],
+                                         source=str(path)))
+            i += n
     out = blocks[0]
     out.blocks = blocks
     return out
@@ -205,7 +228,7 @@ def parse_field_map_file(path):
         data  = (N, 2) array [z, field]
     """
     path = Path(path)
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         header = [float(v) for v in f.readline().split()]
 
     attrs = {}
@@ -280,7 +303,7 @@ def fix_laser_map_header(path):
     因此只把计数转成整数, 其余原样保留。
     """
     path = Path(path)
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         lines = f.readlines()
     if len(lines) < 4:
         raise ValueError("laser map too short: " + str(path))
@@ -289,7 +312,7 @@ def fix_laser_map_header(path):
         vals = lines[i].split()
         n = int(float(vals[0]))
         out.append("%d %s %s\n" % (n, vals[1], vals[2]))
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.writelines(out + lines[3:])
     return out
 
@@ -306,7 +329,7 @@ def read_3d_field_map(path):
         SI 单位按文件名约定 (ex/ey/ez: V/m; bx/by/bz: T; 数值原样返回)。
     """
     path = Path(path)
-    lines = [ln.split() for ln in path.read_text().splitlines() if ln.strip()]
+    lines = [ln.split() for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
     if len(lines) < 4:
         raise ValueError("3D map too short: " + str(path))
 

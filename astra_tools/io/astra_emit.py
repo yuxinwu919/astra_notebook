@@ -301,7 +301,7 @@ def read_ref_file(rootname: str, run: str = "001") -> RefData:
 def read_log_file(rootname: str, run: str = "001") -> str:
     """Read an ASTRA log file as plain text."""
     base = _base_from_rootname(rootname)
-    return Path(base + ".Log." + run).read_text()
+    return Path(base + ".Log." + run).read_text(encoding="utf-8", errors="replace")
 
 
 # ============================================================

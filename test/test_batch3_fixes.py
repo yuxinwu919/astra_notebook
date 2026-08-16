@@ -98,6 +98,50 @@ def test_display_bz_warning(tmp_path, capsys):
     assert display_bz_warning(tmp_path) is False
 
 
+def test_wake_single_block_format(tmp_path):
+    """手册 6.8 单块格式: 首行 'N 0' 即块头。"""
+    from astra_tools.io.field_map import read_wake_potential
+    p = tmp_path / "wake.dat"
+    p.write_text("3 0\n0.0 1.0\n0.1 2.0\n0.2 3.0\n")
+    w = read_wake_potential(p)
+    assert len(w.s) == 3 and w.w[-1] == 3.0
+    assert len(w.blocks) == 1
+    # 多块格式仍正常 (块头 "N 0" 使第二行第二列为 0)
+    p2 = tmp_path / "wake2.dat"
+    p2.write_text("2 0\n2 0\n0.0 1.0\n0.1 2.0\n3 0\n0.0 4.0\n0.1 5.0\n0.2 6.0\n")
+    w2 = read_wake_potential(p2)
+    assert len(w2.blocks) == 2 and len(w2.s) == 2
+
+
+def test_namelist_nan_warns():
+    import warnings
+    from astra_tools.namelist.parse import _parse_token
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        v = _parse_token("NaN")
+        assert len(w) == 1 and "nan" in str(w[0].message).lower()
+    assert np.isnan(v)
+
+
+def test_solenoid_bz_at_z(tmp_path):
+    from astra_tools.deck.solenoid import solenoid_bz_at_z
+    # 无 deck
+    assert solenoid_bz_at_z(tmp_path / "nope.in", 1.0) is None
+    # 无螺线管
+    (tmp_path / "astra.in").write_text("&NEWRUN\n RUN=1,\n /\n")
+    assert solenoid_bz_at_z(tmp_path / "astra.in", 1.0) is None
+    # 场表: 峰值在 offset 0
+    (tmp_path / "sol.dat").write_text(
+        "-0.5 0.5\n-0.25 0.9\n0.0 1.0\n0.25 0.9\n0.5 0.5\n")
+    (tmp_path / "astra.in").write_text(
+        "&SOLENOID\n LBField=T,\n File_Bfield(1)='sol.dat',\n"
+        " MaxB(1)=0.35,\n S_pos(1)=1.2,\n /\n")
+    # z=1.2 -> offset 0 -> 峰值 0.35
+    assert solenoid_bz_at_z(tmp_path / "astra.in", 1.2) == pytest.approx(0.35)
+    # z=1.45 -> offset 0.25 -> 0.9*0.35 = 0.315
+    assert solenoid_bz_at_z(tmp_path / "astra.in", 1.45) == pytest.approx(0.315)
+
+
 def test_io_reexports_complete():
     import astra_tools.io as io
     for name in ["read_cemit_file", "read_pscan", "read_cavity_field",

@@ -146,7 +146,7 @@ def read_lab_file(path) -> dict:
     FOM(1..10) 一一对应; PGPLOT 转义前缀 (i gs gp) 被剥除,
     未定义的 FOM 行为空或 "no entry"。
     """
-    text = Path(path).read_text()
+    text = Path(path).read_text(encoding="utf-8", errors="replace")
     lines = [re.sub(r"\\[figsp]+", "", ln).strip()
              for ln in text.splitlines()]
     n = min(len(lines) // 3, 10)   # FOM(1..10); 忽略尾部多余行

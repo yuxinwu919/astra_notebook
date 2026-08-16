@@ -214,7 +214,7 @@ class AstraDistributionReader:
     # -- ASCII --------------------------------------------------------
 
     def _read_ascii(self, path: Path) -> Distribution:
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             lines = [ln.strip() for ln in f if ln.strip() and not ln.startswith(("#", "!"))]
         if not lines:
             raise ValueError("empty ASTRA ASCII file: " + str(path))
