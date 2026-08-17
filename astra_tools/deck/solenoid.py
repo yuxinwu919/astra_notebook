@@ -20,11 +20,6 @@ def _as_list(v):
     return list(v) if isinstance(v, (list, tuple)) else [v]
 
 
-def _first(v):
-    """数组参数取第一个元素 (向后兼容)。"""
-    return v[0] if isinstance(v, (list, tuple)) else v
-
-
 def solenoid_bz_at_z(
     deck_path,
     z_m: float,
@@ -36,8 +31,9 @@ def solenoid_bz_at_z(
     逐个元素按场表插值: Bz_i(z) = interp(z - s_pos_i, table_i) *
     MaxB_i / max(|table_i|), 求和 (ASTRA 追踪时所有螺线管场叠加)。
     批 6: 此前只取第一个元素, 多螺线管束线会静默用错场。
-    deck 无螺线管 (LBField!=T) 或任何解析失败时返回 None (调用方
-    降级为告警, 不自动给错误数值)。
+    deck 无螺线管 (LBField!=T)、任何解析失败、或某个已声明的螺线管
+    (非空 File_Bfield 且 MaxB>0) 场表缺失/不可读时返回 None (调用方
+    降级为告警, 不自动给错误数值、也不静默部分求和)。
     """
     deck = Path(deck_path)
     if not deck.exists():
@@ -57,8 +53,10 @@ def solenoid_bz_at_z(
     total = 0.0
     found_any = False
     for i in range(n):
+        if i >= len(fnames):
+            continue
         try:
-            fname = str(fnames[min(i, len(fnames) - 1)]).strip("'").strip(chr(34))
+            fname = str(fnames[i]).strip("'").strip(chr(34))
             maxB = float(maxbs[min(i, len(maxbs) - 1)])
             s_pos = float(sposs[min(i, len(sposs) - 1)])
         except (TypeError, ValueError, IndexError):
@@ -67,15 +65,17 @@ def solenoid_bz_at_z(
             continue
         fpath = base / fname
         if not fpath.exists():
-            continue
+            return None
         try:
             table = np.loadtxt(fpath, ndmin=2, encoding="utf-8")
-            if table.shape[1] < 2:
-                continue
         except Exception:
-            continue
+            return None
+        if table.shape[1] < 2:
+            return None
         zcol, bcol = table[:, 0], table[:, 1]
         bmax = float(np.max(np.abs(bcol)))
+        if not np.isfinite(bmax):
+            return None
         if bmax == 0:
             continue
         val = float(interp1d(
@@ -84,12 +84,3 @@ def solenoid_bz_at_z(
         total += val * maxB / bmax
         found_any = True
     return total if found_any else None
-
-    zcol, bcol = table[:, 0], table[:, 1]
-    bmax = float(np.max(np.abs(bcol)))
-    if bmax == 0:
-        return None
-    val = float(interp1d(
-        zcol, bcol, bounds_error=False,
-        fill_value=(bcol[0], bcol[-1]))(z_m - s_pos))
-    return val * maxB / bmax

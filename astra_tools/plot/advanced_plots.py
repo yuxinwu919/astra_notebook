@@ -14,10 +14,12 @@
 
 from __future__ import annotations
 
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..constants import C_LIGHT, M_E_C2_EV
+from ..constants import C_LIGHT, M_E_C2_EV, E_CHARGE
 from ..io.astra_misc import read_track_file, read_cathode_file
 
 HBAR_EVS = 6.582119569e-16   # hbar [eV.s]
@@ -75,10 +77,9 @@ def plot_beta_alpha(emit, ref=None, ax=None, figsize=(8, 5), title=None):
             "plot_beta_alpha 需要参考粒子轨迹 (ref) 以计算 beta*gamma")
     fig, ax = _ax(ax, figsize)
     ax2 = ax.twinx()   # 只建一次右轴, 避免两个 twinx 重叠
-    # beta*gamma = p/mc (由 gamma=sqrt(1+(p/mc)^2) 严格推出; 复核纠正)
-    bg = np.interp(emit.x.z, ref.z,
-                   np.maximum(ref.pz / M_E_C2_EV, 0.0))
     for e, lbl in ((emit.x, "x"), (emit.y, "y")):
+        # beta*gamma 逐平面按各自 z 网格插值 (X/Yemit 网格可能不一致)
+        bg = np.interp(e.z, ref.z, np.maximum(ref.pz / M_E_C2_EV, 0.0))
         eps_geom = np.maximum(e.emit / bg, 1e-30)
         beta = e.rms**2 / eps_geom
         alpha = -e.corr / np.maximum(e.rms, 1e-30) * beta
@@ -104,10 +105,9 @@ def plot_phase_advance(emit, ref=None, ax=None, figsize=(8, 4), title=None):
         raise ValueError(
             "plot_phase_advance 需要参考粒子轨迹 (ref) 以计算 beta*gamma")
     fig, ax = _ax(ax, figsize)
-    # beta*gamma = p/mc (由 gamma=sqrt(1+(p/mc)^2) 严格推出; 复核纠正)
-    bg = np.interp(emit.x.z, ref.z,
-                   np.maximum(ref.pz / M_E_C2_EV, 0.0))
     for e, lbl in ((emit.x, "x"), (emit.y, "y")):
+        # beta*gamma 逐平面按各自 z 网格插值 (X/Yemit 网格可能不一致)
+        bg = np.interp(e.z, ref.z, np.maximum(ref.pz / M_E_C2_EV, 0.0))
         eps_geom = np.maximum(e.emit / bg, 1e-30)
         beta = e.rms**2 / eps_geom
         theta = np.cumsum(np.gradient(e.z) / np.maximum(beta, 1e-12))
@@ -213,15 +213,129 @@ def plot_reduced_emittance(x2, y2=None, ax=None, figsize=(8, 5), title=None):
     return fig
 
 
+def plot_emittance_difference(emit, x2, y2=None, ax=None, figsize=(8, 4),
+                              title=None):
+    """标准与缩减横向发射度之差 (菜单 4 项 3, 手册 4.13.6).
+
+    diff = eps_std - eps_red_z (z 相关缩减)。emit: Xemit 文件
+    (norm_emit_x/y [m.rad]); x2/y2: Xemit2/Yemit2 (eps_red_z [m.rad])。
+    按 z 线性插值到 emit 网格。y 平面缺 Yemit2 时用 x 近似 (虚线标注 est.)。
+    """
+    from numpy import interp
+    # emit: EmitSet (Xemit/Yemit/Zemit) 或 dict 兼容
+    if hasattr(emit, "x") and hasattr(emit.x, "emit"):
+        z = np.asarray(emit.x.z)
+        ex = np.asarray(emit.x.emit)
+        ey = np.asarray(emit.y.emit)
+    else:
+        z = np.asarray(emit["z"])
+        ex = np.asarray(emit["norm_emit_x"])
+        ey = np.asarray(emit["norm_emit_y"])
+    fig, ax = _ax(ax, figsize)
+    red_x = interp(z, x2["z"], x2["eps_red_z"])
+    ax.plot(z, (ex - red_x) * 1e6, label=r"$\Delta\varepsilon_x$")
+    if y2 is not None:
+        red_y = interp(z, y2["z"], y2["eps_red_z"])
+        ax.plot(z, (ey - red_y) * 1e6, ls="--",
+                label=r"$\Delta\varepsilon_y$")
+    else:
+        ax.plot(z, (ey - red_x) * 1e6, ls="--",
+                label=r"$\Delta\varepsilon_y$ (est.)")
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel("emittance difference [$\\pi$ mm mrad]")
+    ax.set_title(title or "standard - reduced emittance (transverse)")
+    ax.legend(fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def plot_correlated_emittance_contributions(x2, y2=None, ax=None,
+                                            figsize=(8, 4), title=None):
+    """相关发射度贡献 (Eq. 4.4 K 项, 菜单 4 项 4/5).
+
+    画 K2z/K3z/K2E/K3E 绝对值 vs z [pi mm mrad], 对应纵向位置与动能
+    相关的线性/二次相关贡献 (手册 4.13.6 Eq. 4.4)。x2=Xemit2 (x),
+    y2=Yemit2 (y, 虚线)。
+    """
+    fig, ax = _ax(ax, figsize)
+    for key, lab, c in [("K2z", r"$K_{2,Z}$", "C0"),
+                        ("K3z", r"$K_{3,Z}$", "C1"),
+                        ("K2E", r"$K_{2,E}$", "C2"),
+                        ("K3E", r"$K_{3,E}$", "C3")]:
+        ax.plot(x2["z"], np.abs(x2[key]) * 1e6, label=lab + " [x]", color=c)
+        if y2 is not None:
+            ax.plot(y2["z"], np.abs(y2[key]) * 1e6, ls="--", color=c,
+                    label=lab + " [y]")
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel("correlated contribution [$\\pi$ mm mrad]")
+    ax.set_title(title or "correlated emittance contributions (Eq. 4.4)")
+    ax.legend(fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def plot_reduced_longitudinal_emittance(dist, ax=None, figsize=(8, 5),
+                                        title=None):
+    """缩减纵向发射度 (菜单 4 项 6, 手册 4.13.6).
+
+    纵向发射度减去 2nd/3rd 阶 z-pz 多项式相关, 连同正则相空间发射度。
+    显示 z-(pz/p_ref) 相空间散点 + 3 阶相关拟合线, 框内标注两个值:
+    eps_z (正则) 与 eps_z_red (去 2nd/3rd 阶相关) [mm mrad]。
+    """
+    from ..analysis.emittance import compute_geometric_emittance
+    act = dist.filter_active()
+    z = act.z
+    pz = act.pz                                      # eV/c
+    pref = float(np.median(np.abs(pz))) or 1.0
+    u = z - np.mean(z)
+    up = (pz - np.mean(pz)) / pref                   # 相对动量发散 [rad]
+    w = np.abs(act.charge)
+    eps_z = compute_geometric_emittance(u, up, w)
+    coeffs = np.polyfit(z, up, 3)                    # 2nd/3rd 阶相关
+    up_red = up - np.polyval(coeffs, z)
+    eps_z_red = compute_geometric_emittance(u, up_red, w)
+    fig, ax = _ax(ax, figsize)
+    ax.scatter(z * 1e3, up * 1e3, s=4, label="pz/p_ref")
+    zs = np.linspace(z.min(), z.max(), 100)
+    ax.plot(zs * 1e3, np.polyval(coeffs, zs) * 1e3, color="C3", lw=1.2,
+            label="3rd-order correlation fit")
+    ax.set_xlabel("z [mm]")
+    ax.set_ylabel("(pz - <pz>) / p_ref [mrad]")
+    ax.set_title(title or "longitudinal emittance & reduced "
+                          "(2nd/3rd-order corr. removed)")
+    ax.text(0.02, 0.98,
+            "$\\varepsilon_z$ = %.3f mm.mrad\n"
+            "$\\varepsilon_{z,red}$ = %.3f mm.mrad" % (eps_z * 1e6,
+                                                       eps_z_red * 1e6),
+            transform=ax.transAxes, va="top", fontsize=10,
+            bbox=dict(boxstyle="round", fc="white", alpha=0.85))
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    return fig
+
+
 def plot_trace_emittance(tr, ax=None, figsize=(8, 5), title=None):
-    """trace-space 发射度 (TRemit, 菜单 4 项 7/8)."""
+    """trace-space 发射度 (TRemit, 菜单 4 项 7/8).
+
+    横向 eps_tr_x/y [pi mm mrad] (左轴) + 纵向 eps_tr_z [pi um] (右轴,
+    TRemit 纵向列, 覆盖项 8)。
+    """
     fig, ax = _ax(ax, figsize)
     ax.plot(tr["z"], tr["eps_tr_x"] * 1e6, label="$\\varepsilon_{tr,x}$")
     ax.plot(tr["z"], tr["eps_tr_y"] * 1e6, label="$\\varepsilon_{tr,y}$")
     ax.set_xlabel("z [m]")
     ax.set_ylabel("trace-space emittance [$\\pi$ mm mrad]")
     ax.set_title(title or "trace-space emittance")
-    ax.legend()
+    if "eps_tr_z" in tr:
+        ax2 = ax.twinx()
+        ax2.plot(tr["z"], tr["eps_tr_z"] * 1e6, ls="--", color="C3",
+                 label="$\\varepsilon_{tr,z}$")
+        ax2.set_ylabel("long. trace-space emit [$\\pi$ um]", color="0.3")
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax2.get_legend_handles_labels()
+        ax.legend(h1 + h2, l1 + l2, fontsize=9)
+    else:
+        ax.legend()
     fig.tight_layout()
     return fig
 
@@ -239,9 +353,32 @@ def plot_larmor(lm, ax=None, figsize=(8, 4), title=None):
     return fig
 
 
-def plot_probe_trajectories(path, ax=None, figsize=(8, 5), title=None):
-    """探针轨迹 x(z), y(z) (track 文件, 菜单 1 项 14/15)."""
+def plot_probe_trajectories(path, mode="cartesian", ax=None, figsize=None,
+                            title=None):
+    """探针轨迹 (track 文件, 菜单 1 项 14/15).
+
+    mode='cartesian': 单面板 x(z)/y(z) (实/虚线, 项 14)。
+    mode='cylindrical': 双面板 r(z)=sqrt(x²+y²) 与 x/y 投影 (项 15)。
+    """
     tr = read_track_file(path) if not isinstance(path, dict) else path
+    if mode == "cylindrical":
+        fig, axes = plt.subplots(1, 2, figsize=figsize or (11, 4))
+        for seq in np.unique(tr["seq"]):
+            m = tr["seq"] == seq
+            r = np.hypot(tr["x"][m], tr["y"][m])
+            axes[0].plot(tr["z"][m], r * 1e3, lw=0.8)
+            axes[1].plot(tr["z"][m], tr["x"][m] * 1e3, lw=0.8)
+            axes[1].plot(tr["z"][m], tr["y"][m] * 1e3, lw=0.8, ls="--")
+        axes[0].set_xlabel("z [m]")
+        axes[0].set_ylabel("r [mm]")
+        axes[0].set_title("cylindrical radius r(z)")
+        axes[1].set_xlabel("z [m]")
+        axes[1].set_ylabel("x / y [mm]")
+        axes[1].set_title("x / y projections")
+        if title:
+            fig.suptitle(title)
+        fig.tight_layout()
+        return fig
     fig, ax = _ax(ax, figsize)
     for seq in np.unique(tr["seq"]):
         m = tr["seq"] == seq
@@ -359,6 +496,12 @@ def plot_3d_map_slices(path, axis="z", n_slices=3, figsize=(13, 4), title=None,
                        unit=""):
     """3D 场图截面 (fieldplot 菜单 2): 沿 axis 取 n_slices 个切面.
 
+    单分量、单方向截面: 一次只画一个场分量文件在垂直于 axis 的平面
+    上的分布; 需要看多个分量时请对每个文件分别调用。沿网格点很少的
+    方向取切面时信息量低 (如 y 仅 3 点时 z 切面只是 3 条色带), 建议
+    选择网格较密的平面方向。场数据全为零时发出 UserWarning (常见原因
+    是选错了分量文件, 如 3D_Dipole.bx/by/bz)。
+
     Args:
         path: 3D 场图文件 (3D_test.ex / 3D_Dipole.bx ...).
         axis: 切片方向 'x'/'y'/'z' (垂直于切面的轴).
@@ -372,6 +515,10 @@ def plot_3d_map_slices(path, axis="z", n_slices=3, figsize=(13, 4), title=None,
     axs = axs[0]
     vmax = float(np.max(np.abs(f)))
     if vmax == 0:
+        warnings.warn(
+            "3D 场图 %s 的数据全为零: 切面将是空图, 请检查是否选对了"
+            "分量文件 (如 3D_Dipole.bx/by/bz) 或切片方向" % path,
+            UserWarning, stacklevel=2)
         vmax = 1.0
     for k in range(n_slices):
         i = int(round(k * (shape[{"x": 0, "y": 1, "z": 2}[axis]] - 1) / max(n_slices - 1, 1)))
@@ -476,15 +623,97 @@ def plot_field_profile(path, label="field", unit="", scale=1.0, ax=None,
     return fig
 
 
-def plot_curved_cathode_contour(path, ax=None, figsize=(8, 5), title=None):
+def plot_quadrupole_field(path, figsize=(12, 8), title=None):
+    """四极场 (fieldplot 菜单 5 + next page).
+
+    主图: 水平/垂直梯度 Gx(z), Gy(z) (三列文件 z, Gx, Gy; 两列文件
+    z, G 用理想四极 Gy=-Gx)。
+    next page: 纵向磁场 Bz(z) + 综合图。ASTRA 四极通常用解析聚焦
+    (无场表), 纵向边缘场未建模: 文件提供第 4 列才画 Bz, 否则标注
+    理想四极 Bz=0。2x2: [Gx/Gy 主图, Bz(z) / 理想标注],
+                        [综合图 (各分量叠加), 说明文本]。
+    """
+    data = np.loadtxt(path, ndmin=2)
+    if data.shape[1] < 2:
+        raise ValueError("quadrupole field file needs >= 2 columns")
+    z = data[:, 0]
+    if data.shape[1] >= 3:
+        gx, gy = data[:, 1], data[:, 2]
+    else:
+        g = data[:, 1]
+        gx, gy = g, -g
+    bz = data[:, 3] if data.shape[1] >= 4 else None
+
+    fig, axes = plt.subplots(2, 2, figsize=figsize)
+    # 主图: 水平/垂直梯度
+    axes[0, 0].plot(z * 1e3, gx, label="Gx (hor.)")
+    axes[0, 0].plot(z * 1e3, gy, label="Gy (ver.)")
+    axes[0, 0].set_xlabel("z [mm]")
+    axes[0, 0].set_ylabel("gradient [T/m]")
+    axes[0, 0].set_title("quadrupole gradients")
+    axes[0, 0].legend(fontsize=9)
+    # next page: Bz
+    if bz is not None:
+        axes[0, 1].plot(z * 1e3, bz, color="C3")
+        axes[0, 1].set_ylabel("Bz [T]")
+        axes[0, 1].set_title("longitudinal field Bz")
+    else:
+        axes[0, 1].text(0.5, 0.5, "ideal quadrupole: Bz = 0\n"
+                        "(longitudinal edge field not modeled)",
+                        ha="center", va="center", transform=axes[0, 1].transAxes)
+        axes[0, 1].set_title("longitudinal field Bz (ideal)")
+        axes[0, 1].set_xticks([])
+        axes[0, 1].set_yticks([])
+    axes[0, 1].set_xlabel("z [mm]")
+    # next page: 综合图
+    axes[1, 0].plot(z * 1e3, gx, label="Gx")
+    axes[1, 0].plot(z * 1e3, gy, label="Gy")
+    if bz is not None:
+        axes[1, 0].plot(z * 1e3, bz, color="C3", label="Bz")
+    axes[1, 0].set_xlabel("z [mm]")
+    axes[1, 0].set_ylabel("field [T/m or T]")
+    axes[1, 0].set_title("combined plot of all components")
+    axes[1, 0].legend(fontsize=9)
+    axes[1, 1].axis("off")
+    axes[1, 1].text(0.02, 0.98,
+                    "main view: horizontal & vertical gradient\n"
+                    "next page: longitudinal field Bz + combined plot\n"
+                    "quadrupole edge (fringe) fields are not stored in\n"
+                    "the deck; provide a 4-column field table to show Bz.",
+                    va="top", fontsize=9, transform=axes[1, 1].transAxes)
+    if title:
+        fig.suptitle(title)
+    fig.tight_layout()
+    return fig
+
+
+def plot_curved_cathode_contour(path, ax=None, figsize=(8, 5), title=None,
+                                show_rings=False, ring_offset=None):
     """弯曲阴极轮廓 (Contour.dat, fieldplot 菜单 1 项 8).
 
-    表格式 (x, y, z, R) 沿轮廓; 画 R(z) 曲线。
+    手册 4.4.5: 前两列为纵向 z 与径向 R 坐标, 第三/四列为阴极在该点
+    的切向单位矢量分量 (t_z, t_R)。这里画 z(R) 截面轮廓。
+
+    show_rings: 同时画出电荷环位置。每个表点后方一点放置一个电荷环
+    (用于修正非平面阴极的镜象电荷场, 手册 4.4.5)。环位于表面法向
+    (指向阴极背面) 偏移 ring_offset [m] 处 (默认 10% 纵向跨度);
+    图为示意图, 偏移量可调。
     """
     data = np.loadtxt(path)
+    z, r = data[:, 0], data[:, 1]
+    tz, tr = data[:, 2], data[:, 3]
     fig, ax = _ax(ax, figsize)
-    ax.plot(data[:, 2] * 1e3, data[:, 3] * 1e3, label="cathode contour")
-    ax.fill_between(data[:, 2] * 1e3, 0, data[:, 3] * 1e3, alpha=0.2)
+    ax.plot(z * 1e3, r * 1e3, label="cathode contour")
+    ax.fill_between(z * 1e3, 0, r * 1e3, alpha=0.2)
+    if show_rings:
+        if ring_offset is None:
+            ring_offset = 0.1 * float(np.ptp(z))
+        # 发射侧法向 = (tr, -tz); 阴极背面 = (-tr, tz) (环所在)
+        nz, nr = -tr, tz
+        zr = z + ring_offset * nz
+        rr = r + ring_offset * nr
+        ax.plot(zr * 1e3, rr * 1e3, "o", ms=3, color="C3",
+                label="charge rings")
     ax.set_xlabel("z [mm]")
     ax.set_ylabel("r [mm]")
     ax.set_aspect("equal")
@@ -520,19 +749,30 @@ def plot_core_brightness(ce, landf=None, ax=None, figsize=(8, 4), title=None):
 
 
 def plot_slice_ellipses_3d(dist, n_slices=10, figsize=(9, 6), title=None,
-                            bz_on_axis_T: float = 0.0):
+                            bz_on_axis_T: float = 0.0, plane="xxp",
+                            subtract_corr=False):
     """3D RMS slice 椭圆 (postpro 5.6.3 项 6, mplot3d 静态).
 
+    plane: 'xxp' (x-x', 默认) / 'yyp' (y-y') / 'xyp' (x-y') /
+        'yxp' (y-x') (项 7 投影切换)。
+    subtract_corr: 从散角减去对位置的线性相关 (项 11)。
     散角用正则动量 (manual 4.13.1, bz_on_axis_T)。
     """
     from ..analysis.emittance import compute_emittance_ellipse_params
     from ..analysis.slices import compute_slice_analysis
+    from .arbitrary_phase_space import subtract_linear_corr
 
+    if plane not in ("xxp", "yyp", "xyp", "yxp"):
+        raise ValueError("plane 必须为 'xxp'/'yyp'/'xyp'/'yxp': %r" % (plane,))
     sa = compute_slice_analysis(dist, n_slices=n_slices, bz_on_axis_T=bz_on_axis_T)
     d = dist.filter_active()
     p_ref = dist.ref_momentum_or_mean()
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection="3d")
+    lab = {"xxp": ("x [mm]", "x' [mrad]"),
+           "yyp": ("y [mm]", "y' [mrad]"),
+           "xyp": ("x [mm]", "y' [mrad]"),
+           "yxp": ("y [mm]", "x' [mrad]")}[plane]
     for i in range(sa.n_slices):
         if sa.n_particles[i] < 3:
             continue
@@ -542,8 +782,20 @@ def plot_slice_ellipses_3d(dist, n_slices=10, figsize=(9, 6), title=None,
         xi = d.x[mask]
         yi = d.y[mask]
         ptx = d.px[mask] + 0.5 * C_LIGHT * bz_on_axis_T * yi
+        pty = d.py[mask] - 0.5 * C_LIGHT * bz_on_axis_T * xi
         xp = (ptx - np.mean(ptx)) / p_ref
-        par = compute_emittance_ellipse_params(xi - np.mean(xi), xp)
+        yp = (pty - np.mean(pty)) / p_ref
+        if plane == "xxp":
+            u, up = xi, xp
+        elif plane == "yyp":
+            u, up = yi, yp
+        elif plane == "xyp":
+            u, up = xi, yp
+        else:
+            u, up = yi, xp
+        if subtract_corr:
+            up = subtract_linear_corr(u - np.mean(u), up)
+        par = compute_emittance_ellipse_params(u - np.mean(u), up)
         th = np.linspace(0, 2 * np.pi, 60)
         xe = par["a"] * np.cos(th) * 1e3
         ye = par["b"] * np.sin(th) * 1e3
@@ -552,9 +804,96 @@ def plot_slice_ellipses_3d(dist, n_slices=10, figsize=(9, 6), title=None,
         zc = sa.z_centers[i] * 1e3
         ax.plot(np.full_like(th, zc), xr, yr, lw=1.2)
     ax.set_xlabel("z [mm]")
-    ax.set_ylabel("x [mm]")
-    ax.set_zlabel("x' [mrad]")
-    ax.set_title(title or "3D slice emittance ellipses")
+    ax.set_ylabel(lab[0])
+    ax.set_zlabel(lab[1])
+    ax.set_title(title or "3D slice emittance ellipses (plane=%s%s)"
+                 % (plane, ", corr removed" if subtract_corr else ""))
+    fig.tight_layout()
+    return fig
+
+
+def plot_slice_ellipses_2d(dist, n_slices=10, figsize=(8, 6), title=None,
+                           bz_on_axis_T: float = 0.0, plane="xxp",
+                           subtract_corr=False):
+    """投影 rms slice 发射度椭圆 (postpro 5.6.3 项 4, 2D).
+
+    plane: 'xxp' (x-x', 默认) / 'yyp' (y-y') / 'xyp' (x-y') /
+        'yxp' (y-x') (项 7 投影切换)。
+    subtract_corr: 从散角减去对位置的线性相关 (项 11)。
+    散角用正则动量 (manual 4.13.1, bz_on_axis_T)。粒子散点 (灰) +
+    各 slice 的 RMS 椭圆 (按 slice 索引着色)。
+    """
+    from ..analysis.emittance import compute_emittance_ellipse_params
+    from ..analysis.slices import compute_slice_analysis
+    from .arbitrary_phase_space import subtract_linear_corr
+
+    if plane not in ("xxp", "yyp", "xyp", "yxp"):
+        raise ValueError("plane 必须为 'xxp'/'yyp'/'xyp'/'yxp': %r" % (plane,))
+    sa = compute_slice_analysis(dist, n_slices=n_slices, bz_on_axis_T=bz_on_axis_T)
+    d = dist.filter_active()
+    p_ref = dist.ref_momentum_or_mean()
+    lab = {"xxp": ("x [mm]", "x' [mrad]"),
+           "yyp": ("y [mm]", "y' [mrad]"),
+           "xyp": ("x [mm]", "y' [mrad]"),
+           "yxp": ("y [mm]", "x' [mrad]")}[plane]
+    xi, yi = d.x, d.y
+    ptx = d.px + 0.5 * C_LIGHT * bz_on_axis_T * yi
+    pty = d.py - 0.5 * C_LIGHT * bz_on_axis_T * xi
+    xp = (ptx - np.mean(ptx)) / p_ref
+    yp = (pty - np.mean(pty)) / p_ref
+    if plane == "xxp":
+        u, up = xi, xp
+    elif plane == "yyp":
+        u, up = yi, yp
+    elif plane == "xyp":
+        u, up = xi, yp
+    else:
+        u, up = yi, xp
+    if subtract_corr:
+        up = subtract_linear_corr(u - np.mean(u), up)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.scatter(u * 1e3, up * 1e3, s=3, alpha=0.25, color="0.6",
+               label="particles")
+    cmap = plt.get_cmap("viridis")
+    for i in range(sa.n_slices):
+        if sa.n_particles[i] < 3:
+            continue
+        mask = (d.z >= sa.z_edges[i]) & (d.z < sa.z_edges[i + 1])
+        if i == sa.n_slices - 1:
+            mask = (d.z >= sa.z_edges[i]) & (d.z <= sa.z_edges[i + 1])
+        xi2 = d.x[mask]
+        yi2 = d.y[mask]
+        ptx2 = d.px[mask] + 0.5 * C_LIGHT * bz_on_axis_T * yi2
+        pty2 = d.py[mask] - 0.5 * C_LIGHT * bz_on_axis_T * xi2
+        xp2 = (ptx2 - np.mean(ptx2)) / p_ref
+        yp2 = (pty2 - np.mean(pty2)) / p_ref
+        if plane == "xxp":
+            ui, upi = xi2, xp2
+        elif plane == "yyp":
+            ui, upi = yi2, yp2
+        elif plane == "xyp":
+            ui, upi = xi2, yp2
+        else:
+            ui, upi = yi2, xp2
+        if subtract_corr:
+            upi = subtract_linear_corr(ui - np.mean(ui), upi)
+        par = compute_emittance_ellipse_params(ui - np.mean(ui), upi)
+        th = np.linspace(0, 2 * np.pi, 60)
+        xe = par["a"] * np.cos(th) * 1e3
+        ye = par["b"] * np.sin(th) * 1e3
+        xr = xe * np.cos(par["theta"]) - ye * np.sin(par["theta"])
+        yr = xe * np.sin(par["theta"]) + ye * np.cos(par["theta"])
+        ax.plot(xr, yr, color=cmap(i / max(sa.n_slices - 1, 1)), lw=1.3)
+    ax.set_xlabel(lab[0])
+    ax.set_ylabel(lab[1])
+    ax.set_title(title or "projected slice emittance ellipses (plane=%s%s)"
+                 % (plane, ", corr removed" if subtract_corr else ""))
+    sm = plt.cm.ScalarMappable(cmap=cmap,
+                               norm=plt.Normalize(0, max(sa.n_slices - 1, 1)))
+    sm.set_array([])
+    fig.colorbar(sm, ax=ax, label="slice index")
+    ax.legend(fontsize=9)
     fig.tight_layout()
     return fig
 def aperture_elements(namelist: dict, base_dir=None) -> list:
@@ -657,6 +996,49 @@ def plot_laser_on_axis(path, unit="a.u.", figsize=(11, 4), title=None):
     return fig
 
 
+def plot_laser_envelope(path, figsize=(8, 5), title=None):
+    """激光 3D 图 (File_A0 格式) 的 rms 横向束包络 + 焦点位置 (5.7.3).
+
+    每个 z 切片以光强 f² 为权重计算 rms 半径 σx(z), σy(z); 焦点 =
+    √(σx²+σy²) 最小处 (rms spot σ0), 图中竖线标注。激光场数值可正负
+    (相位), 用 f² 作强度权重。
+    """
+    from ..io.field_map import read_3d_field_map
+    x, y, z, f = read_3d_field_map(path)
+    sx = np.empty(len(z))
+    sy = np.empty(len(z))
+    X, Y = np.meshgrid(x, y, indexing="ij")
+    for k in range(len(z)):
+        sl = f[:, :, k]
+        w = sl ** 2
+        wsum = float(w.sum())
+        if wsum <= 0:
+            sx[k] = sy[k] = np.nan
+            continue
+        xm = float((w * X).sum() / wsum)
+        ym = float((w * Y).sum() / wsum)
+        sx[k] = float(np.sqrt((w * (X - xm) ** 2).sum() / wsum))
+        sy[k] = float(np.sqrt((w * (Y - ym) ** 2).sum() / wsum))
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(z * 1e3, sx * 1e3, label="rms x envelope")
+    ax.plot(z * 1e3, sy * 1e3, label="rms y envelope")
+    sig = np.sqrt(sx ** 2 + sy ** 2)
+    ok = np.isfinite(sig)
+    if ok.any():
+        kf = int(np.nanargmin(sig))
+        ax.axvline(z[kf] * 1e3, color="C2", ls="--", lw=1)
+        ax.annotate("focus: z=%.2f mm, sigma=%.3f mm"
+                    % (z[kf] * 1e3, sig[kf] * 1e3),
+                    xy=(z[kf] * 1e3, sig[kf] * 1e3),
+                    xytext=(6, 6), textcoords="offset points", fontsize=9)
+    ax.set_xlabel("z [mm]")
+    ax.set_ylabel("rms spot size [mm]")
+    ax.set_title(title or "laser rms beam envelope & focus position")
+    ax.legend(fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
 def plot_plasma_profile(path, peak_density_cm3=None, ax=None, figsize=(8, 5),
                         title=None):
     """等离子体密度剖面 (File_Efield='Plasma...' 两列表, 手册 6.7).
@@ -673,7 +1055,10 @@ def plot_plasma_profile(path, peak_density_cm3=None, ax=None, figsize=(8, 5),
     ax.set_title(title or "plasma density profile")
     if peak_density_cm3:
         ax2 = ax.twinx()
-        ax2.plot(z * 1e3, n / np.max(np.abs(n)) * peak_density_cm3,
+        nmax = np.max(np.abs(n))
+        if nmax == 0:
+            nmax = 1.0
+        ax2.plot(z * 1e3, n / nmax * peak_density_cm3,
                  color="C1", ls="--", label="scaled to P_n")
         ax2.set_ylabel("density [cm$^{-3}$]", color="C1")
         h1, l1 = ax.get_legend_handles_labels()
@@ -681,6 +1066,64 @@ def plot_plasma_profile(path, peak_density_cm3=None, ax=None, figsize=(8, 5),
         ax.legend(h1 + h2, l1 + l2, fontsize=9)
     else:
         ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def plot_plasma_fields(path, peak_density_cm3=None, a0=1.0, sigma_z_m=30e-6,
+                       vs="z", figsize=(8, 5), title=None):
+    """等离子体场 vs z / vs zeta (fieldplot 5.7.3 项 8/9, 手册 6.7 + 附录).
+
+    读两列表 (z [m], n 归一化密度)。用线性等离子体尾场解析公式
+    (手册附录, 轴上 r=0, 简化幅度) 重建纵向场:
+
+      Ez(ζ) = kp² m_e c² a0² / (2e) · sqrt(π/2) · σz
+              · exp(-kp² σz² / 2) · cos(kp ζ)
+
+    kp = sqrt(n_peak e²/(ε0 m_e c²)) 由峰值密度 (peak_density_cm3)
+    确定; ζ = z - c t 为共动参数 (粒子随光速运动看到)。
+
+    vs='z': 横轴 z [mm], 左轴 Ez [a.u.], 右轴归一化密度 (项 8)。
+    vs='zeta': 横轴 ζ = z - <z> (共动, 项 9)。
+
+    注: 波形为解析模型演示 (非 ASTRA 内部数值), 幅度归一化到峰值。
+    """
+    from ..constants import EPS0, M_E_KG
+    d = np.loadtxt(path, ndmin=2)
+    z, n = d[:, 0], d[:, 1]
+    if peak_density_cm3:
+        n_peak = peak_density_cm3 * 1e6           # cm^-3 -> m^-3
+        kp = float(np.sqrt(n_peak * E_CHARGE ** 2
+                           / (EPS0 * M_E_KG * C_LIGHT ** 2)))
+    else:
+        kp = 1.0                                  # 任意单位演示
+    zeta = z - float(np.mean(z))
+    # 轴上纵向尾场 (手册附录线性等离子体尾场, 幅度峰值归一)
+    ez = (kp ** 2 * M_E_KG * C_LIGHT ** 2 * a0 ** 2 / (2 * E_CHARGE)
+          * np.sqrt(np.pi / 2) * sigma_z_m
+          * np.exp(-kp ** 2 * sigma_z_m ** 2 / 2) * np.cos(kp * zeta))
+    amp = float(np.max(np.abs(ez)))
+    if amp > 0:
+        ez = ez / amp
+
+    fig, ax = plt.subplots(figsize=figsize)
+    if vs == "zeta":
+        x, xl = zeta * 1e6, "zeta = z - <z> [um]"
+    else:
+        x, xl = z * 1e3, "z [mm]"
+    ax.plot(x, ez, color="C0", label="Ez (on axis, linear wake model)")
+    ax.set_xlabel(xl)
+    ax.set_ylabel("Ez [a.u.]")
+    ax2 = ax.twinx()
+    nmax = float(np.max(np.abs(n)))
+    if nmax == 0:
+        nmax = 1.0
+    ax2.plot(x, n / nmax, color="C1", ls="--", label="density (normalized)")
+    ax2.set_ylabel("plasma density [arb. u.]", color="C1")
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax.legend(h1 + h2, l1 + l2, fontsize=9, loc="best")
+    ax.set_title(title or ("plasma fields vs " + vs))
     fig.tight_layout()
     return fig
 
@@ -755,6 +1198,33 @@ def plot_tcheck_counter(tc, ax=None, figsize=(8, 4), title=None):
     return fig
 
 
+def plot_core_emittance_curve(dist, figsize=(9, 4), title=None,
+                              bz_on_axis_T: float = 0.0):
+    """核心发射度 vs 粒子百分比 (手册 4.13.5, postpro 5.6.1 项 6).
+
+    按单粒子发射度不变量排序取核心, 画 x/y/z 三平面归一化发射度随
+    粒子百分比的变化; 100% 处 = 标准 rms 发射度。
+    显示单位: 横向 [pi mm mrad] (数值 x1e6), 纵向 [keV mm] (数值 x1)。
+    """
+    from ..analysis.core_emit import compute_core_emittance_curves
+    curves = compute_core_emittance_curves(dist, bz_on_axis_T=bz_on_axis_T)
+    fig, ax = _ax(None, figsize)
+    specs = (("x", r"$\varepsilon_{nx}$", r"$\pi$ mm mrad"),
+             ("y", r"$\varepsilon_{ny}$", r"$\pi$ mm mrad"),
+             ("z", r"$\varepsilon_z$", "keV mm"))
+    for plane, lab, unit in specs:
+        fracs = sorted(curves[plane])
+        vals = np.array([curves[plane][f] for f in fracs])
+        scale = 1.0 if plane == "z" else 1e6
+        ax.plot(np.asarray(fracs) * 100, vals * scale, "o-", label=lab)
+    ax.set_xlabel("fraction of particles [%]")
+    ax.set_ylabel("core emittance [%s]" % unit)
+    ax.set_title(title or "core emittance vs particle fraction (4.13.5)")
+    ax.legend(fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
 def plot_core_emittance(ce, ax=None, figsize=(8, 5), title=None,
                         plane: str = "x"):
     """核心发射度 (Cemit, 菜单 4 项 9-11): eps_n + C95/C90/C80。
@@ -782,14 +1252,19 @@ def plot_core_emittance(ce, ax=None, figsize=(8, 5), title=None,
     return fig
 
 
-def plot_cr_emit(cr, ax=None, figsize=(8, 5), title=None):
-    """交叉粒子 (Cr_emit, 菜单 4 项 12-14): 发射度与剩余/交叉电荷。"""
-    fig, ax = _ax(ax, figsize)
+def plot_cr_emit(cr, ax=None, figsize=(12, 5), title=None):
+    """交叉粒子 (Cr_emit, 菜单 4 项 12-14).
+
+    左: 发射度 eps_x/y [pi mm mrad] + 剩余/交叉电荷 [nC];
+    右: 排除 cross-over 的束斑 x/y rms [mm] (项 13, 需 x_rms/y_rms 字段)。
+    """
+    fig, axes = plt.subplots(1, 2, figsize=figsize, squeeze=False)
+    ax = axes[0, 0]
     ax.plot(cr["z"], cr["eps_x"] * 1e6, label=r"$\varepsilon_x$")
     ax.plot(cr["z"], cr["eps_y"] * 1e6, label=r"$\varepsilon_y$")
     ax.set_xlabel("z [m]")
     ax.set_ylabel(r"emittance [$\pi$ mm mrad]")
-    ax.set_title(title or "cross-over particle emittance")
+    ax.set_title("emittance (w/o cross-over particles)")
     ax2 = ax.twinx()
     ax2.plot(cr["z"], cr["q_rest"], color="C2", ls="--", label="rest charge")
     ax2.plot(cr["z"], cr["q_cross"], color="C3", ls=":", label="cross charge")
@@ -797,5 +1272,21 @@ def plot_cr_emit(cr, ax=None, figsize=(8, 5), title=None):
     h1, l1 = ax.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
     ax.legend(h1 + h2, l1 + l2, fontsize=9)
+
+    axb = axes[0, 1]
+    if "x_rms" in cr and "y_rms" in cr:
+        axb.plot(cr["z"], cr["x_rms"] * 1e3, label=r"$\sigma_x$")
+        axb.plot(cr["z"], cr["y_rms"] * 1e3, label=r"$\sigma_y$")
+        axb.set_xlabel("z [m]")
+        axb.set_ylabel("beam size [mm]")
+        axb.set_title("beam size (w/o cross-over particles)")
+        axb.legend(fontsize=9)
+    else:
+        axb.text(0.5, 0.5, "no x_rms/y_rms data", ha="center",
+                 va="center", transform=axb.transAxes, color="0.4")
+        axb.set_xlabel("z [m]")
+        axb.set_title("beam size (w/o cross-over particles)")
+    if title:
+        fig.suptitle(title)
     fig.tight_layout()
     return fig

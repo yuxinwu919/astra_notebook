@@ -10,6 +10,19 @@ from .emittance import (
 )
 from .slices import SliceAnalysis, compute_slice_analysis
 from .bff import BFFResult, compute_bff
+from .core_emit import (
+    single_particle_amplitudes,
+    compute_core_emittance_by_fraction,
+    compute_core_emittance_curves,
+)
+from .time import bunch_time, bunch_time_ps
+from .cuts import (
+    cut_distribution,
+    rotate_phase_space,
+    optimized_cut_center,
+    optimized_cut,
+    modify_correlated_energy_spread,
+)
 
 __all__ = [
     "BeamStatistics",
@@ -24,4 +37,14 @@ __all__ = [
     "compute_slice_analysis",
     "BFFResult",
     "compute_bff",
+    "single_particle_amplitudes",
+    "compute_core_emittance_by_fraction",
+    "compute_core_emittance_curves",
+    "bunch_time",
+    "bunch_time_ps",
+    "cut_distribution",
+    "rotate_phase_space",
+    "optimized_cut_center",
+    "optimized_cut",
+    "modify_correlated_energy_spread",
 ]

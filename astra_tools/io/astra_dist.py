@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 
@@ -308,3 +309,72 @@ class AstraDistributionReader:
             return False
         diffs = np.diff(col)
         return bool(np.all(np.abs(diffs - 1.0) < 0.1))
+
+
+def write_distribution(
+    dist: Distribution,
+    path,
+    format: str = "binary",
+    include_index: bool = False,
+    ref_z_m: Optional[float] = None,
+) -> str:
+    """写 ASTRA 分布文件 (postpro 5.6.4 保存新分布供继续追踪).
+
+    与 AstraDistributionReader 的读取约定互逆 (手册 Table 1):
+      * binary: 5-float64 头 (ref_time_ns, ref_momentum_eVc,
+        total_charge_nC, ref_x_m, ref_y_m) + 每粒子 9/10 列
+        x, y, z_rel, px, py, pz_rel, clock_rel_ns, charge_nC,
+        [index,] status。
+      * ascii: 无头行, 第一行是参考粒子绝对坐标 (10 列),
+        其余行 z/pz/clock 相对参考粒子。
+
+    Args:
+        dist: Distribution。
+        path: 输出路径。
+        format: 'binary' (默认, ASTRA 标准输入) 或 'ascii'。
+        include_index: 二进制是否写 10 列 (含粒子索引)。
+        ref_z_m: 参考粒子绝对 z [m]; 默认 dist.ref_z_m
+            (二进制读取时其为 0, z 即相对值, 原样写回)。
+
+    Returns:
+        写入的文件路径字符串。
+    """
+    path = Path(path)
+    if ref_z_m is None:
+        ref_z_m = dist.ref_z_m
+    n = dist.n_particle
+    p_ref = dist.ref_momentum_eVc or dist.mean_pz_eVc
+    ref_time = dist.ref_time_ns
+    z_rel = dist.z - ref_z_m
+    pz_rel = dist.pz - p_ref
+    clock_rel_ns = dist.clock * (1.0 / NS_TO_S) - ref_time
+
+    if format == "ascii":
+        with open(path, "w") as fh:
+            # 5 值头行 + N 行粒子 (pz/clock 相对参考值; z 相对 ref_z_m)。
+            # 与 reader 的 has_header 分支互逆 (N 对 N, 无多余参考行)。
+            head = [ref_time, p_ref, dist.total_charge_nC,
+                    dist.ref_x_m, dist.ref_y_m]
+            fh.write(" ".join("%.12g" % v for v in head) + "\n")
+            for i in range(n):
+                row = [dist.x[i], dist.y[i], z_rel[i],
+                       dist.px[i], dist.py[i], pz_rel[i],
+                       clock_rel_ns[i], dist.charge[i],
+                       0 if dist.index is None else dist.index[i],
+                       dist.status[i]]
+                fh.write(" ".join("%.12g" % v for v in row) + "\n")
+    else:
+        header = np.array([ref_time, p_ref, dist.total_charge_nC,
+                           dist.ref_x_m, dist.ref_y_m], dtype=np.float64)
+        cols = [dist.x, dist.y, z_rel, dist.px, dist.py, pz_rel,
+                clock_rel_ns, dist.charge]
+        if include_index:
+            idx = (np.arange(n) + 1) if dist.index is None else dist.index
+            cols.append(idx.astype(np.float64))
+        cols.append(dist.status.astype(np.float64))
+        body = np.column_stack(cols).astype(np.float64).ravel()
+        with open(path, "wb") as fh:
+            header.tofile(fh)
+            body.tofile(fh)
+    logger.info("Wrote distribution %s (%s, N=%d)", path, format, n)
+    return str(path)

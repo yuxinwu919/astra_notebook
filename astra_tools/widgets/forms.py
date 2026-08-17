@@ -61,6 +61,10 @@ def _widget_for_param(entry, value=None):
                 default = str(value)
         elif entry["default"] not in (None, ""):
             default = str(entry["default"])
+            # 数值数组默认值可能含手册括号注释 (如 C_numb 的
+            # "1 (3 in ASTRA Vers. 1)"), 清洗掉括号部分再放入控件
+            if "array" in ptype.lower() and "Character" not in ptype:
+                default = default.split("(")[0].strip()
         w = widgets.Text(value=default, description=name, tooltip=tip,
                          layout=widgets.Layout(width="70%"))
     return w

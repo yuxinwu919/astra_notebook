@@ -103,6 +103,7 @@ def parse_namelists(text_or_path) -> dict:
 
     blocks: dict = {}
     current = None
+    last_base = None
     for raw in text.splitlines():
         line = raw.strip()
         if not line or line.startswith("!"):
@@ -110,36 +111,62 @@ def parse_namelists(text_or_path) -> dict:
         if line.startswith("&"):
             current = line[1:].strip()
             blocks[current] = {}
+            last_base = None
             continue
         if line == "/":
             current = None
+            last_base = None
             continue
         if current is None:
             continue
         content = _strip_comment(line).rstrip(",").strip()
         if "=" not in content:
+            # 续行: 数组值换行延续 (手册: 逗号或换行皆可作分隔),
+            # 无 '=' 的行追加到上一个参数 (此前被静默丢弃)
+            if last_base is not None and content:
+                tokens = [t for t in _split_top_level(content) if t.strip()]
+                if tokens:
+                    parsed = [_parse_token(t) for t in tokens]
+                    prev = blocks[current].get(last_base)
+                    if prev is None:
+                        prev = []
+                    elif not isinstance(prev, list):
+                        prev = [prev]
+                    prev.extend(parsed)
+                    blocks[current][last_base] = prev
             continue
 
         def _store(key_raw, value_raw):
+            nonlocal last_base
             key = key_raw.strip()
-            indexed = bool(re.search(r"\(\s*\d+\s*\)$", key))
+            m = re.search(r"\(\s*(\d+)\s*\)$", key)
+            indexed = bool(m)
             # strip the (index) suffix from array elements
             base = re.sub(r"\(\s*\d+\s*\)$", "", key)
+            last_base = base
             tokens = [t for t in _split_top_level(value_raw.strip()) if t.strip()]
             if not tokens:
                 blocks[current][base] = None
                 return
             parsed = [_parse_token(t) for t in tokens]
-            if base in blocks[current]:
-                prev = blocks[current][base]
-                if not isinstance(prev, list):
-                    prev = [prev]
-                prev.extend(parsed if len(parsed) > 1 else [parsed[0]])
-                blocks[current][base] = prev
+            if indexed:
+                # 按索引放置 (乱序声明也正确); 单索引多值从 idx 起连续
+                idx = int(m.group(1))
+                arr = blocks[current].get(base)
+                if not isinstance(arr, list):
+                    arr = []
+                while len(arr) < idx - 1 + len(parsed):
+                    arr.append(None)
+                for k, v in enumerate(parsed):
+                    arr[idx - 1 + k] = v
+                blocks[current][base] = arr
             else:
-                # 带 (i) 索引的键恒存列表 (数组语义); 无索引按标量
-                if indexed:
-                    blocks[current][base] = parsed
+                if base in blocks[current]:
+                    prev = blocks[current][base]
+                    if not isinstance(prev, list):
+                        prev = [prev]
+                    prev.extend(parsed if len(parsed) > 1 else [parsed[0]])
+                    blocks[current][base] = prev
                 else:
                     blocks[current][base] = parsed[0] if len(parsed) == 1 else parsed
 

@@ -96,8 +96,12 @@ def plot_slice_sizes(
     ax=None,
     figsize=(8, 4),
     title: Optional[str] = None,
+    divergences: bool = False,
 ) -> plt.Figure:
-    """Slice RMS sizes [mm] vs z."""
+    """Slice RMS sizes [mm] vs z (postpro 5.6.3 项 5 z-投影).
+
+    divergences=True 时右轴叠加 slice 发散角 x'/y' rms [mrad]。
+    """
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
@@ -107,8 +111,19 @@ def plot_slice_sizes(
     ax.plot(z, sa.sig_y * 1e3, label="$\\sigma_y$")
     ax.set_xlabel("z [mm]")
     ax.set_ylabel("RMS size [mm]")
-    ax.set_title(title or "slice sizes")
-    ax.legend()
+    if divergences:
+        ax2 = ax.twinx()
+        ax2.plot(z, sa.sig_xp * 1e3, ls="--", color="C2",
+                 label="$\\sigma_{x'}$")
+        ax2.plot(z, sa.sig_yp * 1e3, ls=":", color="C3",
+                 label="$\\sigma_{y'}$")
+        ax2.set_ylabel("RMS divergence [mrad]", color="0.3")
+        h1, l1 = ax.get_legend_handles_labels()
+        h2, l2 = ax2.get_legend_handles_labels()
+        ax.legend(h1 + h2, l1 + l2, fontsize=9)
+    else:
+        ax.legend()
+    ax.set_title(title or "slice sizes / divergences (z-projection)")
     fig.tight_layout()
     return fig
 

@@ -268,6 +268,16 @@ def test_solenoid_multi_element(tmp_path):
     assert bz2 == pytest.approx(0.35 + 0.2)
 
 
+def test_solenoid_multi_element_missing_file_returns_none(tmp_path):
+    """批 6: 声明的螺线管场表缺失时不静默部分求和, 降级为 None。"""
+    from astra_tools.deck.solenoid import solenoid_bz_at_z
+    (tmp_path / "s1.dat").write_text("-0.5 1.0\n0.0 1.0\n0.5 1.0\n")
+    (tmp_path / "astra.in").write_text(
+        "&SOLENOID\n LBField=T,\n File_Bfield(1)='s1.dat', File_Bfield(2)='missing.dat',\n"
+        " MaxB(1)=0.35, MaxB(2)=0.2,\n S_pos(1)=1.0, S_pos(2)=2.0,\n /\n")
+    assert solenoid_bz_at_z(tmp_path / "astra.in", 1.0) is None
+
+
 def test_phase_label_reads_file_z(tmp_path):
     """批 6: 标签优先读文件首行绝对 z, mm/cm 命名不再 10 倍错。"""
     from astra_tools.widgets.selectors import _phase_label
@@ -280,6 +290,15 @@ def test_phase_label_reads_file_z(tmp_path):
     f2.write_bytes(b"\x00\x01\x02\x03")
     lab2 = _phase_label(f2)
     assert "1.5000 m" in lab2
+
+
+def test_phase_selector_reads_file_z(tmp_path):
+    """批 6: phase_selector 复用 _phase_label, mm 命名不再 10 倍错。"""
+    from astra_tools.widgets.selectors import phase_selector
+    f = tmp_path / "Example.1500.001"
+    f.write_text("0 0 1.5 0 0 1e9 0 -0.002 1 5\n")
+    sel = phase_selector([f])
+    assert sel.options[0][0] == "z = 1.5000 m  (Example.1500.001)"
 
 
 def test_io_reexports_complete():

@@ -25,6 +25,7 @@ Off-axis field expansion (used by fieldplot, manual chapter 8):
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -79,6 +80,37 @@ class CavityField:
         bphi = (r / (2.0 * C_LIGHT**2)) * (omega * ez0) if omega else np.zeros_like(r)
         return ez, er, bphi
 
+    def expansion_radius(self, omega: float = 0.0, smooth_window=None):
+        """场展开半径 R3rd (手册 8 章, TM) vs z.
+
+        R3rd_Er = sqrt(|0.08 Ez'| / |Ez''' + w²/c² Ez'|)
+        R3rd_Bφ = sqrt(|0.08 Ez0| / |Ez'' + w²/c² Ez0|)
+
+        smooth_window: 可选 Savitzky-Golay 平滑窗口 (奇数, 手册 8 章
+        C_smooth 的演示), 抑制场表数值噪声导致的 R3rd 尖峰; 默认
+        None = 不平滑 (纯数值)。
+
+        返回 (r3rd_er, r3rd_bphi) [m]; 数值噪声处可能 inf/NaN。
+        """
+        ez0 = self._smooth(self.ez0, smooth_window)
+        dez = np.gradient(ez0, self.z)
+        d2ez = np.gradient(dez, self.z)
+        d3ez = np.gradient(d2ez, self.z)
+        w2c2 = (omega / C_LIGHT) ** 2
+        with np.errstate(divide="ignore", invalid="ignore"):
+            r_er = np.sqrt(np.abs(0.08 * dez) / np.abs(d3ez + w2c2 * dez))
+            r_bp = np.sqrt(np.abs(0.08 * ez0)
+                           / np.abs(d2ez + w2c2 * ez0))
+        return r_er, r_bp
+
+    @staticmethod
+    def _smooth(v, window):
+        """可选 Savitzky-Golay 平滑 (奇数窗口, polyorder=3)."""
+        if not window or len(v) < window or window < 3:
+            return v
+        from scipy.signal import savgol_filter
+        return savgol_filter(v, int(window) | 1, 3)
+
 
 @dataclass
 class SolenoidField:
@@ -94,6 +126,8 @@ class SolenoidField:
     def scaled(self, max_b_T: float) -> "SolenoidField":
         """Return a copy scaled so that peak |Bz| equals max_b_T [T]."""
         peak = float(np.max(np.abs(self.bz0)))
+        if peak == 0.0:
+            raise ValueError("cannot scale a zero-peak solenoid field")
         out = SolenoidField(z=self.z.copy(), bz0=self.bz0 * (max_b_T / peak),
                             source=self.source)
         return out
@@ -119,6 +153,27 @@ class SolenoidField:
         bz = bz0 - (r**2 / 4.0) * bz0pp
         return br, bz
 
+    def expansion_radius(self, smooth_window=None):
+        """R3rd = sqrt(|0.08 Bz'| / |Bz'''|) (手册 8 章, 静磁) [m].
+
+        smooth_window: 可选 Savitzky-Golay 平滑 (抑制 Bz''' 噪声尖峰),
+        默认 None = 不平滑。
+        """
+        bz0 = self._smooth(self.bz0, smooth_window)
+        dbz = np.gradient(bz0, self.z)
+        d3bz = np.gradient(np.gradient(dbz, self.z), self.z)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            r = np.sqrt(np.abs(0.08 * dbz) / np.abs(d3bz))
+        return r
+
+    @staticmethod
+    def _smooth(v, window):
+        """可选 Savitzky-Golay 平滑 (奇数窗口, polyorder=3)."""
+        if not window or len(v) < window or window < 3:
+            return v
+        from scipy.signal import savgol_filter
+        return savgol_filter(v, int(window) | 1, 3)
+
 
 @dataclass
 class WakePotential:
@@ -133,9 +188,7 @@ class WakePotential:
 def read_cavity_field(path) -> CavityField:
     """Read a two-column cavity field table (z [m], Ez [MV/m])."""
     path = Path(path)
-    data = np.loadtxt(path)
-    if data.ndim == 1:
-        data = data.reshape(1, -1)
+    data = np.loadtxt(path, ndmin=2)
     if data.shape[1] < 2:
         raise ValueError("cavity field file must have >= 2 columns: " + str(path))
     return CavityField(z=data[:, 0].astype(float),
@@ -146,14 +199,93 @@ def read_cavity_field(path) -> CavityField:
 def read_solenoid_field(path) -> SolenoidField:
     """Read a two-column solenoid field table (z [m], Bz [arb. units])."""
     path = Path(path)
-    data = np.loadtxt(path)
-    if data.ndim == 1:
-        data = data.reshape(1, -1)
+    data = np.loadtxt(path, ndmin=2)
     if data.shape[1] < 2:
         raise ValueError("solenoid field file must have >= 2 columns: " + str(path))
     return SolenoidField(z=data[:, 0].astype(float),
                          bz0=data[:, 1].astype(float),
                          source=str(path))
+
+
+@dataclass
+class TEField:
+    """TE 模腔场 (手册 6.9: 文件名以 'TE_' 开头, 表存轴上纵向磁场 Bz).
+
+    z [m], bz0 任意单位; 按 deck 的 MaxE 缩放 (TE 模下 MaxE 指轴上
+    纵向磁场分量)。离轴场按手册 8 章 TE 展开 (含 w²/c² 项)。
+    """
+
+    z: np.ndarray
+    bz0: np.ndarray
+    source: str = ""
+
+    @property
+    def peak_field_arb(self) -> float:
+        return float(np.max(np.abs(self.bz0)))
+
+    def scaled(self, max_field) -> "TEField":
+        """缩放使峰值等于 max_field (TE 模的 MaxE 指轴上 Bz)."""
+        peak = float(np.max(np.abs(self.bz0)))
+        if peak == 0.0:
+            raise ValueError("cannot scale a zero-peak TE field")
+        return TEField(z=self.z.copy(), bz0=self.bz0 * (max_field / peak),
+                       source=self.source)
+
+    def field_at(self, r: np.ndarray, z: np.ndarray, omega: float = 0.0):
+        """离轴 TE 展开 (手册 8 章): (bz, br, ephi) [T], [T], [V/m].
+
+        Bz(r) = Bz0 - (r²/4)(Bz0'' + w²/c² Bz0)
+        Br(r) = -(r/2) Bz0' + (r³/16)(Bz0''' + w²/c² Bz0')
+        Eφ(r) = [(r/2) Bz0 - (r³/16)(Bz0'' + w²/c² Bz0)] ω
+        """
+        r = np.asarray(r, dtype=float)
+        z = np.asarray(z, dtype=float)
+        bz0 = np.interp(z, self.z, self.bz0)
+        dbz = np.gradient(self.bz0, self.z)
+        d2bz = np.gradient(dbz, self.z)
+        d3bz = np.gradient(d2bz, self.z)
+        bz0p = np.interp(z, self.z, dbz)
+        bz0pp = np.interp(z, self.z, d2bz)
+        bz0ppp = np.interp(z, self.z, d3bz)
+        w2c2 = (omega / C_LIGHT) ** 2
+        bz = bz0 - (r**2 / 4.0) * (bz0pp + w2c2 * bz0)
+        br = -(r / 2.0) * bz0p + (r**3 / 16.0) * (bz0ppp + w2c2 * bz0p)
+        ephi = ((r / 2.0) * bz0 - (r**3 / 16.0) * (bz0pp + w2c2 * bz0)) * omega
+        return bz, br, ephi
+
+    def expansion_radius(self, omega: float = 0.0, smooth_window=None):
+        """R3rd for TE (手册 8 章): (r3rd_ephi, r3rd_br) [m].
+
+        smooth_window: 可选 Savitzky-Golay 平滑, 默认 None = 不平滑。
+        """
+        bz0 = self._smooth(self.bz0, smooth_window)
+        dbz = np.gradient(bz0, self.z)
+        d2bz = np.gradient(dbz, self.z)
+        w2c2 = (omega / C_LIGHT) ** 2
+        with np.errstate(divide="ignore", invalid="ignore"):
+            r_ep = np.sqrt(np.abs(0.08 * bz0)
+                           / np.abs(d2bz + w2c2 * bz0))
+            r_br = np.sqrt(np.abs(0.08 * dbz) / np.abs(d2bz + w2c2 * dbz))
+        return r_ep, r_br
+
+    @staticmethod
+    def _smooth(v, window):
+        """可选 Savitzky-Golay 平滑 (奇数窗口, polyorder=3)."""
+        if not window or len(v) < window or window < 3:
+            return v
+        from scipy.signal import savgol_filter
+        return savgol_filter(v, int(window) | 1, 3)
+
+
+def read_te_field(path) -> TEField:
+    """Read a two-column TE-mode field table (z [m], Bz [arb.]), 手册 6.9."""
+    path = Path(path)
+    data = np.loadtxt(path, ndmin=2)
+    if data.shape[1] < 2:
+        raise ValueError("TE field file must have >= 2 columns: " + str(path))
+    return TEField(z=data[:, 0].astype(float),
+                   bz0=data[:, 1].astype(float),
+                   source=str(path))
 
 
 def read_wake_potential(path) -> WakePotential:
@@ -334,6 +466,11 @@ def read_3d_field_map(path):
       * 紧凑: n, min, spacing (MATLAB/DESY 常见, 就地展开)
     随后为数据值 (可跨行), 顺序 x 最快、y 次之、z 最慢 (Fortran 序)。
 
+    固有歧义: 三个维度 n 均为 2 时, 逐值头每行恰 3 token, 与紧凑头
+    (n, min, spacing) 完全同形, 且两种解析的数据长度都匹配, 无法从
+    token 流区分; 此时固定按手册逐值头解析 (网格 = [min, spacing],
+    而非紧凑展开的 [min, min+spacing]) 并发出 UserWarning。
+
     Returns:
         (x, y, z, F) — F 为 (nx, ny, nz) 数组, 按 F[ix, iy, iz] 索引,
         SI 单位按文件名约定 (ex/ey/ez: V/m; bx/by/bz: T; 数值原样返回)。
@@ -342,30 +479,11 @@ def read_3d_field_map(path):
     # 批 5: 单次读入, 全局 token 流 (此前紧凑分支读一遍、逐值分支
     # 又 read_text() 读第二遍并逐 token 转 float, 65MB laser.dat 翻倍)
     vals = [float(v) for v in path.read_text(encoding="utf-8").split()]
-    if len(vals) < 4:
+    if len(vals) < 7:
         raise ValueError("3D map too short: " + str(path))
 
-    # 紧凑头 (n, min, spacing) 候选: 前 9 个 token 恰为
-    # n1,min1,dx1, n2,min2,dx2, n3,min3,dx3 且各自 n>=1,
-    # 且剩余数据长度与网格积精确相等 — 才按紧凑头解析;
-    # 否则按逐值头解析 (3 个 token 可能只是恰好每行 3 个网格值
-    # 的巧合, 如 3D_Dipole.bx)
-    head9 = vals[:9]
-    compact = False
-    if all(float(h) >= 1 for h in (head9[0], head9[3], head9[6])):
-        ns = [int(head9[0]), int(head9[3]), int(head9[6])]
-        need = ns[0] * ns[1] * ns[2]
-        if len(vals) - 9 == need:
-            compact = True
-            grids = [np.array([head9[1] + j * head9[2] for j in range(ns[0])],
-                              dtype=float),
-                     np.array([head9[4] + j * head9[5] for j in range(ns[1])],
-                              dtype=float),
-                     np.array([head9[7] + j * head9[8] for j in range(ns[2])],
-                              dtype=float)]
-            data = np.array(vals[9:], dtype=float)
-    if not compact:
-        # 逐值头: 全局 token 流, 支持换行 (自由格式)
+    def _per_value():
+        """逐值头 (手册格式): 每维 n 后跟 n 个网格值。"""
         idx = 0
         grids = []
         for _ in range(3):
@@ -375,10 +493,136 @@ def read_3d_field_map(path):
             idx += 1
             grids.append(np.array(vals[idx:idx + n], dtype=float))
             idx += n
-        data = np.array(vals[idx:], dtype=float)
+        return grids, np.array(vals[idx:], dtype=float)
+
+    def _compact():
+        """紧凑头 (n, min, spacing): 前 9 token 三组, 就地展开。"""
+        head9 = vals[:9]
+        if len(head9) < 9:
+            raise ValueError("3D map compact header too short: " + str(path))
+        ns = [int(head9[0]), int(head9[3]), int(head9[6])]
+        if any(n < 1 for n in ns):
+            raise ValueError("3D map grid size invalid: " + str(path))
+        grids = [np.array([head9[1] + j * head9[2] for j in range(ns[0])],
+                          dtype=float),
+                 np.array([head9[4] + j * head9[5] for j in range(ns[1])],
+                          dtype=float),
+                 np.array([head9[7] + j * head9[8] for j in range(ns[2])],
+                          dtype=float)]
+        return grids, np.array(vals[9:], dtype=float)
+
+    # 优先逐值头 (手册格式); 仅当逐值头解析失败或网格积与剩余
+    # 数据长度不匹配时回退紧凑头 (MATLAB/DESY 激光图变体)。逐值头
+    # 各维 n=2 时每行恰 3 token, 与紧凑头同形, 此前的"紧凑优先"
+    # 会把 (2,2,2) 逐值头误判成紧凑头并静默错轴; 反向的 (2,2,2)
+    # 紧凑头同样无法区分 (固有歧义), 固定按逐值头解析并显式告警。
+    grids = data = None
+    try:
+        g, d = _per_value()
+        if len(d) == len(g[0]) * len(g[1]) * len(g[2]):
+            grids, data = g, d
+    except (ValueError, IndexError):
+        pass
+    if grids is None:
+        grids, data = _compact()
+    elif all(len(g) == 2 for g in grids):
+        warnings.warn(
+            "3D 场图 %s: 各维 n=2 时逐值头与紧凑头 (n,min,spacing) "
+            "token 完全同形且数据长度均匹配 (固有歧义), 已按手册逐值头"
+            "解析: 网格 = [min, spacing] (紧凑展开则为 [min, min+spacing])"
+            % path, UserWarning, stacklevel=2)
+
     x, y, z = grids
     nx, ny, nz = len(x), len(y), len(z)
     if len(data) < nx * ny * nz:
         raise ValueError("3D map data truncated: " + str(path))
     f = data[:nx * ny * nz].reshape(nx, ny, nz, order="F")
     return x, y, z, f
+
+
+@dataclass
+class FieldMap3D:
+    """三维场图 (三分量 + 单位元数据, 矢量/等值绘图入口).
+
+    网格与分量均为 SI: 位置 [m], 场数值按文件名约定 (bx/by/bz -> T,
+    ex/ey/ez -> V/m, 数值原样返回)。缺失的分量按全零处理。
+    """
+
+    x: np.ndarray
+    y: np.ndarray
+    z: np.ndarray
+    fx: np.ndarray
+    fy: np.ndarray
+    fz: np.ndarray
+    unit: str = ""
+    quantity: str = "F"   # 'B' / 'E' / 'F', 用于标签如 |B| [T]
+    source: str = ""      # 来源路径 (告警/调试用)
+
+    @property
+    def magnitude(self) -> np.ndarray:
+        """矢量模长 |F| = sqrt(fx^2 + fy^2 + fz^2)。"""
+        return np.sqrt(self.fx ** 2 + self.fy ** 2 + self.fz ** 2)
+
+    def component(self, name: str) -> np.ndarray:
+        """按 'x'/'y'/'z' 取分量数组。"""
+        return {"x": self.fx, "y": self.fy, "z": self.fz}[name]
+
+
+# 分量后缀 -> (FieldMap3D 字段, 单位, 物理量字母)
+# 电分量在前: 主名不带后缀且两族并存时 (如 Cavity_Example 的 3D_test)
+# 优先按电场 (V/m) 解释; 只有磁分量时回退磁场 (T)。
+_FIELD_COMPONENT_SUFFIXES = {
+    ".ex": ("fx", "V/m", "E"), ".ey": ("fy", "V/m", "E"),
+    ".ez": ("fz", "V/m", "E"),
+    ".bx": ("fx", "T", "B"), ".by": ("fy", "T", "B"), ".bz": ("fz", "T", "B"),
+}
+
+
+def read_3d_field_map_components(base):
+    """读取 3D 场图全部分量并组装 FieldMap3D (矢量绘图的数据入口).
+
+    Args:
+        base: 主名 (如 3D_Dipole) 或任一分量文件 (如 3D_Dipole.by);
+              按文件名约定推导单位 (bx/by/bz -> T, ex/ey/ez -> V/m)。
+
+    Returns:
+        FieldMap3D — 三分量数组 (nx, ny, nz), 缺失的分量文件按全零。
+
+    Raises:
+        ValueError: 找不到任何分量文件, 或分量网格不一致。
+    """
+    base = Path(base)
+    unit, quantity, explicit = "", "F", False
+    for suffix, (_, u, q) in _FIELD_COMPONENT_SUFFIXES.items():
+        if base.name.lower().endswith(suffix):
+            base = base.with_name(base.name[:-len(suffix)])
+            unit, quantity = u, q
+            explicit = True
+            break
+    grids = None
+    comps = {}
+    for suffix, (key, u, q) in _FIELD_COMPONENT_SUFFIXES.items():
+        p = base.with_name(base.name + suffix)
+        if not p.exists():
+            continue
+        if not explicit:
+            # 主名无后缀: 以实际找到的分量文件后缀推断单位
+            unit, quantity, explicit = u, q, True
+        gx, gy, gz, f = read_3d_field_map(p)
+        if grids is None:
+            grids = (gx, gy, gz)
+        elif not (np.allclose(grids[0], gx) and np.allclose(grids[1], gy)
+                  and np.allclose(grids[2], gz)):
+            raise ValueError("3D 场图分量网格不一致: " + str(base))
+        comps[key] = f
+    if grids is None:
+        raise ValueError("3D 场图分量文件缺失: " + str(base))
+    x, y, z = grids
+    shape = (len(x), len(y), len(z))
+    zeros = np.zeros(shape)
+    return FieldMap3D(
+        x=x, y=y, z=z,
+        fx=comps.get("fx", zeros),
+        fy=comps.get("fy", zeros),
+        fz=comps.get("fz", zeros),
+        unit=unit, quantity=quantity, source=str(base))

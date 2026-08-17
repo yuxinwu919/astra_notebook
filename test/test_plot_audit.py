@@ -32,10 +32,11 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from astra_tools.plot.style import set_style
 set_style()
 
-from astra_tools.io import read_distribution
+from astra_tools.io import read_distribution, cp_index_colors
 from astra_tools.io.astra_emit import (read_emit_files, read_ref_file,
                                         read_sigma_file, parse_output_file)
-from astra_tools.io.field_map import read_cavity_field, read_solenoid_field
+from astra_tools.io.field_map import (read_cavity_field,
+                                      read_solenoid_field, TEField)
 from astra_tools.io.astra_misc import read_pscan, read_scan
 from astra_tools.analysis.slices import compute_slice_analysis
 from astra_tools.analysis.bff import compute_bff
@@ -43,6 +44,7 @@ from astra_tools.namelist.parse import parse_namelists
 
 DATA = PROJECT_ROOT / "examples/Manual_Example"
 CAV = PROJECT_ROOT / "examples/Cavity_Example"
+DIPOLE = PROJECT_ROOT / "examples/90deg_bend_Example/3D_Dipole"
 
 
 def _is_twinx(ax):
@@ -64,6 +66,8 @@ def F():
                       kmin=10, kmax=1e5, nk=150, detect_features=True)
     cav = read_cavity_field(DATA / "3_cell_L-Band.dat")
     sol = read_solenoid_field(DATA / "Solenoid.dat").scaled(0.35)
+    _tez = np.linspace(0, 0.3, 201)
+    te = TEField(z=_tez, bz0=np.exp(-((_tez - 0.15) / 0.05) ** 2))
     pscan = read_pscan(CAV / "golden/astra.PScan.001")
     scan = read_scan(DATA / "Example.Scan.001")
     z = np.linspace(0, 1.5, 30)
@@ -108,15 +112,28 @@ def F():
         cpath = tf.name
     ce = parse_output_file(cpath)
     ap = parse_namelists(PROJECT_ROOT / "examples/Aperture/astra.in")["APERTURE"]
+    with tempfile.NamedTemporaryFile(suffix=".quad.dat", delete=False) as tf:
+        _qz = np.linspace(0, 1.0, 50)
+        np.savetxt(tf.name, np.column_stack([_qz, 5 * np.ones(50),
+                                             -5 * np.ones(50)]))
+        qpath = tf.name
     return dict(dist=d, emit=emit, ref=ref, sigma=sigma, sa=sa, bff=bff,
                 cav=cav, sol=sol, pscan=pscan, scan=scan, landf=landf,
                 track=track, cathode=cathode, x2=x2, tr=tr, lm=lm, tc=tc,
-                err=err, ce=ce, ap=ap)
+                err=err, ce=ce, ap=ap, te=te, qpath=qpath)
 
 
 from astra_tools.plot import (phase_space as _ps, overview as _ov,
     distributions as _ds, emit_plots as _ep, slice_plots as _sp,
-    bff_plots as _bp, field_plots as _fp, advanced_plots as _ap)
+    bff_plots as _bp, field_plots as _fp, advanced_plots as _ap,
+    arbitrary_phase_space as _arb)
+
+
+def _overlay_case(d):
+    om = _arb.OverlayManager()
+    om.add(d, "x", "xp")
+    om.add(d, "y", "yp")
+    return om.plot()
 
 
 def _cases(F):
@@ -154,6 +171,16 @@ def _cases(F):
         ("bff_amp", lambda: _bp.plot_bff_with_amplitude(F["bff"])),
         ("cavity", lambda: _fp.plot_cavity_field(F["cav"], omega=2 * np.pi * 1.3e9)),
         ("solenoid", lambda: _fp.plot_solenoid_field(F["sol"])),
+        ("te_field", lambda: _fp.plot_te_field(F["te"], omega=2 * np.pi * 1.3e9)),
+        ("r3rd_tm", lambda: _fp.plot_field_expansion_radius(F["cav"], omega=2 * np.pi * 1.3e9)),
+        ("r3rd_te", lambda: _fp.plot_field_expansion_radius(F["te"], omega=2 * np.pi * 1.3e9)),
+        ("r3rd_solenoid", lambda: _fp.plot_field_expansion_radius(F["sol"])),
+        ("solenoid_components", lambda: _fp.plot_solenoid_components(F["sol"])),
+        ("quadrupole", lambda: _ap.plot_quadrupole_field(F["qpath"])),
+        ("laser_envelope", lambda: _ap.plot_laser_envelope(str(CAV / "3D_test.ex"))),
+        ("plasma_z", lambda: _ap.plot_plasma_fields(str(PROJECT_ROOT / "examples/Plasma_Example_1/PLASMA_flattop.txt"), peak_density_cm3=1e17, vs="z")),
+        ("plasma_zeta", lambda: _ap.plot_plasma_fields(str(PROJECT_ROOT / "examples/Plasma_Example_1/PLASMA_flattop.txt"), peak_density_cm3=1e17, vs="zeta")),
+        ("cathode_rings", lambda: _ap.plot_curved_cathode_contour(str(PROJECT_ROOT / "examples/Curved_Cathode_Example/Contour.dat"), show_rings=True)),
         ("losses", lambda: _ap.plot_losses(F["landf"])),
         ("beam_loading", lambda: _ap.plot_beam_loading(F["landf"])),
         ("beta_alpha", lambda: _ap.plot_beta_alpha(emit, ref=ref)),
@@ -171,9 +198,14 @@ def _cases(F):
         ("core_emit_z", lambda: _ap.plot_core_emittance(F["ce"], plane="z")),
         ("cr_emit", lambda: _ap.plot_cr_emit(dict(z=np.linspace(0, 1.5, 20),
             eps_x=np.full(20, 1e-6), eps_y=np.full(20, 1e-6),
-            q_rest=np.linspace(1, 0.8, 20), q_cross=np.linspace(0, 0.2, 20)))),
+            q_rest=np.linspace(1, 0.8, 20), q_cross=np.linspace(0, 0.2, 20),
+            x_rms=np.linspace(1e-3, 2e-3, 20),
+            y_rms=np.linspace(1e-3, 1.5e-3, 20)))),
         ("error_hist", lambda: _ap.plot_error_hist(F["err"], i=0)),
         ("reduced", lambda: _ap.plot_reduced_emittance(F["x2"], F["x2"])),
+        ("emit_diff", lambda: _ap.plot_emittance_difference(F["emit"], F["x2"])),
+        ("corr_contrib", lambda: _ap.plot_correlated_emittance_contributions(F["x2"])),
+        ("red_long", lambda: _ap.plot_reduced_longitudinal_emittance(d)),
         ("trace", lambda: _ap.plot_trace_emittance(F["tr"])),
         ("core_emit", lambda: _ap.plot_core_emittance(F["ce"])),
         ("core_brightness", lambda: _ap.plot_core_brightness(F["ce"], F["landf"])),
@@ -181,10 +213,15 @@ def _cases(F):
         ("tcheck", lambda: _ap.plot_tcheck_scaling(F["tc"])),
         ("z_plot", lambda: _ap.plot_z_plot(d)),
         ("probe_traj", lambda: _ap.plot_probe_trajectories(F["track"])),
+        ("probe_traj_cyl", lambda: _ap.plot_probe_trajectories(F["track"], mode="cylindrical")),
         ("sc_fields", lambda: _ap.plot_space_charge_fields(F["track"])),
         ("cathode", lambda: _ap.plot_cathode_emission(F["cathode"])),
         ("slice_mismatch", lambda: _ap.plot_slice_mismatch(d, n_slices=10)),
         ("3d_map_slices", lambda: _ap.plot_3d_map_slices(str(CAV / "3D_test.ex"), axis="z", n_slices=2, unit="V/m")),
+        ("3d_vector_slices", lambda: _fp.plot_3d_field_map(str(DIPOLE), view="vector_slices", n_slices=2)),
+        ("3d_contour", lambda: _fp.plot_3d_field_map(str(DIPOLE), view="contour", n_slices=2)),
+        ("3d_contour3d", lambda: _fp.plot_3d_field_map(str(DIPOLE), view="contour3d", n_planes=3)),
+        ("3d_scalar_slices", lambda: _fp.plot_3d_field_map(str(DIPOLE), view="scalar_slices", component="y", n_slices=2)),
         ("field_profile", lambda: _ap.plot_field_profile(str(DATA / "3_cell_L-Band.dat"), label="Ez", unit="MV/m")),
         ("curved_cathode", lambda: _ap.plot_curved_cathode_contour(str(PROJECT_ROOT / "examples/Curved_Cathode_Example/Contour.dat"))),
         ("laser_on_axis", lambda: _ap.plot_laser_on_axis(str(CAV / "3D_test.ex"), unit="V/m")),
@@ -192,12 +229,28 @@ def _cases(F):
         ("envelope_aperture", lambda: _ap.plot_envelope_with_aperture(emit, _ap.aperture_elements(F["ap"]))),
         ("core_fraction", lambda: _ap.plot_core_fraction_curves(d)),
         ("slice_ellipses_3d", lambda: _ap.plot_slice_ellipses_3d(d, n_slices=6)),
+        ("slice_ellipses_2d", lambda: _ap.plot_slice_ellipses_2d(d, n_slices=6)),
+        ("slice_ellipses_2d_corr", lambda: _ap.plot_slice_ellipses_2d(d, n_slices=6, subtract_corr=True)),
+        ("phase_space_cpcolors", lambda: _ps.plot_phase_space(d, plane="x", colors=cp_index_colors(d.index, {1: (1, 0, 0), 2: (0, 1, 0)}))),
+        # 2026-08 全覆盖新增
+        ("phase_space_t", lambda: _ps.plot_phase_space(d, plane="t")),
+        ("phase_space_status", lambda: _ps.plot_phase_space(d, plane="x", color_by_status=True)),
+        ("overview_time", lambda: _ov.plot_overview(d, time=True)),
+        ("core_emit_curve", lambda: _ap.plot_core_emittance_curve(d)),
+        ("arbitrary", lambda: _arb.plot_arbitrary(d, "x", "xp")),
+        ("arbitrary_corr", lambda: _arb.plot_arbitrary(d, "x", "xp", subtract_corr=True)),
+        ("arbitrary_proj", lambda: _arb.plot_arbitrary(d, "x", "xp", add_proj=True)),
+        ("arbitrary_status", lambda: _arb.plot_arbitrary(d, "x", "xp", color_by_status=True)),
+        ("slice_sizes_div", lambda: _sp.plot_slice_sizes(F["sa"], divergences=True)),
+        ("slice_ellipses_yyp", lambda: _ap.plot_slice_ellipses_3d(d, plane="yyp")),
+        ("slice_ellipses_corr", lambda: _ap.plot_slice_ellipses_3d(d, subtract_corr=True)),
+        ("overlay", lambda: _overlay_case(d)),
     ]
 
 
 
-# 68 个绘图用例逐一参数化: 任一失败可精确定位到具体图 (批 1c)。
-AUDIT_CASE_IDS = ["phase_space_x","phase_space_x_norm","phase_space_x_weighted","phase_space_y","phase_space_z","transverse","overview","transverse_profile","distributions","energy_dist","envelope","envelope_t","divergence","emittance","energy","bunch_length","energy_spread","ref_traj","velocity","step_size","eigen","emit_dashboard","lineplot_overview","current","slice_emit","slice_sizes","chirp","slice_dashboard","bff","bff_amp","cavity","solenoid","losses","beam_loading","beta_alpha","phase_advance","coherence","phase_scan","pscan_dedz","pscan_comp","scan_fom","corr_energy_spread","ref_momentum","pscan_comp_time","scan_position","tcheck_counter","core_emit_z","cr_emit","error_hist","reduced","trace","core_emit","core_brightness","larmor","tcheck","z_plot","probe_traj","sc_fields","cathode","slice_mismatch","3d_map_slices","field_profile","curved_cathode","laser_on_axis","plasma_profile","envelope_aperture","core_fraction","slice_ellipses_3d"]
+# 72 个绘图用例逐一参数化: 任一失败可精确定位到具体图 (批 1c)。
+AUDIT_CASE_IDS = ["phase_space_x","phase_space_x_norm","phase_space_x_weighted","phase_space_y","phase_space_z","transverse","overview","transverse_profile","distributions","energy_dist","envelope","envelope_t","divergence","emittance","energy","bunch_length","energy_spread","ref_traj","velocity","step_size","eigen","emit_dashboard","lineplot_overview","current","slice_emit","slice_sizes","chirp","slice_dashboard","bff","bff_amp","cavity","solenoid","te_field","r3rd_tm","r3rd_te","r3rd_solenoid","solenoid_components","quadrupole","laser_envelope","plasma_z","plasma_zeta","cathode_rings","losses","beam_loading","beta_alpha","phase_advance","coherence","phase_scan","pscan_dedz","pscan_comp","scan_fom","corr_energy_spread","ref_momentum","pscan_comp_time","scan_position","tcheck_counter","core_emit_z","cr_emit","error_hist","reduced","emit_diff","corr_contrib","red_long","trace","core_emit","core_brightness","larmor","tcheck","z_plot","probe_traj","probe_traj_cyl","sc_fields","cathode","slice_mismatch","3d_map_slices","3d_vector_slices","3d_contour","3d_contour3d","3d_scalar_slices","field_profile","curved_cathode","laser_on_axis","plasma_profile","envelope_aperture","core_fraction","slice_ellipses_3d","slice_ellipses_2d","slice_ellipses_2d_corr","phase_space_cpcolors","phase_space_t","phase_space_status","overview_time","core_emit_curve","arbitrary","arbitrary_corr","arbitrary_proj","arbitrary_status","slice_sizes_div","slice_ellipses_yyp","slice_ellipses_corr","overlay"]
 
 
 @pytest.mark.parametrize("case_name", AUDIT_CASE_IDS)
@@ -232,4 +285,3 @@ def test_all_plots_render_cleanly(F, case_name):
 def test_audit_case_ids_complete(F):
     """ID 清单与 _cases 同步防漂移。"""
     assert [n for n, _ in _cases(F)] == AUDIT_CASE_IDS
-

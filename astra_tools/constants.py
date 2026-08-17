@@ -22,6 +22,7 @@ M_E_C2_EV = 0.510998950e6   # electron rest energy [eV]
 C_LIGHT = 2.99792458e8      # speed of light [m/s]
 E_CHARGE = 1.602176634e-19  # elementary charge [C]
 M_E_KG = 9.1093837015e-31   # electron rest mass [kg]
+EPS0 = 8.8541878128e-12     # vacuum permittivity [F/m] (CODATA 2018)
 
 # ============================================================
 # Relativistic kinematics

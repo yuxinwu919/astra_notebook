@@ -32,7 +32,9 @@ from .slice_plots import (
     plot_slice_dashboard,
 )
 from .bff_plots import plot_bff, plot_bff_with_amplitude
-from .field_plots import plot_cavity_field, plot_solenoid_field
+from .field_plots import (plot_cavity_field, plot_solenoid_field,
+                          plot_3d_field_map, plot_3d_field_slices,
+                          plot_3d_field_contour, plot_3d_field_contour_3d)
 
 __all__ = [
     "set_style", "reset_style",
@@ -50,6 +52,8 @@ __all__ = [
     "plot_energy_chirp", "plot_slice_dashboard",
     "plot_bff", "plot_bff_with_amplitude",
     "plot_cavity_field", "plot_solenoid_field",
+    "plot_3d_field_map", "plot_3d_field_slices",
+    "plot_3d_field_contour", "plot_3d_field_contour_3d",
     # advanced_plots (postpro 5.6 / lineplot 菜单2/3/4 / fieldplot 扩展)
     "plot_losses", "plot_beam_loading", "plot_beta_alpha",
     "plot_phase_advance", "plot_coherence_length", "plot_phase_scan",

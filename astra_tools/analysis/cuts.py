@@ -7,6 +7,8 @@ for further tracking or export.
 
 from __future__ import annotations
 
+from typing import Optional
+
 import numpy as np
 
 from ..constants import kinetic_energy_from_momentum
@@ -86,3 +88,84 @@ def rotate_phase_space(dist: Distribution, angle_deg: float):
         format=dist.format, attrs=dict(dist.attrs),
     )
     return out
+
+
+def modify_correlated_energy_spread(dist: Distribution, factor: float):
+    """改变关联能散 (postpro 5.6.3 项 12).
+
+    把 pz 分解为"非相关部分 + 随 z 线性相关部分":
+        pz = pz_uncorr + (a + b*z)
+    乘以 factor 缩放关联部分并重新合成:
+        pz' = pz_uncorr + factor * (a + b*z)
+    factor=1 不变, 0 完全去相关, >1 增强关联。
+    返回新 Distribution (active 粒子参与拟合, 全体粒子变换)。
+    """
+    m = dist.active
+    z = dist.z
+    pz = dist.pz
+    if m.sum() < 3:
+        raise ValueError("too few active particles for correlation fit")
+    b, a = np.polyfit(z[m], pz[m], 1)
+    corr = a + b * z
+    pz_new = (pz - corr) + factor * corr
+    return Distribution(
+        x=dist.x.copy(), y=dist.y.copy(), z=z.copy(),
+        px=dist.px.copy(), py=dist.py.copy(), pz=pz_new,
+        clock=dist.clock.copy(), charge=dist.charge.copy(),
+        status=dist.status.copy(),
+        index=None if dist.index is None else dist.index.copy(),
+        ref_time_ns=dist.ref_time_ns, ref_momentum_eVc=dist.ref_momentum_eVc,
+        total_charge_nC=dist.total_charge_nC,
+        ref_x_m=dist.ref_x_m, ref_y_m=dist.ref_y_m, ref_z_m=dist.ref_z_m,
+        source=dist.source + " (corr. E spread x%.2f)" % factor,
+        format=dist.format, attrs=dict(dist.attrs),
+    )
+
+
+def optimized_cut_center(values: np.ndarray, width: float,
+                         weights: Optional[np.ndarray] = None) -> float:
+    """优化切割中心 (手册 5.6.4): 找宽度为 width 的对称窗口中心 c,
+    使窗口 [c-width/2, c+width/2] 内 (|q| 加权) 计数最大."""
+    v = np.asarray(values, dtype=float)
+    w = np.abs(np.asarray(weights, dtype=float)) if weights is not None else None
+    if len(v) == 0 or width <= 0:
+        raise ValueError("empty values or non-positive width")
+    order = np.argsort(v)
+    vs = v[order]
+    ws = w[order] if w is not None else np.ones_like(vs)
+    # 前缀和, 滑动窗口最大计数
+    cum = np.concatenate([[0.0], np.cumsum(ws)])
+    best, best_c = -1.0, float(np.mean(vs))
+    lo = 0
+    for hi in range(len(vs)):
+        while vs[lo] < vs[hi] - width:
+            lo += 1
+        total = cum[hi + 1] - cum[lo]
+        if total > best:
+            best = total
+            best_c = 0.5 * (vs[lo] + vs[hi])
+    return float(best_c)
+
+
+def optimized_cut(dist: Distribution, width: float, param: str = "z"):
+    """优化切割 (手册 5.6.4): 给定区间参数 width (如束长), 在 active
+    粒子中找到使存活 (|q| 加权) 粒子数最大的对称窗口, 返回切割分布.
+
+    param: 'x'/'y'/'z' (SI [m]) 或 'E' (动能 [eV], width 用 [eV])。
+    """
+    m = dist.active
+    if param == "x":
+        values, rng = dist.x, (None, None)
+    elif param == "y":
+        values, rng = dist.y, (None, None)
+    elif param == "z":
+        values, rng = dist.z, (None, None)
+    elif param == "E":
+        values = kinetic_energy_from_momentum(dist.pz)
+        rng = (None, None)
+    else:
+        raise ValueError("param 必须为 'x'/'y'/'z'/'E': %r" % (param,))
+    c = optimized_cut_center(np.asarray(values[m], dtype=float), width,
+                             dist.charge[m])
+    lo, hi = c - 0.5 * width, c + 0.5 * width
+    return cut_distribution(dist, **{param + "_range": (lo, hi)})

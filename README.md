@@ -42,9 +42,9 @@
 
 另: examples/ 目录下每个官方算例一本示例 notebook (如
 Manual_Example.ipynb), 另有 postpro_step_demo.ipynb 演示步进功能, 以及
-4 本功能演示 demo: generator_demo (参数化发射度) / bff_demo (束团形状
+5 本功能演示 demo: generator_demo (参数化发射度) / bff_demo (束团形状
 因子对照) / stats_validation_demo (统计量 vs ASTRA 交叉验证) /
-lineplot_demo (lineplot 全菜单专题)。
+lineplot_demo (lineplot 全菜单专题) / fieldplot_demo (场图全类型专题)。
 
 ## 目录结构
 

@@ -67,13 +67,17 @@ def compute_bff(
 
     k: np.ndarray
     if log_spaced:
+        if kmin <= 0:
+            raise ValueError("kmin must be > 0 for a log-spaced k grid")
         k = np.asarray(np.logspace(np.log10(kmin), np.log10(kmax), nk))
     else:
         k = np.asarray(np.linspace(kmin, kmax, nk))
 
     q_total = float(np.sum(charge))
-    # 近中性束团 (|Σq| << Σ|q|): 归一化发散, 按中性处理返回零
-    if abs(q_total) < 1e-12 * float(np.sum(np.abs(charge))) or len(z) == 0:
+    sum_abs_q = float(np.sum(np.abs(charge)))
+    # 近中性束团 (|Σq| << Σ|q|) 或全零电荷 (Σ|q|==0): 归一化发散
+    # (0/0), 按中性处理返回零
+    if sum_abs_q == 0 or abs(q_total) < 1e-12 * sum_abs_q or len(z) == 0:
         return BFFResult(
             k=k, bff=np.zeros(nk), bff_amplitude=np.zeros(nk),
             wavelength=2.0 * np.pi / k,

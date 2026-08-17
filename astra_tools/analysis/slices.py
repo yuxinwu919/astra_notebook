@@ -6,6 +6,8 @@ energy chirp) for studying slice emittance and current profiles.
 Binning strategies follow the ASTRA Manual V3.2, section 6.8:
   * 'equi_spaced': equal z-width bins
   * 'equi_charge' : equal charge per bin
+  * 'equi_energy': equal charge per bin sorted by kinetic energy
+    (postpro 5.6.3 items 8/9: slices w.r.t. the bunch energy)
 
 Physics notes (audited):
   * slices are taken from active particles (status > 1) only
@@ -55,6 +57,11 @@ class SliceAnalysis:
     sig_y: np.ndarray         # [m]
     sig_E_over_E: np.ndarray  # relative energy spread
 
+    mean_xp: np.ndarray       # [rad] slice 内 x' 平均 (发散角, 5.6.3 项 5)
+    mean_yp: np.ndarray       # [rad]
+    sig_xp: np.ndarray        # [rad] slice 内 x' rms
+    sig_yp: np.ndarray        # [rad]
+
     emit_x_norm: np.ndarray   # [m.rad]
     emit_y_norm: np.ndarray   # [m.rad]
 
@@ -74,14 +81,16 @@ def compute_slice_analysis(
     Args:
         dist: particle distribution (active particles used).
         n_slices: number of longitudinal slices.
-        binning: 'equi_spaced' or 'equi_charge'.
+        binning: 'equi_spaced' (等 z 宽), 'equi_charge' (按 z 等电荷),
+            'equi_energy' (按动能等电荷, 手册 5.6.3 项 8/9)。
         ref_momentum_eVc: global reference momentum [eV/c] used for the
             slice divergences and normalized emittances (Xemit convention).
         bz_on_axis_T: on-axis solenoid field at the bunch center [T] for
             the canonical momentum (manual 4.13.1).
     """
-    if binning not in ("equi_spaced", "equi_charge"):
-        raise ValueError("binning must be 'equi_spaced' or 'equi_charge'")
+    if binning not in ("equi_spaced", "equi_charge", "equi_energy"):
+        raise ValueError(
+            "binning must be 'equi_spaced'/'equi_charge'/'equi_energy'")
 
     d = dist.filter_active()
     z = d.z
@@ -140,6 +149,10 @@ def compute_slice_analysis(
     mean_y = np.zeros(n_slices)
     sig_x = np.zeros(n_slices)
     sig_y = np.zeros(n_slices)
+    mean_xp = np.zeros(n_slices)
+    mean_yp = np.zeros(n_slices)
+    sig_xp = np.zeros(n_slices)
+    sig_yp = np.zeros(n_slices)
     mean_pz = np.zeros(n_slices)
     mean_e = np.zeros(n_slices)
     sig_ee = np.zeros(n_slices)
@@ -178,8 +191,13 @@ def compute_slice_analysis(
         pty = pyi - 0.5 * C_LIGHT * bz_on_axis_T * xi
         xp = (ptx - np.mean(ptx)) / ref_momentum_eVc
         yp = (pty - np.mean(pty)) / ref_momentum_eVc
+        # slice 发散角统计 (手册 5.6.3 项 5: px/pz rms 与 avr vs z)
+        mean_xp[i] = float(np.mean(xp))
+        mean_yp[i] = float(np.mean(yp))
+        sig_xp[i] = float(np.std(xp))
+        sig_yp[i] = float(np.std(yp))
         # 群体矩 (无加权), 与 compute_statistics 默认及 ASTRA 一致;
-        # |q| 仅用于 equi_charge 分箱
+        # |q| 仅用于分箱
         ex = compute_geometric_emittance(xi - mean_x[i], xp)
         ey = compute_geometric_emittance(yi - mean_y[i], yp)
 
@@ -208,6 +226,8 @@ def compute_slice_analysis(
         mean_x=mean_x, mean_y=mean_y,
         mean_pz=mean_pz, mean_kinetic_energy_eV=mean_e,
         sig_x=sig_x, sig_y=sig_y, sig_E_over_E=sig_ee,
+        mean_xp=mean_xp, mean_yp=mean_yp,
+        sig_xp=sig_xp, sig_yp=sig_yp,
         emit_x_norm=emit_xn, emit_y_norm=emit_yn,
         gamma_per_slice=gamma_s, beta_per_slice=beta_s,
     )

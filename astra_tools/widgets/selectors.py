@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import ipywidgets as widgets
+import numpy as np
 
 _TYPES = ["Xemit", "Yemit", "Zemit", "Cemit", "Sigma", "ref", "Log", "LandF"]
 
@@ -71,15 +72,7 @@ def phase_selector(phase_files):
     Args:
         phase_files: 相空间文件 Path 列表 (如 astra.0100.001)。
     """
-    options = []
-    for f in sorted(phase_files):
-        tag = f.name.split(".")[1]
-        try:
-            z_cm = int(tag)
-            label = "z = %.3f m  (%s)" % (z_cm / 100.0, f.name)
-        except ValueError:
-            label = f.name
-        options.append((label, f))
+    options = [(_phase_label(f), f) for f in sorted(phase_files)]
 
     sel = widgets.Select(
         options=options,
@@ -113,7 +106,7 @@ def _phase_label(f):
         v = int(f.name.split(".")[1])
         z_m = v / 1000.0 if v >= 1000 else v / 100.0
         return "z = %.4f m  (%s)" % (z_m, f.name)
-    except ValueError:
+    except (ValueError, IndexError):
         return f.name
 
 
@@ -178,4 +171,133 @@ class PhaseStepper(widgets.VBox):
         if not self.files:
             return None
         return self.files[self.index.value]
+
+
+_PARAM_NAMES = ["x", "y", "z", "px", "py", "pz", "clock", "t",
+                "xp", "yp", "dp/p", "E_kin"]
+
+
+class PhaseSpaceParamSelector(widgets.VBox):
+    """任意参数对相空间控件 (postpro 5.6.2 菜单 2).
+
+    两个参数下拉 + 加投影/减线性相关/状态着色 复选框; 绘图按钮;
+    叠加管理 (保存层 / 叠加图 / 清空)。配合 Output 使用。
+    """
+
+    def __init__(self, dist, bz_on_axis_T: float = 0.0):
+        super().__init__()
+        from ..plot.arbitrary_phase_space import OverlayManager
+        self.dist = dist
+        self.bz = bz_on_axis_T
+        self.overlay = OverlayManager()
+        self.x_sel = widgets.Dropdown(options=_PARAM_NAMES, value="x",
+                                      description="X", layout=widgets.Layout(width="130px"))
+        self.y_sel = widgets.Dropdown(options=_PARAM_NAMES, value="xp",
+                                      description="Y", layout=widgets.Layout(width="130px"))
+        self.sub_corr = widgets.Checkbox(value=False, description="减线性相关")
+        self.add_proj = widgets.Checkbox(value=False, description="加投影")
+        self.color_status = widgets.Checkbox(value=False, description="状态着色")
+        self.btn_plot = widgets.Button(description="绘图", layout=widgets.Layout(width="70px"))
+        self.btn_add = widgets.Button(description="加入叠加", layout=widgets.Layout(width="90px"))
+        self.btn_overlay = widgets.Button(description="叠加图", layout=widgets.Layout(width="70px"))
+        self.btn_clear = widgets.Button(description="清空", layout=widgets.Layout(width="60px"))
+        self.lab = widgets.Label(value="叠加层数: 0")
+
+        def _plot(_b=None):
+            from ..plot.arbitrary_phase_space import plot_arbitrary
+            return plot_arbitrary(
+                self.dist, self.x_sel.value, self.y_sel.value,
+                subtract_corr=self.sub_corr.value, add_proj=self.add_proj.value,
+                color_by_status=self.color_status.value, bz_on_axis_T=self.bz)
+
+        def _add(_b=None):
+            self.overlay.add(self.dist, self.x_sel.value, self.y_sel.value,
+                             bz_on_axis_T=self.bz)
+            self.lab.value = "叠加层数: %d" % self.overlay.count
+
+        def _show(_b=None):
+            return self.overlay.plot()
+
+        self.btn_plot.on_click(_plot)
+        self.btn_add.on_click(_add)
+        self.btn_overlay.on_click(_show)
+        self.btn_clear.on_click(lambda _b: (self.overlay.clear(),
+                                            setattr(self.lab, "value", "叠加层数: 0")))
+        self.children = [
+            widgets.HBox([self.x_sel, self.y_sel]),
+            widgets.HBox([self.sub_corr, self.add_proj, self.color_status]),
+            widgets.HBox([self.btn_plot, self.btn_add, self.btn_overlay,
+                          self.btn_clear, self.lab]),
+        ]
+
+
+class CutControls(widgets.VBox):
+    """相空间切割控件 (postpro 5.6.4, 滑块替代鼠标).
+
+    x/y/z/E 四组窗口滑块 + 应用/撤销。保留原分布副本用于撤销。
+    属性: .dist (当前分布), .original。
+    """
+
+    def __init__(self, dist):
+        super().__init__()
+        from IPython.display import display
+        self.original = dist
+        self.dist = dist
+        self._applied = False
+
+        def _mk(param, label, lo, hi, unit, n=200):
+            return widgets.FloatRangeSlider(
+                min=lo, max=hi, value=(lo, hi), step=(hi - lo) / n,
+                description=label, continuous_update=False,
+                layout=widgets.Layout(width="420px"))
+
+        d = dist.filter_active()
+        self.sliders = {
+            "x": _mk("x", "x [mm]", float(d.x.min() * 1e3), float(d.x.max() * 1e3), "mm"),
+            "y": _mk("y", "y [mm]", float(d.y.min() * 1e3), float(d.y.max() * 1e3), "mm"),
+            "z": _mk("z", "z [mm]", float(d.z.min() * 1e3), float(d.z.max() * 1e3), "mm"),
+            "E": _mk("E", "E [MeV]", float(
+                _e(d).min() * 1e-6), float(_e(d).max() * 1e-6), "MeV"),
+        }
+        self.btn_apply = widgets.Button(description="应用切割")
+        self.btn_reject = widgets.Button(description="撤销")
+        self.lab = widgets.Label(value="")
+
+        def _apply(_b=None):
+            from ..analysis.cuts import cut_distribution
+            from ..constants import MEV_TO_EV
+            lo, hi = self.sliders["x"].value
+            xr = (lo * 1e-3, hi * 1e-3)
+            lo, hi = self.sliders["y"].value
+            yr = (lo * 1e-3, hi * 1e-3)
+            lo, hi = self.sliders["z"].value
+            zr = (lo * 1e-3, hi * 1e-3)
+            lo, hi = self.sliders["E"].value
+            er = (lo * MEV_TO_EV, hi * MEV_TO_EV)
+            self.dist, _mask = cut_distribution(
+                self.original, x_range=xr, y_range=yr, z_range=zr, e_range=er)
+            self._applied = True
+            self.lab.value = "已应用切割 (active: %d/%d)" % (
+                self.dist.n_active, self.original.n_active)
+
+        def _reject(_b=None):
+            if self._applied:
+                self.dist = self.original
+                self._applied = False
+                self.lab.value = "已撤销, 恢复原分布"
+
+        self.btn_apply.on_click(_apply)
+        self.btn_reject.on_click(_reject)
+        self.children = [
+            self.sliders["x"], self.sliders["y"],
+            self.sliders["z"], self.sliders["E"],
+            widgets.HBox([self.btn_apply, self.btn_reject, self.lab]),
+        ]
+
+
+def _e(dist):
+    """active 粒子动能 [eV] (CutControls 用)."""
+    from ..constants import kinetic_energy_from_momentum
+    m = dist.active
+    return np.asarray(kinetic_energy_from_momentum(dist.pz[m]), dtype=float)
 

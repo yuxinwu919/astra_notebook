@@ -11,6 +11,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -188,12 +189,192 @@ class TestAdvancedPlots:
         assert len(fig.axes) >= 2
         plt.close(fig)
 
+    def test_3d_map_slices_all_zero_field_warns(self, tmp_path):
+        """全零场切面应告警 (常见原因: 选错分量文件), 而非静默空白图。"""
+        from astra_tools.plot.advanced_plots import plot_3d_map_slices
+        p = tmp_path / "zero_field.ex"
+        p.write_text(
+            "3 0.0 1.0 2.0\n"
+            "3 0.0 1.0 2.0\n"
+            "3 0.0 1.0 2.0\n"
+            + " ".join(["0.0"] * 27) + "\n")
+        with pytest.warns(UserWarning, match="全为零"):
+            fig = plot_3d_map_slices(p, axis="z", n_slices=3, unit="T")
+        assert len(fig.axes) >= 3
+        plt.close(fig)
+
     def test_3d_map_reader(self):
         from astra_tools.io.field_map import read_3d_field_map
         x, y, z, f = read_3d_field_map(
             PROJECT_ROOT / "examples/Cavity_Example/3D_test.ex")
         assert f.shape == (11, 11, 340)
         assert np.all(np.isfinite(f))
+
+
+class Test3DFieldMapViews:
+    """FieldMap3D 数据层与 plot_3d_field_map 四种视图 (fieldplot 菜单 2)."""
+
+    DIPOLE = PROJECT_ROOT / "examples/90deg_bend_Example/3D_Dipole"
+
+    def test_read_components_units_and_magnitude(self):
+        from astra_tools.io import read_3d_field_map_components
+        f = read_3d_field_map_components(self.DIPOLE)
+        assert f.unit == "T" and f.quantity == "B"
+        assert f.fx.shape == (40, 3, 46)
+        # Bx=Bz=0 -> 模长 = |By|
+        assert np.allclose(f.magnitude, np.abs(f.fy))
+        # 显式后缀仍可推导单位
+        assert read_3d_field_map_components(
+            str(self.DIPOLE) + ".by").unit == "T"
+        # 主名无后缀且电/磁分量并存时优先电场
+        cav = read_3d_field_map_components(
+            PROJECT_ROOT / "examples/Cavity_Example/3D_test")
+        assert cav.unit == "V/m" and cav.quantity == "E"
+
+    def test_read_components_missing_and_mismatch(self, tmp_path):
+        from astra_tools.io import read_3d_field_map_components
+
+        def write(name, grid, val):
+            p = tmp_path / name
+            p.write_text(
+                "3 %s\n" % " ".join(str(g) for g in grid) * 3
+                + " ".join([str(val)] * 27) + "\n")
+
+        write("map.bx", (0.0, 0.5, 1.0), 1.0)
+        write("map.by", (0.0, 0.5, 1.0), 2.0)
+        write("map.bz", (0.0, 0.5, 1.0), 0.0)
+        f = read_3d_field_map_components(tmp_path / "map")
+        assert f.unit == "T"
+        assert np.allclose(f.magnitude, np.sqrt(5.0))
+        # 缺失分量按全零
+        (tmp_path / "map.bz").unlink()
+        f2 = read_3d_field_map_components(tmp_path / "map")
+        assert np.all(f2.fz == 0.0)
+        # 网格不一致必须报错
+        write("mx.bx", (0.0, 0.5, 1.0), 1.0)
+        write("mx.by", (0.0, 1.0, 2.0), 2.0)
+        with pytest.raises(ValueError, match="网格不一致"):
+            read_3d_field_map_components(tmp_path / "mx")
+
+    def test_vector_slices_labels(self):
+        """矢量剖面: auto 轴 (y) + mm 标签 + |B| [T] 色条。"""
+        from astra_tools.plot.field_plots import plot_3d_field_map
+        fig = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+                                n_slices=2)
+        labs = _labels(fig)
+        assert any("x [mm]" in l for l in labs)
+        assert any("z [mm]" in l for l in labs)
+        assert "|B| [T]" in (fig.axes[-1].get_ylabel() or "")
+        plt.close(fig)
+
+    def test_plane_labels_and_z_horizontal(self):
+        """plane 语义 + xz/yz 平面中 z 在横轴约定。"""
+        from astra_tools.plot.field_plots import plot_3d_field_map
+        fig = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+                                plane="xy", n_slices=2)
+        assert fig.axes[0].get_xlabel() == "x [mm]"
+        assert fig.axes[0].get_ylabel() == "y [mm]"
+        plt.close(fig)
+        fig = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+                                plane="xz", n_slices=2)
+        assert fig.axes[0].get_xlabel() == "z [mm]"     # z 在横轴
+        assert fig.axes[0].get_ylabel() == "x [mm]"
+        plt.close(fig)
+        fig = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+                                plane="yz", n_slices=2)
+        assert fig.axes[0].get_xlabel() == "z [mm]"
+        assert fig.axes[0].get_ylabel() == "y [mm]"
+        plt.close(fig)
+
+    def test_axis_alias_and_conflict(self):
+        """旧 axis 别名等价, 与 plane 冲突时报错。"""
+        from astra_tools.plot.field_plots import plot_3d_field_map
+        fig1 = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+                                 axis="z", n_slices=2)
+        fig2 = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+                                 plane="xy", n_slices=2)
+        assert fig1.axes[0].get_xlabel() == fig2.axes[0].get_xlabel()
+        assert fig1.axes[0].get_ylabel() == fig2.axes[0].get_ylabel()
+        plt.close(fig1)
+        plt.close(fig2)
+        with pytest.raises(ValueError, match="冲突"):
+            plot_3d_field_map(self.DIPOLE, view="vector_slices",
+                              plane="xy", axis="x")
+
+    def test_single_plane_selection(self):
+        """position/index 指定单个剖面 (单面板)。"""
+        from astra_tools.plot.field_plots import plot_3d_field_map
+        fig = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+                                plane="xz", position=0.0)
+        assert len(fig.axes) == 2
+        assert fig.axes[0].get_title() == "y = 0 mm"
+        plt.close(fig)
+        fig = plot_3d_field_map(self.DIPOLE, view="contour",
+                                plane="xy", index=22)
+        assert fig.axes[0].get_title() == "z = -5 mm"
+        plt.close(fig)
+        with pytest.raises(ValueError, match="越界"):
+            plot_3d_field_map(self.DIPOLE, view="vector_slices",
+                              plane="xy", index=999)
+
+    def test_interactive_slices_widget(self):
+        """滑块组件: 构造 + 滑块范围与固定轴网格一致 (auto -> xz/y)。"""
+        from astra_tools.widgets import interact_3d_field_slices
+        wb = interact_3d_field_slices(self.DIPOLE, auto_render=False)
+        slider = wb.children[2]
+        assert abs(slider.min - (-3.0)) < 1e-9
+        assert abs(slider.max - 3.0) < 1e-9
+        assert wb.children[0].value == "vector_slices"
+        assert wb.children[1].value == "xz"
+
+    def test_contour_and_scalar_labels(self):
+        from astra_tools.plot.field_plots import plot_3d_field_map
+        fig = plot_3d_field_map(self.DIPOLE, view="contour", n_slices=2)
+        assert any("mm" in l for l in _labels(fig))
+        assert "|B| [T]" in (fig.axes[-1].get_ylabel() or "")
+        plt.close(fig)
+        fig = plot_3d_field_map(self.DIPOLE, view="scalar_slices",
+                                component="y", n_slices=2)
+        assert "$B_y$ [T]" in (fig.axes[-1].get_ylabel() or "")
+        plt.close(fig)
+
+    def test_contour3d_renders(self):
+        from astra_tools.plot.field_plots import plot_3d_field_map
+        fig = plot_3d_field_map(self.DIPOLE, view="contour3d", n_planes=3)
+        assert any(a.name == "3d" for a in fig.axes)
+        assert any("x [mm]" in l for l in _labels(fig))
+        plt.close(fig)
+
+    def test_contour3d_aspect_modes(self):
+        """3D 盒子比例: auto 模式保证最短轴有可读性下限 (不压扁)。"""
+        from astra_tools.io import read_3d_field_map_components
+        from astra_tools.plot.field_plots import _box_aspect
+        f = read_3d_field_map_components(self.DIPOLE)
+        phys = _box_aspect(f, "physical")
+        assert abs(phys[1] / phys[2] - 6.0 / 450.0) < 1e-6  # y 被压扁
+        assert _box_aspect(f, "equal") == (1.0, 1.0, 1.0)
+        auto = _box_aspect(f, "auto")
+        assert auto[1] >= 0.25 * auto[2]                      # 可读性下限
+        assert _box_aspect(f, "grid") == (40.0, 3.0, 46.0)
+        assert _box_aspect(f, (2.0, 1.0, 3.0)) == (2.0, 1.0, 3.0)
+        with pytest.raises(ValueError, match="aspect"):
+            _box_aspect(f, "bogus")
+
+    def test_dispatcher_validation(self):
+        from astra_tools.plot.field_plots import plot_3d_field_map
+        with pytest.raises(ValueError, match="未知 view"):
+            plot_3d_field_map(self.DIPOLE, view="nope")
+        with pytest.raises(ValueError, match="component"):
+            plot_3d_field_map(self.DIPOLE, view="scalar_slices")
+
+    def test_zero_field_warns(self, tmp_path):
+        """全零场: 矢量剖面应告警而非静默空白图。"""
+        from astra_tools.plot.field_plots import plot_3d_field_map
+        p = tmp_path / "zero.ex"
+        p.write_text("3 0.0 0.5 1.0\n" * 3 + " ".join(["0.0"] * 27) + "\n")
+        with pytest.warns(UserWarning, match="全为零"):
+            fig = plot_3d_field_map(p, view="vector_slices")
+        plt.close(fig)
 
 
 class TestCutsAndMisc:
@@ -230,6 +411,39 @@ class TestCutsAndMisc:
         p = PROJECT_ROOT / "examples/Curved_Cathode_Example/Contour.dat"
         fig = plot_curved_cathode_contour(p)
         assert any("[mm]" in l for l in _labels(fig))
+        line = fig.axes[0].lines[0]
+        x = np.asarray(line.get_xdata(), dtype=float)
+        y = np.asarray(line.get_ydata(), dtype=float)
+        # 手册 4.4.5: 前两列 (z, R) 是坐标, 后两列是切向单位矢量。
+        # 若误用切向分量 (范围 -1..1) 会得到 ~1000 mm 的假轮廓, 这里限定物理量级。
+        assert -50 < x.min() and x.max() < 50, \
+            "z 超出合理阴极尺寸 (误用了切向分量列?): %r" % ((x.min(), x.max()),)
+        assert 0 <= y.min() and y.max() < 50, \
+            "r 超出合理阴极尺寸 (误用了切向分量列?): %r" % ((y.min(), y.max()),)
+        plt.close(fig)
+
+    def test_trace_emittance_includes_longitudinal(self):
+        """TRemit 含 eps_tr_z 时显示纵向面板 (菜单 4 项 8)."""
+        from astra_tools.plot.advanced_plots import plot_trace_emittance
+        z = np.linspace(0, 1.5, 20)
+        tr = dict(z=z, eps_tr_x=np.full(20, 1e-6),
+                  eps_tr_y=np.full(20, 1e-6), eps_tr_z=np.full(20, 1.2e-6))
+        fig = plot_trace_emittance(tr)
+        assert any("um" in l for l in _labels(fig)), "缺纵向 Trace 单位标签"
+        plt.close(fig)
+
+    def test_cr_emit_beam_size_panel(self):
+        """Cr_emit 含 x_rms/y_rms 时画束斑面板 (菜单 4 项 13)."""
+        from astra_tools.plot.advanced_plots import plot_cr_emit
+        z = np.linspace(0, 1.5, 20)
+        cr = dict(z=z, eps_x=np.full(20, 1e-6), eps_y=np.full(20, 1e-6),
+                  q_rest=np.linspace(1, 0.8, 20), q_cross=np.linspace(0, 0.2, 20),
+                  x_rms=np.linspace(1e-3, 2e-3, 20),
+                  y_rms=np.linspace(1e-3, 1.5e-3, 20))
+        fig = plot_cr_emit(cr)
+        assert len(fig.axes) >= 2, "应含发射度 + 束斑两面板"
+        assert any("beam size" in l.lower() for l in _labels(fig)), \
+            "缺排除 cross-over 束斑面板"
         plt.close(fig)
 
     def test_font_policy_times_new_roman(self):

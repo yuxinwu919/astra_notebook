@@ -93,13 +93,14 @@ def format_input_text(content: str) -> str:
             result.append(stripped)
             prev_blank = False
             continue
-        if in_namelist and stripped == "/":
-            result.append(" /")
-            result.append("")
-            in_namelist = False
-            prev_blank = True
-            continue
         if in_namelist:
+            # 块终止行可为裸 '/' 或带尾注的 '/ ! comment'
+            if _split_comment(stripped)[0].strip() == "/":
+                result.append(" /")
+                result.append("")
+                in_namelist = False
+                prev_blank = True
+                continue
             formatted = format_namelist_line(stripped)
             if formatted:
                 result.append(formatted)

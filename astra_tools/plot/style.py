@@ -24,7 +24,6 @@ FONT_FAMILY = [
     "DejaVu Serif",
     "Liberation Serif",
     "Songti SC",      # macOS 宋体
-    "STSong",
     "SimSun",         # Windows 宋体
     "Noto Serif CJK SC",
     "WenQuanYi Zen Hei",

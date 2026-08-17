@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ..analysis.emittance import canonical_divergence
+from ..analysis.time import bunch_time
 from ..distribution import Distribution
 from .phase_space import scatter2d
 
@@ -25,6 +26,7 @@ def plot_overview(
     title: Optional[str] = None,
     bz_on_axis_T: float = 0.0,
     use_weights: bool = False,
+    time: bool = False,
 ) -> Tuple[plt.Figure, np.ndarray]:
     """3x2 overview: phase spaces + spatial correlations.
 
@@ -32,6 +34,7 @@ def plot_overview(
         dist: Distribution。
         bz_on_axis_T: solenoid field at bunch center for canonical x'/y'。
         bins/use_weights: 兼容保留 (散点渲染不使用)。
+        time: True 时用时间坐标替代 z (postpro 5.6.1 项 5 三视图 vs 时间)。
     """
     m = dist.active
     if not np.any(m):
@@ -41,7 +44,12 @@ def plot_overview(
 
     x = dist.x[m] * 1e3
     y = dist.y[m] * 1e3
-    z = (dist.z[m] - np.mean(dist.z[m])) * 1e3
+    if time:
+        z = bunch_time(dist)[m] * 1e12  # ps
+        zlab = "t [ps] (0 = bunch centre)"
+    else:
+        z = (dist.z[m] - np.mean(dist.z[m])) * 1e3
+        zlab = "z [mm] (positive = ahead)"
     pz = dist.pz[m]
     mean_pz = np.mean(pz)
     if abs(mean_pz) < 1e-30:
@@ -56,9 +64,10 @@ def plot_overview(
         (0, 0, x, xp, "x-x'", "x [mm]", "x' [mrad]"),
         (0, 1, x, y, "x-y", "x [mm]", "y [mm]"),
         (1, 0, y, yp, "y-y'", "y [mm]", "y' [mrad]"),
-        (1, 1, z, x, "z-x", "z [mm]", "x [mm]"),
-        (2, 0, z, dp, "z-dp/p", "z [mm] (positive = ahead)", "dp/p [%]"),
-        (2, 1, z, y, "z-y", "z [mm]", "y [mm]"),
+        (1, 1, z, x, "t-x" if time else "z-x", zlab, "x [mm]"),
+        (2, 0, z, dp, "t-dp/p" if time else "z-dp/p",
+         zlab, "dp/p [%]"),
+        (2, 1, z, y, "t-y" if time else "z-y", zlab, "y [mm]"),
     ]
 
     fig, axes = plt.subplots(3, 2, figsize=figsize)

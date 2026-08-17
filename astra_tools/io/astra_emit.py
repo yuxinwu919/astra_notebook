@@ -52,9 +52,7 @@ NS_TO_S = 1e-9
 
 
 def _load_columns(path: Path, ncols: int) -> np.ndarray:
-    data = np.loadtxt(path)
-    if data.ndim == 1:
-        data = data.reshape(1, -1)
+    data = np.loadtxt(path, ndmin=2)
     if data.shape[1] < ncols:
         raise ValueError(
             "%s: expected >= %d columns, got %d" % (path.name, ncols, data.shape[1])
@@ -404,10 +402,10 @@ def parse_output_file(path, standardize_labels: bool = True) -> dict:
         d[name] = data[:, i] * factors[i]
 
     if standardize_labels:
-        if ftype == "Xemit" and "cov_x__xp/sigma_x" in d:
+        if key == "Xemit" and "cov_x__xp/sigma_x" in d:
             d["cov_x__xp"] = d.pop("cov_x__xp/sigma_x") * d["sigma_x"]
-        if ftype == "Yemit" and "cov_y__yp/sigma_y" in d:
+        if key == "Yemit" and "cov_y__yp/sigma_y" in d:
             d["cov_y__yp"] = d.pop("cov_y__yp/sigma_y") * d["sigma_y"]
-        if ftype == "Zemit" and "cov_z__energy/sigma_z" in d:
+        if key == "Zemit" and "cov_z__energy/sigma_z" in d:
             d["cov_z__energy"] = d.pop("cov_z__energy/sigma_z") * d["sigma_z"]
     return d
