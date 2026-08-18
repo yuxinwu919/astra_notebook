@@ -6,11 +6,13 @@
 from .selectors import discover_sim_runs, run_selector, phase_selector
 from .forms import namelist_form, form_values
 from .panels import stats_table_html, distribution_summary_html
-from .field3d import interact_3d_field_slices
+from .field3d import (interact_3d_field_slices,
+                      interact_3d_field_quiver)
 
 __all__ = [
     "discover_sim_runs", "run_selector", "phase_selector",
     "namelist_form", "form_values",
     "stats_table_html", "distribution_summary_html",
     "interact_3d_field_slices",
+    "interact_3d_field_quiver",
 ]

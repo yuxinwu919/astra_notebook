@@ -6,7 +6,7 @@
 - **前端**: 5 个任务式 Notebook (generator/astra/postpro/lineplot/fieldplot, 与原程序一一对应), 参数用表单点选 (元数据驱动, 覆盖 ASTRA 手册第 6 章
   全部 13 个 namelist 与第 7 章 Generator 全部参数), 也可直接使用现成 .in 文本;
   结果以统计表格 + 现代散点图呈现, 支持 CSV/npz 数据导出。
-- **后端**: astra_tools 纯 Python 包 (不打包、不分发), **复制整个文件夹即可使用**;
+- **后端**: astra_tools , **复制整个文件夹即可使用**;
   统计与绘图代码全部经物理审查, 与 ASTRA 自身输出交叉验证 (误差 < 0.02%)。
 - **覆盖**: postpro/lineplot/fieldplot 三大图形程序的功能替代 — 相空间与切片、
   全部演化曲线 (z 或 t 轴)、发射度/能散/光学函数、场图 (1D/TWS/3D 截面/轴上
@@ -32,13 +32,13 @@
 
 ## Notebook 一览
 
-| # | Notebook | 对应原程序 | 作用 |
-|---|----------|-----------|------|
-| 01 | generator | generator | 初始束团生成 (参数表单 -> 运行 -> 束团预览) |
-| 02 | astra | astra | 工作区自检 + 追踪设置 (全部 namelist 表单 + .in 文本) + 运行/输出清单 |
-| 03 | postpro | postpro | 相空间分析/统计/切片/BFF/导出 (含孔径叠加与核心曲线) |
-| 04 | lineplot | lineplot | 束流参数演化 (九图 + 速度/步长 + t 轴变体) |
-| 05 | fieldplot | fieldplot | 腔场/螺线管/3D 场图/激光/等离子体 |
+| #  | Notebook  | 对应原程序 | 作用                                                                  |
+| -- | --------- | ---------- | --------------------------------------------------------------------- |
+| 01 | generator | generator  | 初始束团生成 (参数表单 -> 运行 -> 束团预览)                           |
+| 02 | astra     | astra      | 工作区自检 + 追踪设置 (全部 namelist 表单 + .in 文本) + 运行/输出清单 |
+| 03 | postpro   | postpro    | 相空间分析/统计/切片/BFF/导出 (含孔径叠加与核心曲线)                  |
+| 04 | lineplot  | lineplot   | 束流参数演化 (九图 + 速度/步长 + t 轴变体)                            |
+| 05 | fieldplot | fieldplot  | 腔场/螺线管/3D 场图/激光/等离子体                                     |
 
 另: examples/ 目录下每个官方算例一本示例 notebook (如
 Manual_Example.ipynb), 另有 postpro_step_demo.ipynb 演示步进功能, 以及

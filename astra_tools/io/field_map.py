@@ -590,14 +590,19 @@ def read_3d_field_map_components(base):
 
     Raises:
         ValueError: 找不到任何分量文件, 或分量网格不一致。
+
+    注意: 电/磁分量并存时只取首个出现的族 (suffix 顺序 ex..bz, 故
+    电场优先), 避免磁场文件覆盖电场分量 (如 Cavity_Example/3D_test
+    同时含 .ex/.ey/.ez 与 .bx/.by/.bz 六文件)。
     """
     base = Path(base)
-    unit, quantity, explicit = "", "F", False
+    unit, quantity, explicit, family = "", "F", False, None
     for suffix, (_, u, q) in _FIELD_COMPONENT_SUFFIXES.items():
         if base.name.lower().endswith(suffix):
             base = base.with_name(base.name[:-len(suffix)])
             unit, quantity = u, q
             explicit = True
+            family = q
             break
     grids = None
     comps = {}
@@ -605,9 +610,14 @@ def read_3d_field_map_components(base):
         p = base.with_name(base.name + suffix)
         if not p.exists():
             continue
-        if not explicit:
-            # 主名无后缀: 以实际找到的分量文件后缀推断单位
-            unit, quantity, explicit = u, q, True
+        if family is None:
+            # 主名无后缀: 以实际找到的分量文件后缀推断单位/族
+            family = q
+            if not explicit:
+                unit, quantity = u, q
+                explicit = True
+        if q != family:
+            continue          # 电/磁并存: 只取首族 (电场优先)
         gx, gy, gz, f = read_3d_field_map(p)
         if grids is None:
             grids = (gx, gy, gz)

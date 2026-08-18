@@ -492,62 +492,6 @@ def plot_slice_mismatch(dist, n_slices=20, ax=None, figsize=(8, 4), title=None):
     return fig
 
 
-def plot_3d_map_slices(path, axis="z", n_slices=3, figsize=(13, 4), title=None,
-                       unit=""):
-    """3D 场图截面 (fieldplot 菜单 2): 沿 axis 取 n_slices 个切面.
-
-    单分量、单方向截面: 一次只画一个场分量文件在垂直于 axis 的平面
-    上的分布; 需要看多个分量时请对每个文件分别调用。沿网格点很少的
-    方向取切面时信息量低 (如 y 仅 3 点时 z 切面只是 3 条色带), 建议
-    选择网格较密的平面方向。场数据全为零时发出 UserWarning (常见原因
-    是选错了分量文件, 如 3D_Dipole.bx/by/bz)。
-
-    Args:
-        path: 3D 场图文件 (3D_test.ex / 3D_Dipole.bx ...).
-        axis: 切片方向 'x'/'y'/'z' (垂直于切面的轴).
-        n_slices: 切面数 (等距).
-        unit: 色条单位 (如 'V/m', 'T').
-    """
-    from ..io.field_map import read_3d_field_map
-    x, y, z, f = read_3d_field_map(path)
-    shape = f.shape
-    fig, axs = plt.subplots(1, n_slices, figsize=figsize, squeeze=False)
-    axs = axs[0]
-    vmax = float(np.max(np.abs(f)))
-    if vmax == 0:
-        warnings.warn(
-            "3D 场图 %s 的数据全为零: 切面将是空图, 请检查是否选对了"
-            "分量文件 (如 3D_Dipole.bx/by/bz) 或切片方向" % path,
-            UserWarning, stacklevel=2)
-        vmax = 1.0
-    for k in range(n_slices):
-        i = int(round(k * (shape[{"x": 0, "y": 1, "z": 2}[axis]] - 1) / max(n_slices - 1, 1)))
-        ax = axs[k]
-        if axis == "z":
-            im = ax.pcolormesh(x * 1e3, y * 1e3, f[:, :, i].T, cmap="RdBu_r",
-                               vmin=-vmax, vmax=vmax, shading="auto")
-            ax.set_xlabel("x [mm]")
-            ax.set_ylabel("y [mm]")
-            ax.set_title("z = %.4g m" % z[i])
-        elif axis == "y":
-            im = ax.pcolormesh(x * 1e3, z * 1e3, f[:, i, :].T, cmap="RdBu_r",
-                               vmin=-vmax, vmax=vmax, shading="auto")
-            ax.set_xlabel("x [mm]")
-            ax.set_ylabel("z [mm]")
-            ax.set_title("y = %.4g mm" % (y[i] * 1e3))
-        else:
-            im = ax.pcolormesh(y * 1e3, z * 1e3, f[i, :, :].T, cmap="RdBu_r",
-                               vmin=-vmax, vmax=vmax, shading="auto")
-            ax.set_xlabel("y [mm]")
-            ax.set_ylabel("z [mm]")
-            ax.set_title("x = %.4g mm" % (x[i] * 1e3))
-    fig.colorbar(im, ax=axs, label=unit or "field")
-    if title:
-        fig.suptitle(title)
-    fig.subplots_adjust(wspace=0.35, bottom=0.15, top=0.88)
-    return fig
-
-
 def plot_pscan_dedz(pscan, ax=None, figsize=(8, 4), title=None):
     """dE/dz vs 相位 (PScan 数值微分, 菜单 2 项 2; 正比于关联能散)."""
     fig, ax = _ax(ax, figsize)

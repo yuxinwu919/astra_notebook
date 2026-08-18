@@ -33,8 +33,11 @@ from .slice_plots import (
 )
 from .bff_plots import plot_bff, plot_bff_with_amplitude
 from .field_plots import (plot_cavity_field, plot_solenoid_field,
+                          plot_solenoid_components, plot_te_field,
+                          plot_field_expansion_radius,
                           plot_3d_field_map, plot_3d_field_slices,
-                          plot_3d_field_contour, plot_3d_field_contour_3d)
+                          plot_3d_field_contour_3d, plot_3d_field_quiver,
+                          resolve_3d_plane, plane_fixed_axis)
 
 __all__ = [
     "set_style", "reset_style",
@@ -52,15 +55,17 @@ __all__ = [
     "plot_energy_chirp", "plot_slice_dashboard",
     "plot_bff", "plot_bff_with_amplitude",
     "plot_cavity_field", "plot_solenoid_field",
+    "plot_solenoid_components", "plot_te_field", "plot_field_expansion_radius",
     "plot_3d_field_map", "plot_3d_field_slices",
-    "plot_3d_field_contour", "plot_3d_field_contour_3d",
+    "plot_3d_field_contour_3d", "plot_3d_field_quiver",
+    "resolve_3d_plane", "plane_fixed_axis",
     # advanced_plots (postpro 5.6 / lineplot 菜单2/3/4 / fieldplot 扩展)
     "plot_losses", "plot_beam_loading", "plot_beta_alpha",
     "plot_phase_advance", "plot_coherence_length", "plot_phase_scan",
     "plot_scan_fom", "plot_error_hist", "plot_reduced_emittance",
     "plot_trace_emittance", "plot_core_emittance", "plot_larmor",
     "plot_probe_trajectories", "plot_space_charge_fields",
-    "plot_cathode_emission", "plot_slice_mismatch", "plot_3d_map_slices",
+    "plot_cathode_emission", "plot_slice_mismatch",
     "slice_mismatch",
     "plot_pscan_dedz", "plot_pscan_compression", "plot_pscan_compression_time",
     "plot_scan_position", "plot_tcheck_scaling", "plot_tcheck_counter",
@@ -78,7 +83,7 @@ from .advanced_plots import (
     plot_coherence_length, plot_phase_scan, plot_scan_fom, plot_error_hist,
     plot_reduced_emittance, plot_trace_emittance, plot_core_emittance,
     plot_larmor, plot_probe_trajectories, plot_space_charge_fields,
-    plot_cathode_emission, plot_slice_mismatch, plot_3d_map_slices,
+    plot_cathode_emission, plot_slice_mismatch,
     slice_mismatch,
 )
 

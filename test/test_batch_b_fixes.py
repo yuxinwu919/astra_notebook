@@ -187,9 +187,9 @@ def test_plot_api_complete():
     for name in (
         "plot_divergence_evolution", "plot_bunch_length_evolution",
         "plot_energy_spread_evolution", "plot_lineplot_overview",
-        "plot_3d_map_slices", "plot_core_brightness", "plot_z_plot",
+        "plot_core_brightness", "plot_z_plot",
         "plot_slice_ellipses_3d",
         "plot_3d_field_map", "plot_3d_field_slices",
-        "plot_3d_field_contour", "plot_3d_field_contour_3d",
+        "plot_3d_field_contour_3d",
     ):
         assert hasattr(P, name), "missing export: " + name

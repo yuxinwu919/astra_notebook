@@ -183,15 +183,15 @@ class TestAdvancedPlots:
         assert np.all(np.nanmin(zy) >= 0.999)
 
     def test_3d_map_slices(self):
-        from astra_tools.plot.advanced_plots import plot_3d_map_slices
+        from astra_tools.plot.field_plots import plot_3d_field_map
         p = PROJECT_ROOT / "examples/Cavity_Example/3D_test.ex"
-        fig = plot_3d_map_slices(p, axis="z", n_slices=2, unit="V/m")
+        fig = plot_3d_field_map(p, view="slices", component="z", n_slices=2)
         assert len(fig.axes) >= 2
         plt.close(fig)
 
     def test_3d_map_slices_all_zero_field_warns(self, tmp_path):
         """全零场切面应告警 (常见原因: 选错分量文件), 而非静默空白图。"""
-        from astra_tools.plot.advanced_plots import plot_3d_map_slices
+        from astra_tools.plot.field_plots import plot_3d_field_map
         p = tmp_path / "zero_field.ex"
         p.write_text(
             "3 0.0 1.0 2.0\n"
@@ -199,7 +199,7 @@ class TestAdvancedPlots:
             "3 0.0 1.0 2.0\n"
             + " ".join(["0.0"] * 27) + "\n")
         with pytest.warns(UserWarning, match="全为零"):
-            fig = plot_3d_map_slices(p, axis="z", n_slices=3, unit="T")
+            fig = plot_3d_field_map(p, view="slices", n_slices=3)
         assert len(fig.axes) >= 3
         plt.close(fig)
 
@@ -230,6 +230,14 @@ class Test3DFieldMapViews:
         cav = read_3d_field_map_components(
             PROJECT_ROOT / "examples/Cavity_Example/3D_test")
         assert cav.unit == "V/m" and cav.quantity == "E"
+        # 电场分量不被磁场文件覆盖 (3D_test 的 bx/by/bz 是噪声, 全零/1e-8)
+        assert np.max(np.abs(cav.fx)) > 1.0
+        assert np.max(np.abs(cav.fz)) > 1.0
+        # 显式 .ez 后缀与主名电场一致
+        cav_ez = read_3d_field_map_components(
+            str(PROJECT_ROOT / "examples/Cavity_Example/3D_test") + ".ez")
+        assert cav_ez.unit == "V/m"
+        assert np.allclose(cav_ez.fz, cav.fz)
 
     def test_read_components_missing_and_mismatch(self, tmp_path):
         from astra_tools.io import read_3d_field_map_components
@@ -259,7 +267,7 @@ class Test3DFieldMapViews:
     def test_vector_slices_labels(self):
         """矢量剖面: auto 轴 (y) + mm 标签 + |B| [T] 色条。"""
         from astra_tools.plot.field_plots import plot_3d_field_map
-        fig = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+        fig = plot_3d_field_map(self.DIPOLE, view="slices",
                                 n_slices=2)
         labs = _labels(fig)
         assert any("x [mm]" in l for l in labs)
@@ -270,51 +278,36 @@ class Test3DFieldMapViews:
     def test_plane_labels_and_z_horizontal(self):
         """plane 语义 + xz/yz 平面中 z 在横轴约定。"""
         from astra_tools.plot.field_plots import plot_3d_field_map
-        fig = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+        fig = plot_3d_field_map(self.DIPOLE, view="slices",
                                 plane="xy", n_slices=2)
         assert fig.axes[0].get_xlabel() == "x [mm]"
         assert fig.axes[0].get_ylabel() == "y [mm]"
         plt.close(fig)
-        fig = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+        fig = plot_3d_field_map(self.DIPOLE, view="slices",
                                 plane="xz", n_slices=2)
         assert fig.axes[0].get_xlabel() == "z [mm]"     # z 在横轴
         assert fig.axes[0].get_ylabel() == "x [mm]"
         plt.close(fig)
-        fig = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+        fig = plot_3d_field_map(self.DIPOLE, view="slices",
                                 plane="yz", n_slices=2)
         assert fig.axes[0].get_xlabel() == "z [mm]"
         assert fig.axes[0].get_ylabel() == "y [mm]"
         plt.close(fig)
 
-    def test_axis_alias_and_conflict(self):
-        """旧 axis 别名等价, 与 plane 冲突时报错。"""
-        from astra_tools.plot.field_plots import plot_3d_field_map
-        fig1 = plot_3d_field_map(self.DIPOLE, view="vector_slices",
-                                 axis="z", n_slices=2)
-        fig2 = plot_3d_field_map(self.DIPOLE, view="vector_slices",
-                                 plane="xy", n_slices=2)
-        assert fig1.axes[0].get_xlabel() == fig2.axes[0].get_xlabel()
-        assert fig1.axes[0].get_ylabel() == fig2.axes[0].get_ylabel()
-        plt.close(fig1)
-        plt.close(fig2)
-        with pytest.raises(ValueError, match="冲突"):
-            plot_3d_field_map(self.DIPOLE, view="vector_slices",
-                              plane="xy", axis="x")
-
     def test_single_plane_selection(self):
         """position/index 指定单个剖面 (单面板)。"""
         from astra_tools.plot.field_plots import plot_3d_field_map
-        fig = plot_3d_field_map(self.DIPOLE, view="vector_slices",
+        fig = plot_3d_field_map(self.DIPOLE, view="slices",
                                 plane="xz", position=0.0)
         assert len(fig.axes) == 2
         assert fig.axes[0].get_title() == "y = 0 mm"
         plt.close(fig)
-        fig = plot_3d_field_map(self.DIPOLE, view="contour",
+        fig = plot_3d_field_map(self.DIPOLE, view="slices", kind="contour",
                                 plane="xy", index=22)
         assert fig.axes[0].get_title() == "z = -5 mm"
         plt.close(fig)
         with pytest.raises(ValueError, match="越界"):
-            plot_3d_field_map(self.DIPOLE, view="vector_slices",
+            plot_3d_field_map(self.DIPOLE, view="slices",
                               plane="xy", index=999)
 
     def test_interactive_slices_widget(self):
@@ -324,16 +317,134 @@ class Test3DFieldMapViews:
         slider = wb.children[2]
         assert abs(slider.min - (-3.0)) < 1e-9
         assert abs(slider.max - 3.0) < 1e-9
-        assert wb.children[0].value == "vector_slices"
+        assert wb.children[0].value == "heatmap"
         assert wb.children[1].value == "xz"
+
+    @staticmethod
+    def _quiver_collection(fig):
+        from matplotlib.quiver import Quiver
+        return next(c for c in fig.axes[0].collections
+                    if isinstance(c, Quiver))
+
+    def test_quiver_2d_semantics(self):
+        """纯 2D quiver: plane='xy' -> xy 平面, 箭头 (U,V) = (fx, fy)."""
+        from astra_tools.io import read_3d_field_map_components
+        from astra_tools.plot.field_plots import plot_3d_field_quiver
+        f = read_3d_field_map_components(self.DIPOLE)
+        fig = plot_3d_field_quiver(f, plane="xy", index=22)
+        ax = fig.axes[0]
+        assert ax.get_xlabel() == "x [mm]"
+        assert ax.get_ylabel() == "y [mm]"
+        assert ax.get_title() == "z = -5 mm"
+        q = self._quiver_collection(fig)
+        assert np.asarray(q.U).shape == (3 * 40,)    # matplotlib 展平存储
+        assert np.allclose(np.asarray(q.U), f.fx[:, :, 22].T.ravel())
+        assert np.allclose(np.asarray(q.V), f.fy[:, :, 22].T.ravel())
+        plt.close(fig)
+
+    def test_quiver_axis_semantics(self):
+        """plane='xz' (z 横轴, U,V)=(fz,fx); plane='yz' (fz,fy)."""
+        from astra_tools.io.field_map import FieldMap3D
+        from astra_tools.plot.field_plots import plot_3d_field_quiver
+        # 合成三分量非零场: fx=x, fy=y, fz=z (每个剖面面内分量明确)
+        x = np.linspace(-1, 1, 5)
+        y = np.linspace(-2, 2, 4)
+        z = np.linspace(-3, 3, 6)
+        XX, YY, ZZ = np.meshgrid(x, y, z, indexing="ij")
+        f = FieldMap3D(x=x, y=y, z=z, fx=XX, fy=YY, fz=ZZ,
+                       unit="V/m", quantity="E")
+        fig = plot_3d_field_quiver(f, plane="xz", index=1)
+        ax = fig.axes[0]
+        assert ax.get_xlabel() == "z [mm]"
+        assert ax.get_ylabel() == "x [mm]"
+        q = self._quiver_collection(fig)
+        assert np.allclose(np.asarray(q.U), f.fz[:, 1, :].ravel())
+        assert np.allclose(np.asarray(q.V), f.fx[:, 1, :].ravel())
+        plt.close(fig)
+        fig = plot_3d_field_quiver(f, plane="yz", index=0)
+        ax = fig.axes[0]
+        assert ax.get_xlabel() == "z [mm]"
+        assert ax.get_ylabel() == "y [mm]"
+        q = self._quiver_collection(fig)
+        assert np.allclose(np.asarray(q.U), f.fz[0, :, :].ravel())
+        assert np.allclose(np.asarray(q.V), f.fy[0, :, :].ravel())
+        plt.close(fig)
+        # 抽稀: max_arrows 上限 -> 等步长且与源数据一致
+        x2 = np.linspace(0, 1, 20)
+        y2 = np.linspace(0, 2, 30)
+        z2 = np.linspace(0, 3, 40)
+        X2, Y2, Z2 = np.meshgrid(x2, y2, z2, indexing="ij")
+        f2 = FieldMap3D(x=x2, y=y2, z=z2, fx=X2, fy=Y2, fz=Z2,
+                        unit="V/m", quantity="E")
+        fig = plot_3d_field_quiver(f2, plane="xz", index=15, max_arrows=100)
+        step = int(np.ceil(np.sqrt(f2.fz[:, 15, :].size / 100)))
+        q = self._quiver_collection(fig)
+        assert np.asarray(q.U).size <= 100
+        assert np.allclose(np.asarray(q.U),
+                           f2.fz[:, 15, :][::step, ::step].ravel())
+        plt.close(fig)
+
+    def test_quiver_color_and_validation(self):
+        """color_by='magnitude' 加色条; 未知 plane/color_by 报错; 默认中间层. """
+        from astra_tools.io import read_3d_field_map_components
+        from astra_tools.plot.field_plots import plot_3d_field_quiver
+        f = read_3d_field_map_components(self.DIPOLE)
+        fig = plot_3d_field_quiver(f, color_by="magnitude")
+        assert len(fig.axes) == 2                     # 图 + 色条
+        assert "|B| [T]" in (fig.axes[1].get_ylabel() or "")
+        assert fig.axes[0].get_title() == "z = %.4g mm" % (
+            f.z[len(f.z) // 2] * 1e3)
+        plt.close(fig)
+        with pytest.raises(ValueError, match="plane"):
+            plot_3d_field_quiver(f, plane="w")
+        with pytest.raises(ValueError, match="color_by"):
+            plot_3d_field_quiver(f, color_by="bogus")
+        # 直接传路径与传 FieldMap3D 等价 (统一入口)
+        fig2 = plot_3d_field_quiver(self.DIPOLE, plane="xy", index=22)
+        assert np.allclose(
+            np.asarray(self._quiver_collection(fig2).U),
+            f.fx[:, :, 22].T.ravel())
+        plt.close(fig2)
+
+    def test_quiver_zero_plane_warns(self, tmp_path):
+        """面内分量全零剖面: 告警而非崩溃 (如 3D_Dipole 的 xz 平面)."""
+        import warnings
+        from astra_tools.plot.field_plots import plot_3d_field_quiver
+        # 全零场: 任何平面面内分量都为 0
+        p = tmp_path / "zero.ex"
+        p.write_text("3 0.0 0.5 1.0\n" * 3 + " ".join(["0.0"] * 27) + "\n")
+        with pytest.warns(UserWarning, match="全为零"):
+            fig = plot_3d_field_quiver(p, plane="xy")
+        assert fig.axes[0].get_xlabel() == "x [mm]"
+        assert len(fig.axes[0].collections) == 0      # 无 quiver
+        plt.close(fig)
+        # 但 Dipole 的 xy 平面 (U=fx=0, V=fy=By) 非零, 不告警
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            fig = plot_3d_field_quiver(self.DIPOLE, plane="xy", index=22)
+        plt.close(fig)
+
+    def test_interactive_quiver_widget(self):
+        """quiver 滑块组件: 构造 + 固定平面按钮 + 滑块范围 = 该轴网格. """
+        from astra_tools.io import read_3d_field_map_components
+        from astra_tools.widgets import interact_3d_field_quiver
+        f = read_3d_field_map_components(self.DIPOLE)
+        wb = interact_3d_field_quiver(self.DIPOLE, plane="xy", auto_render=False)
+        assert wb.children[0].value == "xy"
+        assert wb.children[0].options == ("xy", "xz", "yz")
+        slider = wb.children[1]
+        assert abs(slider.min - float(f.z.min() * 1e3)) < 1e-9
+        assert abs(slider.max - float(f.z.max() * 1e3)) < 1e-9
+        assert slider.step > 0
 
     def test_contour_and_scalar_labels(self):
         from astra_tools.plot.field_plots import plot_3d_field_map
-        fig = plot_3d_field_map(self.DIPOLE, view="contour", n_slices=2)
+        fig = plot_3d_field_map(self.DIPOLE, view="slices", kind="contour",
+                                n_slices=2)
         assert any("mm" in l for l in _labels(fig))
         assert "|B| [T]" in (fig.axes[-1].get_ylabel() or "")
         plt.close(fig)
-        fig = plot_3d_field_map(self.DIPOLE, view="scalar_slices",
+        fig = plot_3d_field_map(self.DIPOLE, view="slices",
                                 component="y", n_slices=2)
         assert "$B_y$ [T]" in (fig.axes[-1].get_ylabel() or "")
         plt.close(fig)
@@ -364,7 +475,8 @@ class Test3DFieldMapViews:
         from astra_tools.plot.field_plots import plot_3d_field_map
         with pytest.raises(ValueError, match="未知 view"):
             plot_3d_field_map(self.DIPOLE, view="nope")
-        with pytest.raises(ValueError, match="component"):
+        # 旧 view 字符串 (scalar_slices 等) 现在一律拒绝为未知 view
+        with pytest.raises(ValueError, match="未知 view"):
             plot_3d_field_map(self.DIPOLE, view="scalar_slices")
 
     def test_zero_field_warns(self, tmp_path):
@@ -373,7 +485,7 @@ class Test3DFieldMapViews:
         p = tmp_path / "zero.ex"
         p.write_text("3 0.0 0.5 1.0\n" * 3 + " ".join(["0.0"] * 27) + "\n")
         with pytest.warns(UserWarning, match="全为零"):
-            fig = plot_3d_field_map(p, view="vector_slices")
+            fig = plot_3d_field_map(p, view="slices")
         plt.close(fig)
 
 

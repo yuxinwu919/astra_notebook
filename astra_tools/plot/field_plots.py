@@ -8,7 +8,8 @@ Solenoid: on-axis Bz(z) and 2D (r, z) map of Bz with Br arrows.
 from __future__ import annotations
 
 import warnings
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -315,7 +316,8 @@ _PLANE_SPEC = {
 _AXIS_TO_PLANE = {"x": "yz", "y": "xz", "z": "xy"}
 
 
-def _resolve_plane(field: FieldMap3D, plane: str, mode: str) -> str:
+def resolve_3d_plane(field: FieldMap3D, plane: str = "auto",
+                     mode: str = "plane") -> str:
     """归一化 plane; 'auto' 按场景选:
       * mode='plane' -> 固定网格点最少的方向 (显示平面最大, 避免薄轴色带);
       * mode='depth' -> 固定网格点最多的方向 (3D 视图体现纵深)。
@@ -330,16 +332,9 @@ def _resolve_plane(field: FieldMap3D, plane: str, mode: str) -> str:
     return _AXIS_TO_PLANE[fixed]
 
 
-def _coerce_plane(field: FieldMap3D, plane: str, axis, mode: str) -> str:
-    """plane 为主参数, axis 为旧参数兼容别名; 两者冲突时报错。"""
-    if axis is not None:
-        if axis not in _AXIS_TO_PLANE:
-            raise ValueError("axis 必须为 'x'/'y'/'z': %r" % (axis,))
-        alias = _AXIS_TO_PLANE[axis]
-        if plane not in ("auto", alias):
-            raise ValueError("plane=%r 与 axis=%r 冲突" % (plane, axis))
-        plane = alias
-    return _resolve_plane(field, plane, mode=mode)
+def plane_fixed_axis(plane: str) -> str:
+    """平面 -> 固定轴 ('xy'->'z', 'xz'->'y', 'yz'->'x'), 供交互组件复用。"""
+    return "xyz"[_PLANE_SPEC[plane][0]]
 
 
 def _slice_indices(n: int, n_slices: int):
@@ -421,95 +416,83 @@ def _box_aspect(field: FieldMap3D, aspect) -> tuple:
         % (aspect,))
 
 
-def plot_3d_field_slices(field: FieldMap3D, plane="auto", n_slices=3,
-                         position=None, index=None, figsize=(13, 4),
-                         title=None, max_arrows=400, axis=None):
-    """矢量剖面: 底色 = |F| 色块, 箭头 = 面内两个分量 (quiver).
+def plot_3d_field_slices(field: FieldMap3D, plane="auto", component=None,
+                         kind="heatmap", n_slices=3, position=None, index=None,
+                         n_levels=12, max_arrows=400, figsize=(13, 4),
+                         title=None):
+    """场图剖面: 多层并排, 或单层 (position [m] / index 网格序号指定).
 
+    component: None = |F| 幅值; 'x'/'y'/'z' = 带符号单分量。
+    kind: 'heatmap' = 色块 (component=None 时叠加面内箭头 quiver) |
+          'contour' = 填充等值线。
     plane='xy'/'xz'/'yz' 选择显示平面 (xz/yz 中 z 在横轴);
     'auto' 固定网格点最少的方向 (显示平面最大, 避免薄轴色带)。
-    position [m] 或 index (网格序号) 指定单个剖面位置;
-    都不传时按 n_slices 等距多层。axis 为旧参数别名 (axis='z' ≡ plane='xy')。
-    箭头确定性抽稀到 <= max_arrows 个, 全部面板共用同一缩放;
-    面内分量全零时 (如 3D_Dipole 的 By 场在 x-z 平面) 只显示底色,
-    这是物理事实而非错误。
+    都不传时按 n_slices 等距多层。箭头确定性抽稀到 <= max_arrows 个,
+    全部面板共用同一缩放; 面内分量全零时 (如 3D_Dipole 的 By 场在
+    x-z 平面) 只显示底色, 这是物理事实而非错误。
     """
-    plane = _coerce_plane(field, plane, axis, mode="plane")
-    fixed_axis = "xyz"[_PLANE_SPEC[plane][0]]
+    plane = resolve_3d_plane(field, plane, mode="plane")
+    fixed_axis = plane_fixed_axis(plane)
     fixed = getattr(field, fixed_axis)
     idxs = _slice_positions(fixed, n_slices, position, index)
-    fig, axs = plt.subplots(1, len(idxs), figsize=figsize, squeeze=False)
-    axs = axs[0]
-    vmax = float(np.max(field.magnitude))
+    signed = component is not None
+    data = field.component(component) if signed else field.magnitude
+    vmax = float(np.max(np.abs(data)))
     if vmax == 0:
         warnings.warn(
-            "3D 场图 %s 的数据全为零: 剖面将是空图, 请检查分量文件"
-            % field.source, UserWarning, stacklevel=2)
+            "3D 场图 %s 的%s全为零: 剖面将是空图"
+            % (field.source, "分量 %s " % component if signed else ""),
+            UserWarning, stacklevel=2)
         vmax = 1.0
-    # 箭头统一缩放: 最长箭头约为面板尺度 20% (跨面板一致)
+    # 箭头统一缩放 (仅 heatmap + 幅值): 最长箭头约为面板尺度 20%
     max_arrow = 0.0
-    for i in idxs:
-        _, _, _, u, v, _, _ = _plane(field, plane, i)
-        m = np.sqrt(u ** 2 + v ** 2)
-        if m.size:
-            max_arrow = max(max_arrow, float(m.max()))
-    span_mm = max(np.ptp(field.x), np.ptp(field.y), np.ptp(field.z)) * 1e3
+    if kind == "heatmap" and not signed:
+        for i in idxs:
+            _, _, _, u, v, _, _ = _plane(field, plane, i)
+            m = np.sqrt(u ** 2 + v ** 2)
+            if m.size:
+                max_arrow = max(max_arrow, float(m.max()))
+    # 面板尺度取显示平面两轴中较大者 (非全局三轴): 腔场等 z 远长于 x/y
+    # 的场图若按全局跨度缩放, 箭头会被放大到溢出 xy 面板。
+    _, pxname, pyname, _, _, _, _ = _PLANE_SPEC[plane]
+    span_mm = max(np.ptp(getattr(field, pxname)),
+                  np.ptp(getattr(field, pyname))) * 1e3
     scale = max_arrow / max(0.2 * span_mm, 1e-30) if max_arrow > 0 else None
     step_max = int(np.sqrt(max_arrows))
 
-    for k, i in enumerate(idxs):
-        px, py, v2d, u, v, xlab, ylab = _plane(field, plane, i)
-        ax = axs[k]
-        im = ax.pcolormesh(px * 1e3, py * 1e3, v2d, cmap="viridis",
-                           vmin=0, vmax=vmax, shading="auto")
-        ax.set_xlabel(xlab)
-        ax.set_ylabel(ylab)
-        ax.set_title("%s = %.4g mm" % (fixed_axis, fixed[i] * 1e3))
-        if max_arrow > 0:
-            sx = slice(None, None, max(1, int(np.ceil(len(px) / step_max))))
-            sy = slice(None, None, max(1, int(np.ceil(len(py) / step_max))))
-            ax.quiver(px[sx] * 1e3, py[sy] * 1e3,
-                      u[sy, sx], v[sy, sx],
-                      angles="xy", scale_units="xy", scale=scale,
-                      pivot="mid", color="0.15", width=0.003)
-    fig.colorbar(im, ax=axs, label=_magnitude_label(field))
-    if title:
-        fig.suptitle(title)
-    fig.subplots_adjust(wspace=0.35, bottom=0.15, top=0.88)
-    return fig
-
-
-def plot_3d_field_contour(field: FieldMap3D, plane="auto", n_slices=3,
-                          position=None, index=None, n_levels=12,
-                          figsize=(13, 4), title=None, axis=None):
-    """2D 等值线/填充等高线: |F| 在 plane 的 n_slices 个剖面上。
-
-    plane/position/index/axis 语义同 plot_3d_field_slices。
-    """
-    plane = _coerce_plane(field, plane, axis, mode="plane")
-    fixed_axis = "xyz"[_PLANE_SPEC[plane][0]]
-    fixed = getattr(field, fixed_axis)
-    idxs = _slice_positions(fixed, n_slices, position, index)
     fig, axs = plt.subplots(1, len(idxs), figsize=figsize, squeeze=False)
     axs = axs[0]
-    vmax = float(np.max(field.magnitude))
-    if vmax == 0:
-        warnings.warn(
-            "3D 场图 %s 的数据全为零: 无法生成等值线" % field.source,
-            UserWarning, stacklevel=2)
-        vmax = 1.0
-    levels = np.linspace(0, vmax, n_levels)
+    if signed:
+        label = ("$%s_%s$ [%s]" % (field.quantity, component, field.unit)
+                 if field.unit else "$%s_%s$" % (field.quantity, component))
+    else:
+        label = _magnitude_label(field)
+    levels = np.linspace(-vmax if signed else 0, vmax, n_levels)
     for k, i in enumerate(idxs):
-        px, py, v2d, _, _, xlab, ylab = _plane(field, plane, i)
+        px, py, v2d, u, v, xlab, ylab = _plane(field, plane, i, values=data)
         ax = axs[k]
-        cf = ax.contourf(px * 1e3, py * 1e3, v2d, levels=levels,
-                         cmap="viridis")
-        ax.contour(px * 1e3, py * 1e3, v2d, levels=levels,
-                   colors="k", linewidths=0.4, alpha=0.35)
+        if kind == "contour":
+            mappable = ax.contourf(px * 1e3, py * 1e3, v2d, levels=levels,
+                                   cmap="viridis" if not signed else "RdBu_r")
+            ax.contour(px * 1e3, py * 1e3, v2d, levels=levels,
+                       colors="k", linewidths=0.4, alpha=0.35)
+        else:  # heatmap
+            mappable = ax.pcolormesh(
+                px * 1e3, py * 1e3, v2d,
+                cmap="viridis" if not signed else "RdBu_r",
+                vmin=0 if not signed else -vmax, vmax=vmax, shading="auto")
+            if max_arrow > 0:
+                sx = slice(None, None,
+                           max(1, int(np.ceil(len(px) / step_max))))
+                sy = slice(None, None,
+                           max(1, int(np.ceil(len(py) / step_max))))
+                ax.quiver(px[sx] * 1e3, py[sy] * 1e3, u[sy, sx], v[sy, sx],
+                          angles="xy", scale_units="xy", scale=scale,
+                          pivot="mid", color="0.15", width=0.003)
         ax.set_xlabel(xlab)
         ax.set_ylabel(ylab)
         ax.set_title("%s = %.4g mm" % (fixed_axis, fixed[i] * 1e3))
-    fig.colorbar(cf, ax=axs, label=_magnitude_label(field))
+    fig.colorbar(mappable, ax=axs, label=label)
     if title:
         fig.suptitle(title)
     fig.subplots_adjust(wspace=0.35, bottom=0.15, top=0.88)
@@ -518,18 +501,18 @@ def plot_3d_field_contour(field: FieldMap3D, plane="auto", n_slices=3,
 
 def plot_3d_field_contour_3d(field: FieldMap3D, plane="auto", n_levels=5,
                              n_planes=7, figsize=(9, 7), title=None,
-                             aspect="auto", axis=None):
+                             aspect="auto"):
     """3D 等值线: |F| 沿 plane 法向的多层 offset 平面叠加 (matplotlib 原生).
 
     依赖约束 (核心仅 numpy/scipy/matplotlib/pandas, 无 marching cubes)
     下用 Axes3D.contour 的多层平面展示全场强度分布; plane='auto' 固定
     网格点最多的方向以体现纵深 (如 3D_Dipole 沿 z)。真等值面
-    (isosurface) 需额外依赖。axis 为旧参数别名。
+    (isosurface) 需额外依赖。
     aspect: 盒子显示比例, 见 _box_aspect (默认 'auto': 物理比例 +
     可读性下限, 避免 y=6mm 对 z=450mm 这类压扁)。
     """
-    plane = _coerce_plane(field, plane, axis, mode="depth")
-    fixed_axis = "xyz"[_PLANE_SPEC[plane][0]]
+    plane = resolve_3d_plane(field, plane, mode="depth")
+    fixed_axis = plane_fixed_axis(plane)
     fixed = getattr(field, fixed_axis)
     mag = field.magnitude
     vmax = float(np.max(mag))
@@ -543,7 +526,7 @@ def plot_3d_field_contour_3d(field: FieldMap3D, plane="auto", n_levels=5,
                   transform=ax.transAxes)
         return fig
     levels = np.linspace(0.25 * vmax, 0.95 * vmax, n_levels)
-    # 3D 轴用自然坐标 (x,y,z); 平面 = 非固定两轴
+    # 3D 轴用自然坐标 (x,y,z); 剖面 = 非固定两轴
     xname, yname = [c for c in "xyz" if c != fixed_axis]
     px = getattr(field, xname)
     py = getattr(field, yname)
@@ -558,9 +541,10 @@ def plot_3d_field_contour_3d(field: FieldMap3D, plane="auto", n_levels=5,
             v2d = mag[i, :, :]
         ax.contour(PX, PY, v2d.T, levels=levels, zdir=fixed_axis,
                    offset=off * 1e3, cmap="viridis", linewidths=1.0)
-    ax.set_xlabel("%s [mm]" % xname)
-    ax.set_ylabel("%s [mm]" % yname)
-    ax.set_zlabel("%s [mm]" % fixed_axis)
+    # 3D 轴物理轴恒为 x/y/z, 标签必须写死, 不能用非固定轴名 (bug 修复)
+    ax.set_xlabel("x [mm]")
+    ax.set_ylabel("y [mm]")
+    ax.set_zlabel("z [mm]")
     ax.set_box_aspect(_box_aspect(field, aspect))
     mappable = plt.cm.ScalarMappable(
         norm=Normalize(levels.min(), levels.max()), cmap="viridis")
@@ -570,82 +554,121 @@ def plot_3d_field_contour_3d(field: FieldMap3D, plane="auto", n_levels=5,
     return fig
 
 
-def _plot_scalar_slices(field: FieldMap3D, component: str, plane="auto",
-                        n_slices=3, position=None, index=None,
-                        figsize=(13, 4), title=None, axis=None):
-    """单分量热力图剖面 (旧 plot_3d_map_slices 语义的 FieldMap3D 版本)."""
-    plane = _coerce_plane(field, plane, axis, mode="plane")
-    fixed_axis = "xyz"[_PLANE_SPEC[plane][0]]
+def plot_3d_field_quiver(
+    field: Union[FieldMap3D, str, Path],
+    plane: str = "xy",
+    index=None,
+    position=None,
+    figsize=(7, 6),
+    title=None,
+    color_by=None,
+    max_arrows=2500,
+) -> plt.Figure:
+    """3D 场图 2D quiver 剖面 (纯矢量箭头图, 无底色).
+
+    选定显示平面 plane ('xy'/'xz'/'yz'), 显示面内 2D 箭头图:
+      plane='xy' (固定 z), 箭头 (U,V) = (fx, fy), 即 (Ex,Ey)/(Bx,By);
+      plane='xz' (固定 y, z 在横轴), (U,V) = (fz, fx);
+      plane='yz' (固定 x, z 在横轴), (U,V) = (fz, fy)。
+    index (网格序号) 或 position [m] 指定单个切片位置; 都不传默认中间层。
+    纯 2D quiver: angles='xy', scale_units='xy' 保证箭头方向/长度真实
+    (参考 matplotlib 标准 quiver 用法, 单面板, 无 |F| 底色)。
+    field 可为 FieldMap3D 或主名/分量文件路径 (自动读取, 同
+    plot_3d_field_map)。
+    color_by: None = 单色箭头 (C0); 'magnitude' = 按面内模长
+    sqrt(U^2+V^2) 着色并加色条。
+    max_arrows: 箭头确定性抽稀上限 (等步长, 超大网格防卡顿);
+    默认 2500, 常见场图剖面 (11x11 / 40x46) 均不抽稀。
+    """
+    from ..io.field_map import FieldMap3D
+    if isinstance(field, (str, Path)):
+        field = read_3d_field_map_components(field)
+    if not isinstance(field, FieldMap3D):
+        raise TypeError("plot_3d_field_quiver 需要 FieldMap3D")
+    if plane not in _PLANE_SPEC:
+        raise ValueError("plane 必须为 'xy'/'xz'/'yz': %r" % (plane,))
+    fixed_axis = plane_fixed_axis(plane)
     fixed = getattr(field, fixed_axis)
-    idxs = _slice_positions(fixed, n_slices, position, index)
-    data = field.component(component)
-    fig, axs = plt.subplots(1, len(idxs), figsize=figsize, squeeze=False)
-    axs = axs[0]
-    vmax = float(np.max(np.abs(data)))
-    if vmax == 0:
+    if index is None and position is None:
+        index = len(fixed) // 2          # 默认中间层
+    i = _slice_positions(fixed, 1, position, index)[0]
+    px, py, _, u, v, xlab, ylab = _plane(field, plane, i)
+    if u.size > max_arrows:
+        step = int(np.ceil(np.sqrt(u.size / max_arrows)))
+        sx = slice(None, None, step)
+        sy = slice(None, None, step)
+        px, py, u, v = px[sx], py[sy], u[sy, sx], v[sy, sx]
+
+    fig, ax = plt.subplots(figsize=figsize)
+    inplane = np.sqrt(u ** 2 + v ** 2)
+    if not np.any(inplane):
+        # 面内分量全零 (物理事实, 如 3D_Dipole 的 B 场只在 y 方向,
+        # 其 xz 平面无箭头): 跳过 quiver 以避免 matplotlib 除零,
+        # 仍返回带轴/标签的图便于定位。
         warnings.warn(
-            "3D 场图 %s 的分量 %s 全为零: 剖面将是空图"
-            % (field.source, component), UserWarning, stacklevel=2)
-        vmax = 1.0
-    label = ("$%s_%s$ [%s]" % (field.quantity, component, field.unit)
-             if field.unit else "$%s_%s$" % (field.quantity, component))
-    for k, i in enumerate(idxs):
-        px, py, v2d, _, _, xlab, ylab = _plane(field, plane, i, values=data)
-        ax = axs[k]
-        im = ax.pcolormesh(px * 1e3, py * 1e3, v2d, cmap="RdBu_r",
-                           vmin=-vmax, vmax=vmax, shading="auto")
+            "3D 场图 %s 在 %s=%.4g mm 剖面的面内分量全为零: quiver 为空"
+            % (field.source, fixed_axis, fixed[i] * 1e3),
+            UserWarning, stacklevel=2)
         ax.set_xlabel(xlab)
         ax.set_ylabel(ylab)
-        ax.set_title("%s = %.4g mm" % (fixed_axis, fixed[i] * 1e3))
-    fig.colorbar(im, ax=axs, label=label)
-    if title:
-        fig.suptitle(title)
-    fig.subplots_adjust(wspace=0.35, bottom=0.15, top=0.88)
+        ax.set_title(title or "%s = %.4g mm" % (fixed_axis, fixed[i] * 1e3))
+        fig.tight_layout()
+        return fig
+    if color_by == "magnitude":
+        q = ax.quiver(px * 1e3, py * 1e3, u, v, np.sqrt(u ** 2 + v ** 2),
+                      angles="xy", scale_units="xy", cmap="viridis",
+                      width=0.004)
+        fig.colorbar(q, ax=ax, label=_magnitude_label(field))
+    elif color_by is None:
+        ax.quiver(px * 1e3, py * 1e3, u, v, color="C0", angles="xy",
+                  scale_units="xy", width=0.004)
+    else:
+        raise ValueError(
+            "color_by 必须为 None 或 'magnitude': %r" % (color_by,))
+    ax.set_xlabel(xlab)
+    ax.set_ylabel(ylab)
+    ax.set_title(title or "%s = %.4g mm" % (fixed_axis, fixed[i] * 1e3))
+    fig.tight_layout()
     return fig
 
 
-_VIEWS = ("vector_slices", "contour", "contour3d", "scalar_slices")
+_VIEWS = ("slices", "contour3d", "quiver")
 
 
-def plot_3d_field_map(base, view="vector_slices", plane="auto", n_slices=3,
-                      position=None, index=None, n_levels=12, n_planes=7,
-                      component=None, title=None, aspect="auto", axis=None):
-    """统一入口: 3D 场图矢量剖面 / 2D 等值线 / 3D 等值线 / 标量剖面.
+def plot_3d_field_map(base, view="slices", plane="auto", component=None,
+                      kind="heatmap", n_slices=3, position=None, index=None,
+                      n_levels=12, n_planes=7, title=None, aspect="auto"):
+    """统一入口: 3D 场图剖面 / 3D 等值线 / 单层 quiver.
 
     Args:
         base: 场图主名 (如 3D_Dipole) 或任一分量文件 (如 3D_Dipole.by);
               自动读取全部三个分量并推导单位 (bx/by/bz -> T,
-              ex/ey/ez -> V/m)。
-        view: 'vector_slices' (默认; 底色 |F| + 面内分量箭头) |
-              'contour' (2D 填充等值线) |
+              ex/ey/ez -> V/m)。也可直接传已加载的 FieldMap3D (不再重读)。
+        view: 'slices' (默认; 多层剖面, 见 component/kind) |
               'contour3d' (3D 等值线, 多层 offset 平面) |
-              'scalar_slices' (单分量热力图, 需 component)。
+              'quiver' (单层纯箭头)。
         plane: 'xy'/'xz'/'yz' 显示平面 (xz/yz 中 z 在横轴);
                'auto' 剖面类固定最薄方向, 3D 视图固定最密方向。
+        component: None = |F| 幅值; 'x'/'y'/'z' = 带符号单分量 (仅 slices)。
+        kind: 'heatmap' (默认, |F| 色块 + 面内箭头) | 'contour' (填充等值线)。
         position [m] / index: 指定单个剖面 (不传则 n_slices 等距多层)。
         n_slices / n_levels / n_planes: 剖面数 / 等值层级数 / 3D 平面数。
-        component: view='scalar_slices' 时必填 ('x'/'y'/'z')。
         aspect: 仅 contour3d; 'auto'/'physical'/'equal'/'grid' 或 (rx,ry,rz)。
-        axis: 旧参数别名 (axis='z' ≡ plane='xy'), 与 plane 冲突报错。
     """
-    field = read_3d_field_map_components(base)
-    if view == "vector_slices":
-        return plot_3d_field_slices(field, plane=plane, n_slices=n_slices,
+    if isinstance(base, FieldMap3D):
+        field = base
+    else:
+        field = read_3d_field_map_components(base)
+    if view == "slices":
+        return plot_3d_field_slices(field, plane=plane, component=component,
+                                    kind=kind, n_slices=n_slices,
                                     position=position, index=index,
-                                    title=title, axis=axis)
-    if view == "contour":
-        return plot_3d_field_contour(field, plane=plane, n_slices=n_slices,
-                                     position=position, index=index,
-                                     n_levels=n_levels, title=title, axis=axis)
+                                    n_levels=n_levels, title=title)
     if view == "contour3d":
         return plot_3d_field_contour_3d(field, plane=plane, n_levels=n_levels,
                                         n_planes=n_planes, title=title,
-                                        aspect=aspect, axis=axis)
-    if view == "scalar_slices":
-        if component not in ("x", "y", "z"):
-            raise ValueError(
-                "view='scalar_slices' 需要 component='x'/'y'/'z'")
-        return _plot_scalar_slices(field, component, plane=plane,
-                                   n_slices=n_slices, position=position,
-                                   index=index, title=title, axis=axis)
+                                        aspect=aspect)
+    if view == "quiver":
+        return plot_3d_field_quiver(field, plane=plane, position=position,
+                                    index=index, title=title)
     raise ValueError("未知 view %r (可用: %s)" % (view, ", ".join(_VIEWS)))

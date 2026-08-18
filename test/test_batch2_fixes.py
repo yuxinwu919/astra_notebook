@@ -20,7 +20,7 @@ from astra_tools.analysis.slices import compute_slice_analysis
 from astra_tools.plot.phase_space import plot_phase_space
 from astra_tools.plot.advanced_plots import (
     plot_core_emittance, plot_beta_alpha, plot_phase_advance,
-    slice_mismatch, plot_3d_map_slices,
+    slice_mismatch,
 )
 
 
@@ -145,6 +145,7 @@ def test_slice_mismatch_uses_canonical_in_slices():
 
 
 def test_3d_map_slices_z_label_mm(tmp_path):
+    from astra_tools.plot.field_plots import plot_3d_field_map
     np.random.seed(0)
     nx, ny, nz = 5, 4, 6
     f = np.random.rand(nx, ny, nz)
@@ -152,8 +153,8 @@ def test_3d_map_slices_z_label_mm(tmp_path):
     lines = ["%d -1.0 0.5" % nx, "%d -1.0 0.666" % ny, "%d 0.0 0.2" % nz]
     lines += [str(v) for v in f.ravel(order="F")]   # x-fastest (Fortran 序, 与读取器 reshape(order="F") 一致)
     p.write_text("\n".join(lines))
-    fig = plot_3d_map_slices(p, axis="y")
-    labels = [ax.get_ylabel() for ax in fig.axes]
+    fig = plot_3d_field_map(p, view="slices", plane="xz")
+    labels = [ax.get_xlabel() for ax in fig.axes] + [ax.get_ylabel() for ax in fig.axes]
     assert any("z [mm]" in (l or "") for l in labels)
     plt.close(fig)
 
