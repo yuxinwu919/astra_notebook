@@ -319,17 +319,25 @@ _AXIS_TO_PLANE = {"x": "yz", "y": "xz", "z": "xy"}
 def resolve_3d_plane(field: FieldMap3D, plane: str = "auto",
                      mode: str = "plane") -> str:
     """归一化 plane; 'auto' 按场景选:
-      * mode='plane' -> 固定网格点最少的方向 (显示平面最大, 避免薄轴色带);
-      * mode='depth' -> 固定网格点最多的方向 (3D 视图体现纵深)。
+      * mode='plane' -> 剖面视图: 有退化轴 (点数极少且物理跨度远小于最长轴,
+        如 3D_Dipole 的 y=3/6mm) 时固定它展示真实 2D 场平面; 否则固定最长轴
+        做横向剖面 (如腔场沿 z 步进看 x-y 横截面)。
+      * mode='depth' -> 3D 视图: 固定网格点最多的方向以体现纵深。
     """
     if plane in _PLANE_SPEC:
         return plane
     if plane != "auto":
         raise ValueError("plane 必须为 'xy'/'xz'/'yz' 或 'auto': %r" % (plane,))
-    counts = [len(field.x), len(field.y), len(field.z)]
-    fixed = "xyz"[int(np.argmin(counts) if mode == "plane"
-                      else np.argmax(counts))]
-    return _AXIS_TO_PLANE[fixed]
+    counts = np.array([len(field.x), len(field.y), len(field.z)])
+    if mode == "depth":
+        fixed = int(np.argmax(counts))
+    else:  # mode == "plane"
+        spans = np.array([np.ptp(field.x), np.ptp(field.y), np.ptp(field.z)],
+                         dtype=float)
+        degenerate = (counts <= 5) & (spans <= 0.15 * spans.max())
+        fixed = (int(np.argmin(counts)) if degenerate.any()
+                 else int(np.argmax(counts)))
+    return _AXIS_TO_PLANE["xyz"[fixed]]
 
 
 def plane_fixed_axis(plane: str) -> str:
@@ -426,7 +434,7 @@ def plot_3d_field_slices(field: FieldMap3D, plane="auto", component=None,
     kind: 'heatmap' = 色块 (component=None 时叠加面内箭头 quiver) |
           'contour' = 填充等值线。
     plane='xy'/'xz'/'yz' 选择显示平面 (xz/yz 中 z 在横轴);
-    'auto' 固定网格点最少的方向 (显示平面最大, 避免薄轴色带)。
+    'auto' 有退化轴 (点数极少) 时固定它, 否则固定最长轴做横向剖面。
     都不传时按 n_slices 等距多层。箭头确定性抽稀到 <= max_arrows 个,
     全部面板共用同一缩放; 面内分量全零时 (如 3D_Dipole 的 By 场在
     x-z 平面) 只显示底色, 这是物理事实而非错误。
@@ -492,64 +500,88 @@ def plot_3d_field_slices(field: FieldMap3D, plane="auto", component=None,
         ax.set_xlabel(xlab)
         ax.set_ylabel(ylab)
         ax.set_title("%s = %.4g mm" % (fixed_axis, fixed[i] * 1e3))
-    fig.colorbar(mappable, ax=axs, label=label)
+    # 顺序: 先 subplots_adjust 预留标题/坐标轴空间, 再 fig.colorbar 收缩子图。
+    # 若 colorbar 在前、subplots_adjust 在后, 后者会把子图位置重置回网格默认值,
+    # 色条与末子图重叠 (色条 x0=0.784 落进第 3 面板 x∈[0.691,0.900])。
     if title:
         fig.suptitle(title)
     fig.subplots_adjust(wspace=0.35, bottom=0.15, top=0.88)
+    fig.colorbar(mappable, ax=axs, label=label)
     return fig
 
 
-def plot_3d_field_contour_3d(field: FieldMap3D, plane="auto", n_levels=5,
-                             n_planes=7, figsize=(9, 7), title=None,
-                             aspect="auto"):
-    """3D 等值线: |F| 沿 plane 法向的多层 offset 平面叠加 (matplotlib 原生).
+def plot_3d_field_stack(field: FieldMap3D, plane="auto", component=None,
+                        n_slices=7, alpha=0.7, highlight=None,
+                        figsize=(9, 7), title=None, aspect="auto"):
+    """3D 切片栈: 沿固定轴等距取若干切片, 画成彩色半透明平面叠在 3D 盒子里.
 
-    依赖约束 (核心仅 numpy/scipy/matplotlib/pandas, 无 marching cubes)
-    下用 Axes3D.contour 的多层平面展示全场强度分布; plane='auto' 固定
-    网格点最多的方向以体现纵深 (如 3D_Dipole 沿 z)。真等值面
-    (isosurface) 需额外依赖。
-    aspect: 盒子显示比例, 见 _box_aspect (默认 'auto': 物理比例 +
-    可读性下限, 避免 y=6mm 对 z=450mm 这类压扁)。
+    依赖约束 (核心仅 numpy/scipy/matplotlib/pandas, 无 marching cubes) 下,
+    这是 matplotlib 里最接近体渲染的 3D 标量场可视化: 每片用 plot_surface
+    着色 (共享 |F|/分量色标), alpha 半透明, 前后层叠出立体分布。
+    plane='auto' 固定网格点最多的方向以体现纵深 (如腔场沿 z)。
+
+    component: None = |F| 幅值 (viridis); 'x'/'y'/'z' = 带符号分量 (RdBu_r)。
+    highlight: 位置 [m], 若有则把该层画成不透明 + 黑边 (供交互步进高亮当前
+        切片用), 其余层仍半透明。
+    aspect: 盒子显示比例, 见 _box_aspect。
     """
     plane = resolve_3d_plane(field, plane, mode="depth")
     fixed_axis = plane_fixed_axis(plane)
     fixed = getattr(field, fixed_axis)
-    mag = field.magnitude
-    vmax = float(np.max(mag))
+    signed = component is not None
+    data = field.component(component) if signed else field.magnitude
+    vmax = float(np.max(np.abs(data)))
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection="3d")
     if vmax == 0:
         warnings.warn(
-            "3D 场图 %s 的数据全为零: 无法生成 3D 等值线" % field.source,
+            "3D 场图 %s 的数据全为零: 无法生成 3D 切片栈" % field.source,
             UserWarning, stacklevel=2)
         ax.text2D(0.5, 0.5, "field is zero", ha="center",
                   transform=ax.transAxes)
         return fig
-    levels = np.linspace(0.25 * vmax, 0.95 * vmax, n_levels)
-    # 3D 轴用自然坐标 (x,y,z); 剖面 = 非固定两轴
+    cmap = "RdBu_r" if signed else "viridis"
+    norm = Normalize(vmin=(-vmax if signed else 0.0), vmax=vmax)
+    sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
     xname, yname = [c for c in "xyz" if c != fixed_axis]
-    px = getattr(field, xname)
-    py = getattr(field, yname)
-    PX, PY = np.meshgrid(px * 1e3, py * 1e3)
-    for off in np.linspace(fixed[0], fixed[-1], n_planes):
-        i = int(np.argmin(np.abs(fixed - off)))
-        if fixed_axis == "z":
-            v2d = mag[:, :, i]
-        elif fixed_axis == "y":
-            v2d = mag[:, i, :]
-        else:
-            v2d = mag[i, :, :]
-        ax.contour(PX, PY, v2d.T, levels=levels, zdir=fixed_axis,
-                   offset=off * 1e3, cmap="viridis", linewidths=1.0)
-    # 3D 轴物理轴恒为 x/y/z, 标签必须写死, 不能用非固定轴名 (bug 修复)
+    hi = (int(np.argmin(np.abs(fixed - highlight)))
+          if highlight is not None else None)
+
+    def draw_plane(i, a, edge):
+        px, py, v2d, _, _, _, _ = _plane(field, plane, i, values=data)
+        off_mm = fixed[i] * 1e3
+        PX, PY = np.meshgrid(px * 1e3, py * 1e3)      # (n_py, n_px)
+        nodes = sm.to_rgba(v2d)
+        # 面片颜色 = 四角节点均值 (facecolors 形状 (rows-1, cols-1, 4))
+        fc = 0.25 * (nodes[:-1, :-1] + nodes[1:, :-1]
+                     + nodes[:-1, 1:] + nodes[1:, 1:])
+        fc[..., 3] = a
+        coords = {xname: PX, yname: PY,
+                  fixed_axis: np.full_like(PX, off_mm)}
+        ax.plot_surface(coords["x"], coords["y"], coords["z"],
+                        facecolors=fc, shade=False,
+                        linewidth=1.2 if edge else 0,
+                        edgecolor="0.1" if edge else "none")
+
+    for i in _slice_indices(len(fixed), n_slices):
+        if i == hi:
+            continue                       # 高亮层单独最后画 (置顶)
+        draw_plane(i, alpha, edge=False)
+    if hi is not None:
+        draw_plane(hi, 1.0, edge=True)
     ax.set_xlabel("x [mm]")
     ax.set_ylabel("y [mm]")
     ax.set_zlabel("z [mm]")
     ax.set_box_aspect(_box_aspect(field, aspect))
-    mappable = plt.cm.ScalarMappable(
-        norm=Normalize(levels.min(), levels.max()), cmap="viridis")
-    fig.colorbar(mappable, ax=ax, label=_magnitude_label(field))
-    ax.set_title(title or "|%s| 3D contours along %s"
+    # set_box_aspect 默认 zoom 会重设数据范围把最长轴压到极小, 导致等值线/面
+    # 被裁成空图; 恢复物理数据范围 (mm), 显示比例仍由 _box_aspect 决定。
+    ax.set_xlim(float(np.min(field.x)) * 1e3, float(np.max(field.x)) * 1e3)
+    ax.set_ylim(float(np.min(field.y)) * 1e3, float(np.max(field.y)) * 1e3)
+    ax.set_zlim(float(np.min(field.z)) * 1e3, float(np.max(field.z)) * 1e3)
+    label = (_magnitude_label(field) if not signed else
+             "$%s_%s$ [%s]" % (field.quantity, component, field.unit))
+    fig.colorbar(sm, ax=ax, label=label, pad=0.12, fraction=0.046)
+    ax.set_title(title or "|%s| 3D slice stack along %s"
                  % (field.quantity, fixed_axis))
     return fig
 
@@ -632,28 +664,30 @@ def plot_3d_field_quiver(
     return fig
 
 
-_VIEWS = ("slices", "contour3d", "quiver")
+_VIEWS = ("slices", "stack3d", "quiver")
 
 
 def plot_3d_field_map(base, view="slices", plane="auto", component=None,
                       kind="heatmap", n_slices=3, position=None, index=None,
-                      n_levels=12, n_planes=7, title=None, aspect="auto"):
-    """统一入口: 3D 场图剖面 / 3D 等值线 / 单层 quiver.
+                      n_levels=12, title=None, aspect="auto", alpha=0.7):
+    """统一入口: 3D 场图剖面 / 3D 切片栈 / 单层 quiver.
 
     Args:
         base: 场图主名 (如 3D_Dipole) 或任一分量文件 (如 3D_Dipole.by);
               自动读取全部三个分量并推导单位 (bx/by/bz -> T,
               ex/ey/ez -> V/m)。也可直接传已加载的 FieldMap3D (不再重读)。
         view: 'slices' (默认; 多层剖面, 见 component/kind) |
-              'contour3d' (3D 等值线, 多层 offset 平面) |
+              'stack3d' (3D 切片栈, 半透明彩色平面) |
               'quiver' (单层纯箭头)。
         plane: 'xy'/'xz'/'yz' 显示平面 (xz/yz 中 z 在横轴);
                'auto' 剖面类固定最薄方向, 3D 视图固定最密方向。
-        component: None = |F| 幅值; 'x'/'y'/'z' = 带符号单分量 (仅 slices)。
+        component: None = |F| 幅值; 'x'/'y'/'z' = 带符号单分量 (slices/stack3d)。
         kind: 'heatmap' (默认, |F| 色块 + 面内箭头) | 'contour' (填充等值线)。
         position [m] / index: 指定单个剖面 (不传则 n_slices 等距多层)。
-        n_slices / n_levels / n_planes: 剖面数 / 等值层级数 / 3D 平面数。
-        aspect: 仅 contour3d; 'auto'/'physical'/'equal'/'grid' 或 (rx,ry,rz)。
+        n_slices: 剖面数 (slices 的面板数 / stack3d 的堆叠层数)。
+        n_levels: slices contour 的等值层级数。
+        aspect: 仅 stack3d; 'auto'/'physical'/'equal'/'grid' 或 (rx,ry,rz)。
+        alpha: 仅 stack3d; 半透明平面的不透明度。
     """
     if isinstance(base, FieldMap3D):
         field = base
@@ -664,10 +698,10 @@ def plot_3d_field_map(base, view="slices", plane="auto", component=None,
                                     kind=kind, n_slices=n_slices,
                                     position=position, index=index,
                                     n_levels=n_levels, title=title)
-    if view == "contour3d":
-        return plot_3d_field_contour_3d(field, plane=plane, n_levels=n_levels,
-                                        n_planes=n_planes, title=title,
-                                        aspect=aspect)
+    if view == "stack3d":
+        return plot_3d_field_stack(field, plane=plane, component=component,
+                                   n_slices=n_slices, title=title,
+                                   aspect=aspect, alpha=alpha)
     if view == "quiver":
         return plot_3d_field_quiver(field, plane=plane, position=position,
                                     index=index, title=title)

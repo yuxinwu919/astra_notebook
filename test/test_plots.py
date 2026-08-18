@@ -449,14 +449,14 @@ class Test3DFieldMapViews:
         assert "$B_y$ [T]" in (fig.axes[-1].get_ylabel() or "")
         plt.close(fig)
 
-    def test_contour3d_renders(self):
+    def test_stack3d_renders(self):
         from astra_tools.plot.field_plots import plot_3d_field_map
-        fig = plot_3d_field_map(self.DIPOLE, view="contour3d", n_planes=3)
+        fig = plot_3d_field_map(self.DIPOLE, view="stack3d", n_slices=3)
         assert any(a.name == "3d" for a in fig.axes)
         assert any("x [mm]" in l for l in _labels(fig))
         plt.close(fig)
 
-    def test_contour3d_aspect_modes(self):
+    def test_stack3d_aspect_modes(self):
         """3D 盒子比例: auto 模式保证最短轴有可读性下限 (不压扁)。"""
         from astra_tools.io import read_3d_field_map_components
         from astra_tools.plot.field_plots import _box_aspect
