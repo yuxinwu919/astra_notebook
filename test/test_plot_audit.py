@@ -229,7 +229,7 @@ def _cases(F):
         ("laser_on_axis", lambda: _ap.plot_laser_on_axis(str(CAV / "3D_test.ex"), unit="V/m")),
         ("plasma_profile", lambda: _ap.plot_plasma_profile(str(PROJECT_ROOT / "examples/Plasma_Example_1/PLASMA_flattop.txt"), peak_density_cm3=1e17)),
         ("envelope_aperture", lambda: _ap.plot_envelope_with_aperture(emit, _ap.aperture_elements(F["ap"]))),
-        ("core_fraction", lambda: _ap.plot_core_fraction_curves(d)),
+        ("core_fraction", lambda: _ap.plot_central_charge_fraction_curves(d)),
         ("slice_ellipses_3d", lambda: _ap.plot_slice_ellipses_3d(d, n_slices=6)),
         ("slice_ellipses_2d", lambda: _ap.plot_slice_ellipses_2d(d, n_slices=6)),
         ("slice_ellipses_2d_corr", lambda: _ap.plot_slice_ellipses_2d(d, n_slices=6, subtract_corr=True)),

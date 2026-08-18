@@ -116,7 +116,7 @@ class PhaseStepper(widgets.VBox):
     滑块 (0..N-1) 是状态源; ◀◀ ◀ ▶ ▶▶ 按钮切换; 底部标签显示当前 z。
     属性: .index (IntSlider), .path (当前相空间文件 Path)。配合
     ipywidgets.interactive_output 可步进时自动刷新统计/相空间
-    (见 03_postpro.ipynb)。
+    (见 postpro.ipynb)。
     """
 
     def __init__(self, phase_files, start: int = -1):

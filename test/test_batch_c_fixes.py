@@ -26,7 +26,7 @@ from astra_tools.io import read_distribution
 from astra_tools.io.astra_misc import read_pscan, read_scan
 from astra_tools.io.astra_emit import read_emit_files, read_ref_file
 from astra_tools.analysis.statistics import compute_statistics
-from astra_tools.analysis.core import compute_core_fraction_curves
+from astra_tools.analysis.core import compute_central_charge_fraction_curves
 import matplotlib
 matplotlib.use("Agg")
 
@@ -198,20 +198,20 @@ def test_plasma_profile_plot():
 # ---------------------------------------------------------------
 # 核心电荷分数曲线 (postpro)
 # ---------------------------------------------------------------
-def test_core_fraction_curves_full_bunch_matches_statistics():
+def test_central_charge_fraction_curves_full_bunch_matches_statistics():
     dist = read_distribution(DATA / "Example.0150.001")
-    c = compute_core_fraction_curves(dist, fractions=(1.0,))
+    c = compute_central_charge_fraction_curves(dist, fractions=(1.0,))
     stats = compute_statistics(dist)
     assert c["sig_z"][0] == pytest.approx(stats.sig_z, rel=1e-9)
     assert c["emit_xn"][0] == pytest.approx(stats.emit_x_norm, rel=1e-9)
     assert c["n_particles"][0] == stats.n_active
 
 
-def test_core_fraction_plot():
+def test_central_charge_fraction_plot():
     import matplotlib.pyplot as plt
-    from astra_tools.plot.advanced_plots import plot_core_fraction_curves
+    from astra_tools.plot.advanced_plots import plot_central_charge_fraction_curves
     dist = read_distribution(DATA / "Example.0150.001")
-    fig = plot_core_fraction_curves(dist)
+    fig = plot_central_charge_fraction_curves(dist)
     assert "core charge fraction" in fig.axes[0].get_xlabel()
     assert "mm mrad" in fig.axes[1].get_ylabel()
     plt.close(fig)

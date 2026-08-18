@@ -75,21 +75,21 @@ examples/golden_expected.json。
 
 文件: test/e2e_notebooks.sh。
 
-* 逐个执行 5 本任务式 notebook (notebooks/01..05):
+* 逐个执行 5 本任务式 notebook (generator/astra/postpro/lineplot/fieldplot):
 
       jupyter nbconvert --to notebook --execute notebooks/XX.ipynb \
         --ExecutePreprocessor.kernel_name=astra-notebook
 
 * examples/ 下 8 本单算例示例 notebook (如 Manual_Example.ipynb)
-  各自只跑一个算例并展示其代表性图, postpro_step_demo.ipynb 演示
-  步进功能, 另有 5 本功能演示 demo (generator 参数化 / BFF 对照 /
-  统计量交叉验证 / lineplot 专题 / fieldplot 场图专题)
+  各自只跑一个算例并展示其代表性图, 另有 6 本功能演示 demo
+  (generator 参数化 / BFF 对照 / 统计量交叉验证 / lineplot 专题 /
+  fieldplot 场图专题 / postpro 全菜单 + 步进演示)
   (共 5+14 本, 约 5-6 分钟)。
 * 失败标准: 任何单元格异常或 nbconvert 返回非零。
 * 本机前提: astra/generator 在 PATH 或项目 ASTRA/ 目录;
   Plasma_Example_2 需要本地 laser.dat (65MB, gitignored)。
 
-## 测试清单 (当前 232 项)
+## 测试清单 (当前 357 项)
 
 * test_backend.py — 单元 + 导出 + 可执行文件
 * test_phase_stepper.py — postpro 步进器 (PhaseStepper)

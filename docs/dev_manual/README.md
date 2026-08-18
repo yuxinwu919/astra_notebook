@@ -2,8 +2,8 @@
 
 ## 架构
 
-前端 (notebooks/, 共 5 本: 01_generator 02_astra 03_postpro
-04_lineplot 05_fieldplot; 示例 notebook 平铺在 examples/) 只做编排与
+前端 (notebooks/, 共 5 本: generator astra postpro lineplot
+fieldplot; 示例 notebook 平铺在 examples/) 只做编排与
 呈现; 一切数据逻辑
 在后端包 astra_tools/
 (import astra_tools)。复制文件夹即用, 无打包。
@@ -63,7 +63,7 @@ examples/<name>/golden/ 由本地真跑生成 (data/golden_runs/, gitignore);
 
 已实现:
 * postpro: 三视图 vs 时间 (所有演化图的 x_axis='t' 参数)、核心束长/
-  发射度 vs 电荷分数 (plot_core_fraction_curves, 自算)、含孔径几何
+  发射度 vs 电荷分数 (plot_central_charge_fraction_curves, 自算)、含孔径几何
   叠加 (plot_envelope_with_aperture + aperture_elements);
 * lineplot: 粒子速度曲线 (plot_velocity_evolution)、平均步长曲线
   (plot_step_size_evolution);

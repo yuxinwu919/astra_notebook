@@ -6,7 +6,7 @@
 
 ## lineplot (5.5)
 
-> 2026-08-18 复核 + 实施补全: 04_lineplot.ipynb 已接入全部已有函数,
+> 2026-08-18 复核 + 实施补全: lineplot.ipynb 已接入全部已有函数,
 > 后端补纵向 Trace 与 cross-over 束斑面板 (✅=已展示; ❌=未实现)。
 
 ### 菜单 1 (随 z 演化)
@@ -81,7 +81,7 @@
 ## postpro (5.6)
 
 > 2026-08-18 全覆盖实施完成 (见 postpro_full_coverage_plan.md)。notebook
-> 03_postpro 已接入全部新增功能。
+> postpro 已接入全部新增功能。
 
 | # | 手册项 | 实现 | 状态 |
 |---|--------|------|------|
@@ -92,12 +92,12 @@
 | 5 | 三视图 vs 时间 | plot_overview(time=True) | ✅ |
 | 6 | 核心发射度 (按粒子数) | compute_core_emittance_by_fraction + plot_core_emittance_curve (4.13.5 单粒子振幅排序; f=1 与 ASTRA 精确一致, f<1 趋势一致) | ✅ |
 | 7 | slice 子菜单 | 见下 | ✅ |
-| 8 | 横向核心亮度 | plot_core_brightness (03_postpro 已接入, 需 Xemit/Yemit/LandF) | ✅ |
-| 9 | 核心束长 | plot_core_fraction_curves (sigma_z 面板) | ✅ |
+| 8 | 横向核心亮度 | plot_core_brightness (postpro 已接入, 需 Xemit/Yemit/LandF) | ✅ |
+| 9 | 核心束长 | plot_central_charge_fraction_curves (sigma_z 面板) | ✅ |
 | 10 | z-plot (含丢失粒子) | plot_z_plot (active/lost/passive 分色) | ✅ |
 | 11 | 相空间操作 | optimized_cut + CutControls (滑块+应用/撤销) + rotate_phase_space + cut_distribution | ✅ |
 | 13 | fit, save & read | OverlayManager 内存叠加 (无参数拟合) | ⚠️ |
-| 14/15 | forward/backward | PhaseStepper 步进器 (03_postpro) | ✅ |
+| 14/15 | forward/backward | PhaseStepper 步进器 (postpro) | ✅ |
 | 16 | to file | export_distribution / export_statistics | ⚠️ |
 | 17/18 | next/prev run | 手动选择 | ⚠️ |
 
@@ -144,7 +144,7 @@
 
 ## fieldplot (5.7)
 
-> 2026-08-18 复核 + 实施补全: 05_fieldplot 已接入全部已有函数 (阴极/激光
+> 2026-08-18 复核 + 实施补全: fieldplot 已接入全部已有函数 (阴极/激光
 > 激活, 弯曲阴极/场剖面/空间电荷新增), 均带文件存在守卫。✅=已展示;
 > ⚠️=简化/部分; ❌=未实现。2026-08 (遗留项收尾): 新增 TE 模场 (Bz/Br/Eφ),
 > 场展开半径 R3rd (TM/TE/螺线管, 手册 8 章), 螺线管/四极 next page,
@@ -177,21 +177,22 @@
 
 * 渲染方式: 2D 相空间为普通散点 (s=8, 确定性子采样 max_points,
   0.5-99.5 百分位裁剪); RMS 椭圆叠加已按用户决定移除。
-* 步进: 03_postpro 内置 PhaseStepper; examples/postpro_step_demo.ipynb
+* 步进: postpro 内置 PhaseStepper; examples/postpro_demo.ipynb
   是独立演示 (8 个 z monitor 自动刷新)。
-* 功能演示 demo (2026-08 新增, examples/ 下 5 本): generator_demo
+* 功能演示 demo (2026-08 新增, examples/ 下 6 本): generator_demo
   (INPUT 卡改参重跑 + 发射度回读)、bff_demo (直接法/FFT/解析式
   三方对照 + CSR 特征点)、stats_validation_demo (统计量逐列对照
   ASTRA Xemit/Zemit + 螺线管正则动量)、lineplot_demo (lineplot 全
   菜单 + 稀有文件类型合成示例数据)、fieldplot_demo (腔场二维图 +
-  3D 场图四种视图 + 螺线管 + 阴极/激光/等离子体场剖面)。
+  3D 场图四种视图 + 螺线管 + 阴极/激光/等离子体场剖面)、
+  postpro_demo (postpro 全菜单 + 步进演示)。
 
-* 03_postpro: PhaseStepper 步进 (滑块+◀◀ ◀ ▶ ▶▶) 自动刷新统计与相空间;
+* postpro: PhaseStepper 步进 (滑块+◀◀ ◀ ▶ ▶▶) 自动刷新统计与相空间;
   其余单元步进后重跑, 与原 postpro 逻辑一致 ✅
-* 04_lineplot: 改为 discover_sim_runs 自动发现 stem (原硬编码 astra,
+* lineplot: 改为 discover_sim_runs 自动发现 stem (原硬编码 astra,
   换了 deck 名就会 FileNotFoundError — 已修) ✅
-* 05_fieldplot: 场文件固定指向 examples/ (示例定位, 注释说明) ✅
-* 02_astra 表单 -> 写入: 数组参数数值化、TRUE/FALSE 语义已修 (前轮) ✅
+* fieldplot: 场文件固定指向 examples/ (示例定位, 注释说明) ✅
+* astra 表单 -> 写入: 数组参数数值化、TRUE/FALSE 语义已修 (前轮) ✅
 * 空/单粒子/缺文件: 各图有守卫与中文提示 ✅
 
 ## 结论

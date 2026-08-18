@@ -8,11 +8,11 @@
 
 ## 环境接入 (Codex 使用前)
 
-当前状态 (2026-08): 232 项测试、e2e 19 本 (5 任务式 + 14 examples/)。
+当前状态 (2026-08): 357 项测试、e2e 19 本 (5 任务式 + 14 examples/)。
 已完成: 示例 notebook 拆分与平铺、postpro 步进器 + 演示 notebook、
 手册 5.5-5.7 覆盖审计 (coverage_audit.md)、散点渲染替换 KDE、
-5 本功能演示 demo (generator_demo / bff_demo /
-stats_validation_demo / lineplot_demo / fieldplot_demo)。
+6 本功能演示 demo (generator_demo / bff_demo /
+stats_validation_demo / lineplot_demo / fieldplot_demo / postpro_demo)。
 
 1. PyCharm 打开项目根目录 astra_notebook;
 2. 解释器选 .venv/bin/python (Python 3.14.6);
@@ -65,13 +65,13 @@ Example.0150.001 做 slice_analysis, 与 compute_slice_analysis 对照;
 
 ## C1: 5 本任务式 + examples/ 示例/演示 notebook 的交互 UX 审阅 (推荐先做)
 
-* 背景: notebook 刚精简为 01_generator / 02_astra / 03_postpro /
-  04_lineplot / 05_fieldplot 以及 examples/ 下 14 本示例/演示
-  notebook (含 postpro_step_demo.ipynb 与 5 本功能演示 demo),
+* 背景: notebook 为 generator / astra / postpro / lineplot /
+  fieldplot 以及 examples/ 下 14 本示例/演示
+  notebook (含 6 本功能演示 demo),
   从未做过人工交互审阅。
 * 步骤: 在 PyCharm 的 Jupyter 面板逐个打开运行 (内核
-  astra-notebook), 检查: widget 表单渲染与默认值 (02_astra)、
-  下拉选择器选项 (03_postpro)、图表尺寸/图例/中文文案是否清晰、
+  astra-notebook), 检查: widget 表单渲染与默认值 (astra)、
+  下拉选择器选项 (postpro)、图表尺寸/图例/中文文案是否清晰、
   暗色主题下的可读性、报错信息是否指向正确 notebook;
   对每个问题截图并给出定位 (cell 编号)。
 * 输出: 问题清单 (截图 + cell 定位 + 建议), 提交到主代理修复。
@@ -84,7 +84,7 @@ Example.0150.001 做 slice_analysis, 与 compute_slice_analysis 对照;
   (c) Jupyter Server: 内核 astra-notebook, 工作目录项目根;
 * 配置 ruff (或保留 pyflakes) 作为外部工具, 命令:
   .venv/bin/python -m pyflakes astra_tools test;
-* 验证 02_astra 的 namelist_form 在 PyCharm Jupyter 里可交互修改;
+* 验证 astra 的 namelist_form 在 PyCharm Jupyter 里可交互修改;
 * 输出: .idea/ 里的配置说明 (不入库, 写 docs/user_guide/pycharm_setup.md 增补)。
 
 ## C3: IDE 静态检查告警清单 (可选, 定期)

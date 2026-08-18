@@ -12,7 +12,7 @@
   全部演化曲线 (z 或 t 轴)、发射度/能散/光学函数、场图 (1D/TWS/3D 截面/轴上
   剖面)、孔径叠加、阴极发射、激光与等离子体、核心电荷分数曲线、
   BFF (直接法 + FFT 快速路径)、PScan/Scan/Error 扫描图。
-- **验证**: 232 项测试 (五层, 见 docs/dev_manual/test_plan.md), 含真实 ASTRA
+- **验证**: 357 项测试 (五层, 见 docs/dev_manual/test_plan.md), 含真实 ASTRA
   PScan/Scan 交叉验证; 官方 8 算例在 examples/ 示例 notebook 中逐例
   复现与黄金比对。
 
@@ -41,10 +41,10 @@
 | 05 | fieldplot | fieldplot  | 腔场/螺线管/3D 场图/激光/等离子体                                     |
 
 另: examples/ 目录下每个官方算例一本示例 notebook (如
-Manual_Example.ipynb), 另有 postpro_step_demo.ipynb 演示步进功能, 以及
-5 本功能演示 demo: generator_demo (参数化发射度) / bff_demo (束团形状
-因子对照) / stats_validation_demo (统计量 vs ASTRA 交叉验证) /
-lineplot_demo (lineplot 全菜单专题) / fieldplot_demo (场图全类型专题)。
+Manual_Example.ipynb), 以及 6 本功能演示 demo: generator_demo (参数化
+发射度) / bff_demo (束团形状因子对照) / stats_validation_demo (统计量
+vs ASTRA 交叉验证) / lineplot_demo (lineplot 全菜单专题) / fieldplot_demo
+(场图全类型专题) / postpro_demo (postpro 全菜单 + 步进演示)。
 
 ## 目录结构
 
@@ -67,7 +67,7 @@ lineplot_demo (lineplot 全菜单专题) / fieldplot_demo (场图全类型专题
 ## 测试
 
     .venv/bin/python -m pytest test/ -q     # 单元 + 黄金回归 + 交叉验证 + 绘图正确性
-    # 端到端 (需可执行文件): 逐个执行 18 本 notebook (5 任务式 + 13 examples/)
+    # 端到端 (需可执行文件): 逐个执行 19 本 notebook (5 任务式 + 14 examples/)
 
 ## 文档
 

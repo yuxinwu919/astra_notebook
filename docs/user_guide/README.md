@@ -3,9 +3,9 @@
 astra-notebook 是 ASTRA / Generator 的前后处理工作台: 前端为 5 个
 任务式 Jupyter Notebook (generator/astra/postpro/lineplot/fieldplot,
 与原程序一一对应, 表单点选 + 现代散点绘图), 另有 examples/ 目录下
-8 本单算例示例 notebook、postpro_step_demo.ipynb (步进演示) 与 5 本
-功能演示 demo (generator 参数化 / BFF / 统计量交叉验证 / lineplot
-专题 / fieldplot 场图专题)。后端为 Python 包 astra_tools。
+8 本单算例示例 notebook 与 6 本功能演示 demo (generator 参数化 /
+BFF / 统计量交叉验证 / lineplot 专题 / fieldplot 场图专题 / postpro
+全菜单 + 步进演示)。后端为 Python 包 astra_tools。
 它替代 macOS 上缺失的官方 postpro / lineplot / fieldplot。
 
 ## 1. 安装
@@ -22,11 +22,11 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
 
 | 步骤 | Notebook | 做什么 |
 |------|----------|--------|
-| 1 | 01_generator | 表单设参数 -> 运行 Generator -> 束团预览 |
-| 2 | 02_astra | 环境自检 + 追踪设置 (表单或 .in 文本) + 运行 + 输出清单 |
-| 3 | 03_postpro | 相空间图 + 统计表 + 切片/BFF/导出 (选 z 位置) |
-| 4 | 04_lineplot | 束流参数随 z 演化 (九图 + 速度/步长 + t 轴变体) |
-| 5 | 05_fieldplot | 腔场/螺线管/3D 场图/激光/等离子体 |
+| 1 | generator | 表单设参数 -> 运行 Generator -> 束团预览 |
+| 2 | astra | 环境自检 + 追踪设置 (表单或 .in 文本) + 运行 + 输出清单 |
+| 3 | postpro | 相空间图 + 统计表 + 切片/BFF/导出 (选 z 位置) |
+| 4 | lineplot | 束流参数随 z 演化 (九图 + 速度/步长 + t 轴变体) |
+| 5 | fieldplot | 腔场/螺线管/3D 场图/激光/等离子体 |
 
 
 每个 Notebook 独立可运行 (复制项目文件夹到任意路径均可)。
@@ -35,10 +35,7 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
 
 - examples/<算例>.ipynb: 8 本, 每本只跑一个官方算例, 逐步解读
   输入卡并展示该算例最有代表性的图 (Manual_Example 最全);
-- examples/postpro_step_demo.ipynb: postpro 步进功能演示 — 真实
-  跑出 8 个 z 位置 monitor, 拖动滑块或点 ◀◀ ◀ ▶ ▶▶ 逐个查看每个 z
-  处的束团统计与相空间 (自动刷新);
-- 5 本功能演示 demo (可直接运行, 展示后端能力):
+- 6 本功能演示 demo (可直接运行, 展示后端能力):
   - examples/generator_demo.ipynb: 解析现成 INPUT 卡 -> 改 Nemit
     -> 重写 -> 跑 Generator -> 验证发射度回到输入值;
   - examples/bff_demo.ipynb: 束团形状因子 BFF 三方对照 (直接法 /
@@ -49,7 +46,10 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
     轴 / 光学函数 / Sigma / PScan+Scan / 稀有文件类型读法)。
   - examples/fieldplot_demo.ipynb: fieldplot 全类型专题 (腔场二维
     图 / 3D 场图四种视图 / 螺线管 / 阴极表面场 / 激光轴上剖面 /
-    等离子体密度剖面)。
+    等离子体密度剖面);
+  - examples/postpro_demo.ipynb: postpro 全菜单 + 步进演示 — 真实
+    跑出 8 个 z 位置 monitor, 拖动滑块或 ◀◀ ◀ ▶ ▶▶ 逐个查看统计与
+    相空间 (自动刷新)。
 
 ## 3. 参数表单用法
 
@@ -77,7 +77,7 @@ ASTRA / Generator 可执行文件放入系统 PATH 或项目 ASTRA/ 目录。
 
 ## 5. 数据导出
 
-03_postpro 中一键导出: CSV (表头带单位注释, 适合外部绘图) 与
+postpro 中一键导出: CSV (表头带单位注释, 适合外部绘图) 与
 npz (原始数组)。
 
 ## 6. 常见问题

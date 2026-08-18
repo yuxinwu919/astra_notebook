@@ -1,6 +1,6 @@
-# postpro 全覆盖方案 (03_postpro vs 手册 5.6)
+# postpro 全覆盖方案 (postpro vs 手册 5.6)
 
-> 2026-08-18 规划。目标: 让 03_postpro 覆盖原程序 postpro (手册 5.6) 的
+> 2026-08-18 规划。目标: 让 postpro 覆盖原程序 postpro (手册 5.6) 的
 > 全部功能。后端逻辑在 `astra_tools/`, notebook 只编排; 遵循 AGENTS.md
 > 物理规则与五层测试纪律。交互式功能 (鼠标切割/叠加) 用 ipywidgets
 > 简化, 保持可用即可。
@@ -20,7 +20,7 @@
   - `bunch_time_ps(dist)` 便捷 ns/ps 版。
 - `plot_phase_space(dist, plane="t")`: 纵向相空间时间版 (t vs dp/p)。
 - `plot_overview(dist, time=True)`: 三视图 vs 时间 (t-x / t-y / t-x')。
-- 03_postpro 相空间 cell 加 "z / t" 切换。
+- postpro 相空间 cell 加 "z / t" 切换。
 
 ## 2. 菜单2: 任意参数对相空间 (5.6.2)
 
@@ -59,12 +59,12 @@
   坐标, 其余相对坐标, 与 io/astra_dist.py 读取约定互逆)。
 - `astra_tools/widgets/panels.py`: `CutControls` (x/y/z/E 滑块 + 应用/
   撤销, 撤销 = 保留原分布副本)。
-- 03_postpro 新增 cell。
+- postpro 新增 cell。
 
 ## 5. 核心发射度 Cemit 口径 (菜单1 项6, 手册 4.13.5)
 
 > 现状: `read_cemit_file` 已有 (ASTRA 输出, 已金样验证); `plot_core_emittance`
-> 是 lineplot 用 (eps_n + C95/90/80 vs z); `plot_core_fraction_curves` 是
+> 是 lineplot 用 (eps_n + C95/90/80 vs z); `plot_central_charge_fraction_curves` 是
 > 中心电荷分数口径, **非** 4.13.5。
 
 - 新增 `astra_tools/analysis/core_emit.py`:
@@ -74,12 +74,12 @@
     贡献升序排序后按百分比截取, 返回各分数下的 eps_n (x/y/z) 累计曲线。
 - `plot_core_emittance_curve(dist)`: 发射度 vs 粒子百分比 (P0)。
 - 验证: 与 `read_cemit_file` 的 C95/C90/C80 金样对比, 0.5% 内。
-- 03_postpro: 新增 cell, 与现有中心电荷分数图并列 (标注口径差异)。
+- postpro: 新增 cell, 与现有中心电荷分数图并列 (标注口径差异)。
 
 ## 6. 核心亮度接入 notebook (菜单1 项8)
 
 - `plot_core_brightness(ce, landf)` 已存在; 检查其输入 (需 emit 对象 +
-  LandF), 在 03_postpro 新增 cell 用当前 dist + 读 LandF 调用。
+  LandF), 在 postpro 新增 cell 用当前 dist + 读 LandF 调用。
 - 若无 LandF, 用归一化亮度降级 (函数已处理)。
 
 ## 7. 状态着色 Table 6 (通用)
@@ -129,7 +129,7 @@
 - `astra_tools/io/astra_dist.py` (write_distribution)
 - `astra_tools/widgets/selectors.py` (PhaseSpaceParamSelector / CutControls)
 - `astra_tools/export.py` (可选: 保存新分布入口)
-- `notebooks/03_postpro.ipynb` (接入全部新功能)
+- `notebooks/postpro.ipynb` (接入全部新功能)
 - `docs/dev_manual/coverage_audit.md` (完成时回填状态)
 
 ## 11. 测试计划 (五层)
@@ -140,7 +140,7 @@
    C95/90/80 (0.5%)。
 3. 交叉验证: slice 发散角 vs Xemit x'_rms。
 4. 绘图断言: 每个新图轴标签/单位 (test_plots.py 扩展)。
-5. e2e: nbconvert 执行 03_postpro (需 ASTRA/Generator 二进制)。
+5. e2e: nbconvert 执行 postpro (需 ASTRA/Generator 二进制)。
 
 ## 12. 风险与取舍
 

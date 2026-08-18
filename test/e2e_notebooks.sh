@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # 第 5 层端到端测试: 逐个执行全部 Notebook (需 ASTRA/Generator 可执行文件)
-# 覆盖 5 个任务式 notebook + 8 个单算例示例 notebook + 步进 demo
-# + 5 个功能演示 demo。
+# 覆盖 5 个任务式 notebook + 8 个单算例示例 notebook + 6 个功能演示 demo。
 # 用法: bash test/e2e_notebooks.sh
 set -u
 cd "$(dirname "$0")/.."
@@ -15,11 +14,11 @@ export JUPYTER_PATH="$VENV/share/jupyter"
 unset PYTHONPATH
 
 NOTEBOOKS="
-notebooks/01_generator.ipynb
-notebooks/02_astra.ipynb
-notebooks/03_postpro.ipynb
-notebooks/04_lineplot.ipynb
-notebooks/05_fieldplot.ipynb
+notebooks/generator.ipynb
+notebooks/astra.ipynb
+notebooks/postpro.ipynb
+notebooks/lineplot.ipynb
+notebooks/fieldplot.ipynb
 examples/Manual_Example.ipynb
 examples/Aperture.ipynb
 examples/Wake.ipynb
@@ -28,7 +27,7 @@ examples/Curved_Cathode_Example.ipynb
 examples/90deg_bend_Example.ipynb
 examples/Plasma_Example_1.ipynb
 examples/Plasma_Example_2.ipynb
-examples/postpro_step_demo.ipynb
+examples/postpro_demo.ipynb
 examples/generator_demo.ipynb
 examples/bff_demo.ipynb
 examples/stats_validation_demo.ipynb

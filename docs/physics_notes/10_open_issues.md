@@ -1,6 +1,6 @@
 # 10 — 未解决的物理问题报告
 
-> 状态: 2026-08 更新。232 项测试、e2e 18 本通过; Sigma(问题1)已解决。
+> 状态: 2026-08 更新。357 项测试、e2e 19 本通过; Sigma(问题1)已解决。
 > 每条给出: 现象 / 已知证据 / 影响范围 / 建议实验 / 风险评级。
 
 ## 1. Sigma 矩阵 ~3.83 因子 — **已解决** (2026-08)
@@ -20,7 +20,7 @@ eigen-emittance, 与 Xemit eps_n 对照 < 8% (enz 与 Zemit eps_zn
 C80/90/95 尚无对照。
 
 **建议实验**: Manual_Example 加 C_EmitS=T 真跑 → golden Cemit.001;
-用 compute_core_fraction_curves(f=0.8/0.9/0.95) 逐列对照, 若不吻合
+用 compute_central_charge_fraction_curves(f=0.8/0.9/0.95) 逐列对照, 若不吻合
 再试横向核心、相空间距离核心等定义。细节见 codex_tasks.md T3。
 **风险**: 中 — Cemit 仅展示用。
 
