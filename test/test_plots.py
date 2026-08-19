@@ -321,8 +321,32 @@ class Test3DFieldMapViews:
         slider = wb.children[2]
         assert abs(slider.min - (-3.0)) < 1e-9
         assert abs(slider.max - 3.0) < 1e-9
+        assert slider.continuous_update is False
         assert wb.children[0].value == "heatmap"
         assert wb.children[1].value == "xz"
+
+    def test_interactive_map_clear_redisplay_not_append(self, monkeypatch):
+        """滑块重绘 = 清空 Output 并重画一次, 不追加新输出、不依赖 display_id。"""
+        import astra_tools.widgets.field3d as field3d
+
+        displayed = []
+        monkeypatch.setattr(field3d, "display",
+                            lambda fig, **kw: displayed.append(fig))
+        wb = field3d.interact_3d_field_map(self.DIPOLE, plane="xy")
+        out = wb.children[3]
+        cleared = []
+        monkeypatch.setattr(out, "clear_output",
+                            lambda wait=False: cleared.append(wait))
+
+        # 构造时已渲染一次 (每次渲染 = 一次 clear(wait=True) + 一次 display)
+        assert len(displayed) == 1
+
+        slider = wb.children[2]
+        slider.value = slider.value + slider.step
+        # 滑块移动后再渲染一次: 总 display 数只 +1 (不累积), clear 用 wait=True
+        assert len(displayed) == 2
+        assert cleared == [True]
+        plt.close("all")
 
     @staticmethod
     def _quiver_collection(fig):
@@ -330,6 +354,7 @@ class Test3DFieldMapViews:
         return next(c for c in fig.axes[0].collections
                     if isinstance(c, Quiver))
 
+    @pytest.mark.skip(reason="2D 场图箭头视图已删除")
     def test_quiver_2d_semantics(self):
         """纯 2D quiver: plane='xy' -> xy 平面, 箭头 (U,V) = (fx, fy)."""
         from astra_tools.io import read_3d_field_map_components
@@ -346,6 +371,7 @@ class Test3DFieldMapViews:
         assert np.allclose(np.asarray(q.V), f.fy[:, :, 22].T.ravel())
         plt.close(fig)
 
+    @pytest.mark.skip(reason="2D 场图箭头视图已删除")
     def test_quiver_axis_semantics(self):
         """plane='xz' (z 横轴, U,V)=(fz,fx); plane='yz' (fz,fy)."""
         from astra_tools.io.field_map import FieldMap3D
@@ -388,6 +414,7 @@ class Test3DFieldMapViews:
                            f2.fz[:, 15, :][::step, ::step].ravel())
         plt.close(fig)
 
+    @pytest.mark.skip(reason="2D 场图箭头视图已删除")
     def test_quiver_color_and_validation(self):
         """color_by='magnitude' 加色条; 未知 plane/color_by 报错; 默认中间层. """
         from astra_tools.io import read_3d_field_map_components
@@ -410,6 +437,7 @@ class Test3DFieldMapViews:
             f.fx[:, :, 22].T.ravel())
         plt.close(fig2)
 
+    @pytest.mark.skip(reason="2D 场图箭头视图已删除")
     def test_quiver_zero_plane_warns(self, tmp_path):
         """面内分量全零剖面: 告警而非崩溃 (如 3D_Dipole 的 xz 平面)."""
         import warnings
@@ -428,6 +456,7 @@ class Test3DFieldMapViews:
             fig = plot_3d_field_quiver(self.DIPOLE, plane="xy", index=22)
         plt.close(fig)
 
+    @pytest.mark.skip(reason="2D 场图箭头交互组件已删除")
     def test_interactive_quiver_widget(self):
         """quiver 滑块组件: 构造 + 固定平面按钮 + 滑块范围 = 该轴网格. """
         from astra_tools.io import read_3d_field_map_components
@@ -440,6 +469,7 @@ class Test3DFieldMapViews:
         assert abs(slider.min - float(f.z.min() * 1e3)) < 1e-9
         assert abs(slider.max - float(f.z.max() * 1e3)) < 1e-9
         assert slider.step > 0
+        assert slider.continuous_update is False
 
     def test_contour_and_scalar_labels(self):
         from astra_tools.plot.field_plots import plot_3d_field_map
@@ -453,13 +483,70 @@ class Test3DFieldMapViews:
         assert "$B_y$ [T]" in (fig.axes[-1].get_ylabel() or "")
         plt.close(fig)
 
-    def test_stack3d_renders(self):
-        from astra_tools.plot.field_plots import plot_3d_field_map
-        fig = plot_3d_field_map(self.DIPOLE, view="stack3d", n_slices=3)
-        assert any(a.name == "3d" for a in fig.axes)
-        assert any("x [mm]" in l for l in _labels(fig))
+    def test_slice_heatmap_has_no_arrows(self):
+        from matplotlib.quiver import Quiver
+        from astra_tools.io import read_3d_field_map_components
+        from astra_tools.plot.field_plots import plot_3d_field_slices
+
+        field = read_3d_field_map_components(self.DIPOLE)
+        fig = plot_3d_field_slices(field, plane="xy", index=22)
+        assert not any(isinstance(c, Quiver) for c in fig.axes[0].collections)
         plt.close(fig)
 
+    @pytest.mark.skip(reason="3D 切片栈已删除")
+    def test_stack3d_renders(self):
+        from astra_tools.plot.field_plots import plot_3d_field_map
+        from astra_tools.io import read_3d_field_map_components
+        fig = plot_3d_field_map(self.DIPOLE, view="stack3d", n_slices=3)
+        ax = next(a for a in fig.axes if a.name == "3d")
+        assert ax.get_xlabel() == "z [mm]"
+        assert ax.get_ylabel() == "x [mm]"
+        assert ax.get_zlabel() == "y [mm]"
+        f = read_3d_field_map_components(self.DIPOLE)
+        assert np.allclose(ax.get_xlim(), f.z[[0, -1]] * 1e3)
+        assert np.allclose(ax.get_ylim(), f.x[[0, -1]] * 1e3)
+        assert np.allclose(ax.get_zlim(), f.y[[0, -1]] * 1e3)
+        plt.close(fig)
+
+    @pytest.mark.skip(reason="3D 切片栈已删除")
+    def test_stack3d_physical_axes_for_all_planes(self):
+        """3D 栈使用物理 z/x/y 作为 Matplotlib 横向/纵向/深度轴。"""
+        from astra_tools.plot.field_plots import plot_3d_field_map
+        from astra_tools.io import read_3d_field_map_components
+
+        f = read_3d_field_map_components(self.DIPOLE)
+        for plane in ("xy", "xz", "yz"):
+            fig = plot_3d_field_map(self.DIPOLE, view="stack3d",
+                                    plane=plane, n_slices=2)
+            ax = next(a for a in fig.axes if a.name == "3d")
+            assert (ax.get_xlabel(), ax.get_ylabel(), ax.get_zlabel()) == (
+                "z [mm]", "x [mm]", "y [mm]")
+            assert np.allclose(ax.get_xlim(), f.z[[0, -1]] * 1e3)
+            assert np.allclose(ax.get_ylim(), f.x[[0, -1]] * 1e3)
+            assert np.allclose(ax.get_zlim(), f.y[[0, -1]] * 1e3)
+            plt.close(fig)
+
+    @pytest.mark.skip(reason="2D 切片箭头已删除")
+    def test_slice_arrows_follow_inplane_field_strength(self):
+        """剖面箭头保留原始 u/v，长度由面内场强决定且数量受控。"""
+        from astra_tools.io.field_map import FieldMap3D
+        from astra_tools.plot.field_plots import plot_3d_field_slices
+        from matplotlib.quiver import Quiver
+
+        x = np.linspace(-1e-2, 1e-2, 20)
+        y = np.linspace(-2e-3, 2e-3, 3)
+        z = np.linspace(-2e-1, 2e-1, 30)
+        xx, yy, zz = np.meshgrid(x, y, z, indexing="ij")
+        f = FieldMap3D(x=x, y=y, z=z, fx=xx, fy=yy, fz=zz,
+                       unit="V/m", quantity="E")
+        fig = plot_3d_field_slices(f, plane="xz", max_arrows=100)
+        q = next(c for c in fig.axes[0].collections if isinstance(c, Quiver))
+        assert np.asarray(q.U).size <= 100
+        assert np.max(np.abs(np.asarray(q.U))) > 0
+        assert np.max(np.abs(np.asarray(q.V))) > 0
+        plt.close(fig)
+
+    @pytest.mark.skip(reason="3D 切片栈已删除")
     def test_stack3d_aspect_modes(self):
         """3D 盒子比例: auto 模式保证最短轴有可读性下限 (不压扁)。"""
         from astra_tools.io import read_3d_field_map_components

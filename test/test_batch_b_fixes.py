@@ -192,6 +192,5 @@ def test_plot_api_complete():
         "plot_core_brightness", "plot_z_plot",
         "plot_slice_ellipses_3d",
         "plot_3d_field_map", "plot_3d_field_slices",
-        "plot_3d_field_stack",
     ):
         assert hasattr(P, name), "missing export: " + name

@@ -35,9 +35,8 @@ from .bff_plots import plot_bff, plot_bff_with_amplitude
 from .field_plots import (plot_cavity_field, plot_solenoid_field,
                           plot_solenoid_components, plot_te_field,
                           plot_field_expansion_radius,
-                          plot_3d_field_map, plot_3d_field_slices,
-                          plot_3d_field_stack, plot_3d_field_quiver,
-                          resolve_3d_plane, plane_fixed_axis)
+                           plot_3d_field_map, plot_3d_field_slices,
+                           resolve_3d_plane, plane_fixed_axis)
 
 __all__ = [
     "set_style", "reset_style",
@@ -56,8 +55,7 @@ __all__ = [
     "plot_bff", "plot_bff_with_amplitude",
     "plot_cavity_field", "plot_solenoid_field",
     "plot_solenoid_components", "plot_te_field", "plot_field_expansion_radius",
-    "plot_3d_field_map", "plot_3d_field_slices",
-    "plot_3d_field_stack", "plot_3d_field_quiver",
+     "plot_3d_field_map", "plot_3d_field_slices",
     "resolve_3d_plane", "plane_fixed_axis",
     # advanced_plots (postpro 5.6 / lineplot 菜单2/3/4 / fieldplot 扩展)
     "plot_losses", "plot_beam_loading", "plot_beta_alpha",
