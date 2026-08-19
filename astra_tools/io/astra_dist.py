@@ -2,9 +2,20 @@
 
 Formats per ASTRA Manual V3.2, Table 1:
 
-Binary:  5x float64 header (ref time [ns], ref momentum [eV/c], total
-         charge [nC], x_ref [m], y_ref [m]) followed by N particles of
-         10 float64 (manual Table 1 is always 10 columns):
+Binary:  TWO layouts are supported.
+         (a) Real ASTRA output (V3.2/V4.0, verified against the local
+         Apple-Silicon build): Fortran sequential unformatted records,
+         one per particle: [i32 record_len=72][x, y, z, px, py, pz,
+         clock, charge as 8 float64][species, status as 2 int32]
+         [i32 record_len=72]. The FIRST record is the reference
+         particle in ABSOLUTE coordinates; the remaining records hold
+         z/pz/clock RELATIVE to it (manual Table 1, same semantics as
+         the ASCII format). 500-particle file = 40,000 bytes.
+         (b) Legacy stream layout written by write_distribution /
+         constructed test files: 5x float64 header (ref time [ns],
+         ref momentum [eV/c], total charge [nC], x_ref [m], y_ref [m])
+         followed by N particles of 10 float64 (manual Table 1 is
+         always 10 columns):
              x, y, z, px, py, pz, clock, charge, species, status
          Units: x/y/z [m], px/py/pz [eV/c], clock [ns], charge [nC].
          species (col 9) = particle species index (1=e-, 2=e+, 3=p,
@@ -131,7 +142,13 @@ class AstraDistributionReader:
         if not AstraDistributionReader._binary_plausible(data):
             swapped = np.ascontiguousarray(data.byteswap())
             if not AstraDistributionReader._binary_plausible(swapped):
-                raise ValueError("binary header/body out of physical range")
+                # 真实 ASTRA 二进制 = Fortran unformatted 记录流
+                # (非 5 值头流式布局), 记录探测通过才算二进制。
+                if not (AstraDistributionReader._records_plausible(path)
+                        or AstraDistributionReader._records_plausible(
+                            path, swap=True)):
+                    raise ValueError(
+                        "binary header/body out of physical range")
 
     @staticmethod
     def _binary_plausible(data: np.ndarray) -> bool:
@@ -182,7 +199,104 @@ class AstraDistributionReader:
 
     # -- binary -------------------------------------------------------
 
+    # 真实 ASTRA 二进制相位空间文件 (V3.2/V4.0, macOS gfortran 实测):
+    # Fortran sequential unformatted 记录流, 每条记录
+    #   [i32 len=72][8×f64: x y z px py pz clock q][i32 species][i32 status][i32 len=72]
+    # 共 80 字节; 首条记录 = 参考粒子绝对坐标, 其余记录 z/pz/clock 相对。
+    # (R1 golden: examples/Manual_Example/golden/Example_binary.001,
+    #  500 粒子 = 40000 字节; 与同 run ASCII 相位 dump 逐粒子一致。)
+    _RECORD_SIZE = 80
+    _RECORD_LEN = 72
+
+    @staticmethod
+    def _records_plausible(path: Path, swap: bool = False) -> bool:
+        """记录流布局探测: 80 字节记录 + 长度标记 + 载荷物理范围."""
+        try:
+            raw = Path(path).read_bytes()
+        except OSError:
+            return False
+        n = len(raw)
+        if n == 0 or n % AstraDistributionReader._RECORD_SIZE != 0:
+            return False
+        dt = np.dtype([("mlen", "<i4"), ("vals", "<8f8"), ("idx", "<i4"),
+                       ("stat", "<i4"), ("tlen", "<i4")])
+        if swap:
+            dt = dt.newbyteorder("S")
+        rec = np.frombuffer(raw, dtype=dt)
+        mlen = np.asarray(rec["mlen"])
+        tlen = np.asarray(rec["tlen"])
+        if not (bool(np.all(mlen == AstraDistributionReader._RECORD_LEN))
+                and bool(np.all(tlen == AstraDistributionReader._RECORD_LEN))):
+            return False
+        p = np.asarray(rec["vals"])
+        idx = np.asarray(rec["idx"])
+        stat = np.asarray(rec["stat"])
+        with np.errstate(invalid="ignore", over="ignore"):
+            ok_finite = bool(np.all(np.isfinite(p)))
+            ok_xy = bool(np.all(np.abs(p[:, :2]) <= 1e3))
+            ok_z = bool(np.all(np.abs(p[:, 2]) <= 1e4))
+            ok_p = bool(np.all(np.abs(p[:, 3:6]) <= 1e15))
+            ok_cq = bool(np.all(np.abs(p[:, 6:8]) <= 1e6))
+        return (ok_finite and ok_xy and ok_z and ok_p and ok_cq
+                and bool(np.all((idx >= 1) & (idx <= 14)))
+                and bool(np.all(np.abs(stat) <= 1e6)))
+
+    def _read_records(self, path: Path, swap: bool = False):
+        """解析真实 ASTRA unformatted 记录流; 非记录流返回 None."""
+        if not self._records_plausible(path, swap=swap):
+            return None
+        raw = Path(path).read_bytes()
+        dt = np.dtype([("mlen", "<i4"), ("vals", "<8f8"), ("idx", "<i4"),
+                       ("stat", "<i4"), ("tlen", "<i4")])
+        if swap:
+            dt = dt.newbyteorder("S")
+        rec = np.frombuffer(raw, dtype=dt)
+        p = np.asarray(rec["vals"])        # (N, 8): x y z px py pz clock q
+        idx = np.asarray(rec["idx"]).astype(np.int32)
+        stat = np.asarray(rec["stat"]).astype(np.int32)
+
+        # 首条记录 = 参考粒子绝对坐标; 其余记录 z/pz/clock 相对 (Table 1)
+        ref = p[0]
+        z_abs = p[:, 2].copy()
+        z_abs[1:] += ref[2]
+        pz_abs = p[:, 5].copy()
+        pz_abs[1:] += ref[5]
+        clock_abs = p[:, 6].copy()
+        clock_abs[1:] += ref[6]
+
+        dist = Distribution(
+            x=p[:, 0], y=p[:, 1], z=z_abs,
+            px=p[:, 3], py=p[:, 4], pz=pz_abs,
+            clock=clock_abs * NS_TO_S,      # [s]
+            charge=p[:, 7],                  # nC
+            status=stat,
+            index=idx,
+            ref_time_ns=float(ref[6]),
+            ref_momentum_eVc=float(ref[5]),
+            total_charge_nC=float(np.abs(np.sum(p[:, 7]))),   # |Q| 约定
+            ref_x_m=float(ref[0]),
+            ref_y_m=float(ref[1]),
+            ref_z_m=float(ref[2]),
+            source=str(path),
+            format="astra_binary_records",
+        )
+        logger.info(
+            "Read ASTRA binary (record stream) %s: p_ref=%.3f MeV/c, "
+            "Q=%.4f nC, N=%d (%d active)",
+            path.name, ref[5] * 1e-6, dist.active_charge_nC,
+            dist.n_particle, dist.n_active,
+        )
+        return dist
+
     def _read_binary(self, path: Path) -> Distribution:
+        # 真实 ASTRA unformatted 记录流优先 (2026-08 R1 真跑发现:
+        # 官方二进制输出并非 5 值头流式布局)。
+        rec = self._read_records(path)
+        if rec is None and AstraDistributionReader._records_plausible(
+                path, swap=True):
+            rec = self._read_records(path, swap=True)
+        if rec is not None:
+            return rec
         data = np.fromfile(path, dtype=np.float64)
         if len(data) < 5:
             raise ValueError(
