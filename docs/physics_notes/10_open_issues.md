@@ -121,6 +121,18 @@ charge) + 2×i32 (species,status)][i32 记录长] 记录; 首条=参考粒子
 macOS 构建; 其他编译器 (如 ifort 8 字节标记) 回落到遗留路径并
 显式报错, 不静默误读 (astra_dist.py 模块 docstring)。
 
+## 杂项记录 (2026-08-19 最终审查)
+
+* Log golden (binary/LowEnergy 的 .Log.001) 为 ASTRA 二进制记录流的
+  忠实拷贝, 含 Fortran NUL 填充字节 (~40 字节/文件), 属正常, 勿以
+  字节比对误判损坏; binary Log 头含运行期 /tmp 工作目录绝对路径
+  (provenance 证据, 环境重建后不可复现, 无害)。
+* 第三阶段新增 golden (二进制分布/低能双束/90deg/Cemit/Error) 由
+  专用测试以显式数值断言引用 (test_binary_golden / test_low_energy_cv /
+  test_90deg_energy_cv / test_cemit_cv / test_error_golden), 不纳入
+  examples/golden_expected.json 机制 (该机制面向 e2e notebook 末行
+  校验, 与本批交叉验证工件语义不同)。
+
 ## 建议优先级
 
 剩余开放项: 问题 3 的第三方对照 (R6, 延后, 见 M7)。
