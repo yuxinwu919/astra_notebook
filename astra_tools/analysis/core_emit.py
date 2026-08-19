@@ -2,24 +2,29 @@
 
 ASTRA 方法: 各粒子对 rms 发射度的贡献用**单粒子归一化相空间振幅**
     J_i = (gamma_T u_i^2 + 2 alpha u_i u'_i + beta u'_i^2) / 2
-表示, 升序排序后按粒子百分比截取核心, 重算 rms 发射度, 得到
-"emittance vs particle fraction" 曲线。由于 <J> = eps (用束团 Twiss
-代入), f=1 时自动退化为标准 rms 发射度。
+表示, 升序排序后按粒子百分比截取核心。核心发射度为核心粒子的
+**平均振幅** (等价于全束团 rms 发射度减去被排除粒子的平均贡献):
+    eps_core(f) = (1/N) * sum(J_i | 前 f*N 个)
+由于 <J> = eps (用束团 Twiss 代入), f=1 时自动退化为标准 rms 发射度。
+
+口径说明 (2026-08-19 R4 真跑算法破解, golden=Manual_Example/Cemit):
+  * 旧实现"核心子集重算 rms 发射度"与 ASTRA 偏差 +5%/+10.5%/+25%
+    (95/90/80); 均值振幅口径在 z=1.5 golden 位置三平面三分数
+    max|dev| = 0.024%, z 平面全线 499 位置 max 0.001%, 横向在线圈
+    区外 < 0.1%, 线圈区内 max 0.56% (ASCII 相位 dump 5 位有效数字
+    舍入 + 正则动量重建噪声, 边界粒子翻转效应)。
+  * 横向前置因子: J 用归一化振幅 (x/y 乘 beta*gamma = p_ref/mc),
+    单位 m.rad (pi mm mrad 数值 = x1e6), 与 Cemit 文件列口径一致;
+    纵向 J 为 eV.m (u = z - <z>, u' = E_kin - <E_kin>, keV.mm 数值
+    上 = eV.m)。
+  * 核心子集大小 k = round(f*N); N=500 时 f*N 恒为整数,
+    round/floor/ceil 不可区分 (本数据集无法裁决, 保留 round)。
 
 坐标口径与统计模块一致:
   * 横向 (x/y): u = 坐标, u' = 正则散角 (手册 4.13.1) / p_ref;
-    返回归一化发射度 eps_n = beta*gamma * eps_geom (pi mm mrad 数值 = m.rad*1e6)。
-  * 纵向 (z):   u = z - <z>, u' = E_kin - <E_kin> (对应 Zemit 口径);
-    返回 eps_z = sqrt(<z^2><E^2> - <zE>^2) [eV.m], keV.mm 数值上 = eV.m。
+  * 纵向 (z):   u = z - <z>, u' = E_kin - <E_kin> (对应 Zemit 口径)。
 
 加权用 |q| (混合电荷符号安全, AGENTS.md 规则 7)。
-
-口径说明 (2026-08-18 实测 vs examples/Manual_Example/golden/Example.Cemit.001):
-  * f=1.0 (全束团 rms 发射度) 与 ASTRA Xemit/Cemit 精确一致 (<0.1%);
-  * f<1 的核心发射度随分数单调递减、趋势与 ASTRA 一致, 但数值比
-    ASTRA Cemit 略大 (95% 约 +5%, 90% 约 +11%, 80% 约 +25%),
-    因 ASTRA 的单粒子贡献排序算法未公开复现。功能/趋势正确,
-    与 ASTRA 的精确数值对齐留待算法确认。
 
 参考: ASTRA Manual V3.2 4.13.5; P. Emma 'Some basic features of the
 beam emittance', PRST-AB 6, 034202 (2003) 的单粒子振幅不变量。
@@ -31,13 +36,12 @@ from typing import Optional
 
 import numpy as np
 
-from ..constants import kinetic_energy_from_momentum_vector
+from ..constants import M_E_C2_EV, kinetic_energy_from_momentum_vector
 from ..distribution import Distribution
 from .emittance import (
     canonical_divergence,
     canonical_signs,
     compute_geometric_emittance,
-    compute_normalized_emittance,
     compute_twiss_parameters,
 )
 
@@ -85,7 +89,12 @@ def single_particle_amplitudes(
     bz_on_axis_T: float = 0.0,
     ref_momentum_eVc: Optional[float] = None,
 ) -> np.ndarray:
-    """单粒子发射度不变量 J_i (手册 4.13.5), 按 active 粒子排列. [m.rad 或 eV.m]"""
+    """单粒子发射度不变量 J_i (手册 4.13.5), 按 active 粒子排列.
+
+    横向 (x/y): 归一化振幅 [m.rad] (pi mm mrad 数值 = x1e6, 与 Cemit
+    文件列同口径, J x beta*gamma = p_ref/mc);
+    纵向 (z): [eV.m] (u=z, u'=E, keV.mm 数值 = x1)。
+    """
     if not np.any(dist.active):
         raise ValueError("no active particles (status>1)")
     if ref_momentum_eVc is None:
@@ -99,6 +108,9 @@ def single_particle_amplitudes(
         return np.zeros(len(u))
     beta, alpha, gamma_t = compute_twiss_parameters(u, up, w)
     j = 0.5 * (gamma_t * u ** 2 + 2.0 * alpha * u * up + beta * up ** 2)
+    if plane in ("x", "y"):
+        # ASTRA Cemit 横向列是归一化发射度 (R4 实测): 振幅乘 beta*gamma.
+        j = j * (ref_momentum_eVc / M_E_C2_EV)
     return j
 
 
@@ -111,6 +123,10 @@ def compute_core_emittance_by_fraction(
 ) -> dict:
     """核心发射度 vs 粒子百分比 (手册 4.13.5 口径).
 
+    ASTRA 算法 (R4 真跑破译, 见模块 docstring): 按单粒子振幅 J_i 升序
+    排序后, 核心发射度 = 前 f*N 个粒子的平均振幅 sum(J)/N — 不是核心
+    子集重算 rms 发射度 (旧口径偏差 +5/+10.5/+25%)。
+
     Returns:
         {fraction: eps} — 横向 eps_n [m.rad] (pi mm mrad 数值 = x1e6),
         纵向 eps_z [eV.m] (keV.mm 数值 = x1)。与 read_cemit_file 一致。
@@ -122,34 +138,18 @@ def compute_core_emittance_by_fraction(
     if ref_momentum_eVc <= 0:
         raise ValueError("reference momentum is zero/negative")
 
-    m = dist.active
-    u, up, w = _plane_coords(dist, plane, bz_on_axis_T, ref_momentum_eVc,
-                             dist.charge)
     j = single_particle_amplitudes(dist, plane, bz_on_axis_T, ref_momentum_eVc)
     order = np.argsort(j)
 
     out = {}
     n = len(order)
-    u = np.asarray(u, dtype=float)
-    up = np.asarray(up, dtype=float)
     for f in fractions:
         if f <= 0:
             out[float(f)] = 0.0
             continue
         k = max(int(round(f * n)), 1)
         sel = order[:k]
-        us, ups = u[sel], up[sel]
-        ws = w[sel] if w is not None else None
-        uc = us - float(np.average(us, weights=ws) if ws is not None
-                        else np.mean(us))
-        upc = ups - float(np.average(ups, weights=ws) if ws is not None
-                          else np.mean(ups))
-        eps_geom = compute_geometric_emittance(uc, upc, ws)
-        if plane == "z":
-            out[float(f)] = float(eps_geom)   # eV.m (= keV.mm 数值)
-        else:
-            out[float(f)] = compute_normalized_emittance(
-                eps_geom, ref_momentum_eVc)
+        out[float(f)] = float(np.sum(j[sel]) / n)
     return out
 
 
