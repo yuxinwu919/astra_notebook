@@ -5,12 +5,17 @@ V4.0 真跑产生 (deck = Manual_Example + &ERROR Loop=T LError=T
 ErrorS=T Err_MaxB(1)=0.02T, FOM(1..3)='mean beam energy' /
 'horizontal rms emittance' / 'rms bunch length', NEWRUN NLoop=5)。
 
+注意 — 误差 run 是随机的: 手册 6.5 规定误差按高斯分布抽样
+(Err_cutoff=3σ 截断, 无种子参数), 每次运行 FOM(2) 行值不同。
+故金样是"真实输出的回归快照"而非确定性重跑钉住: 列语义/列数/
+物理自洽 (均值=名义值、散布包围名义值、能量/束长不受螺线管
+误差影响) 对任意新 run 都成立, 数值冻结仅针对归档快照本身。
+
 文件列语义 (手册 Table 4): run#, z, FOM(1..10), 1P,12E17.8。
 FOM 数值单位与对应输出文件一致 (MeV / mm mrad / mm)。
 read_error (astra_tools/io/astra_misc.py) 此前仅由合成数据测试,
 这里用真实 ASTRA 输出验证列数/列语义, 并抽查与名义值运行
-(Xemit/Zemit 末行) 的一致性: 误差只加在螺线管 MaxB 上,
-能量/束长不受影响, 发射度随 run 小量散布并包围名义值。
+(Xemit/Zemit 末行) 的一致性。
 """
 
 from pathlib import Path
