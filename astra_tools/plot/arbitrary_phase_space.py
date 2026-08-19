@@ -125,8 +125,6 @@ def plot_arbitrary(
 
 def _add_projections(fig, ax, x, y):
     """顶部 + 右侧边缘直方图 (postpro 'add projections')."""
-    from matplotlib.transforms import blended_transform_factory
-
     def _inset(pos):
         return fig.add_axes(pos, frameon=False)
 

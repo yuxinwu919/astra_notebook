@@ -155,14 +155,13 @@ def optimized_cut(dist: Distribution, width: float, param: str = "z"):
     """
     m = dist.active
     if param == "x":
-        values, rng = dist.x, (None, None)
+        values = dist.x
     elif param == "y":
-        values, rng = dist.y, (None, None)
+        values = dist.y
     elif param == "z":
-        values, rng = dist.z, (None, None)
+        values = dist.z
     elif param == "E":
         values = kinetic_energy_from_momentum_vector(dist.px, dist.py, dist.pz)
-        rng = (None, None)
     else:
         raise ValueError("param 必须为 'x'/'y'/'z'/'E': %r" % (param,))
     c = optimized_cut_center(np.asarray(values[m], dtype=float), width,

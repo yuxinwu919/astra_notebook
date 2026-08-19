@@ -47,10 +47,10 @@ def _load_tws():
 
 def test_export_surface_restored():
     """notebook cell 6 的导入路径与 io.__all__ 导出均恢复。"""
-    # 与 Cavity_Example.ipynb cell 6 完全相同的导入方式
-    from astra_tools.io.field_map import (read_cavity_field,
-                                          parse_field_map_file,
-                                          expand_tws_field_map)
+    # 与 Cavity_Example.ipynb cell 6 完全相同的导入方式 (导入即验证)
+    from astra_tools.io.field_map import read_cavity_field, parse_field_map_file, expand_tws_field_map
+    assert callable(read_cavity_field)
+    assert callable(parse_field_map_file)
     assert callable(expand_tws_field_map)
     assert "expand_tws_field_map" in io.__all__
     from astra_tools.io import expand_tws_field_map as f1

@@ -71,8 +71,8 @@ def test_zemit_sigma_E_matches_full_momentum_convention(probe):
     zemit = parse_output_file(ZEMIT)
     last = zemit["mean_z"][-1]
     assert last == pytest.approx(0.0, abs=1e-6)      # 样本在弯转出口 z=0
-
     e_full = _e_full(probe.px[m], probe.py[m], probe.pz[m])
+
     mu, sig = float(np.mean(e_full)), float(np.std(e_full))
     # ASTRA 显示 4 位有效数字 (E12.4) -> 1e-3 相对容差足够严格 (实测 < 1e-5)
     assert mu == pytest.approx(zemit["mean_kinetic_energy"][-1], rel=1e-3)
@@ -97,7 +97,6 @@ def test_zemit_rejects_pz_only_convention(probe):
     assert abs(mu_pz - mu_z) / mu_z > 0.5
     assert abs(sig_pz - sig_z) / sig_z > 0.2
     # 且 pz-only 的纵向发射度也偏离
-    e_full = _e_full(probe.px[m], probe.py[m], probe.pz[m])
     z = probe.z[m]
     zc, ec = z - z.mean(), e_pz - e_pz.mean()
     emit_z_pz = float(np.sqrt(np.mean(zc**2) * np.mean(ec**2)

@@ -265,7 +265,6 @@ class CutControls(widgets.VBox):
 
     def __init__(self, dist, bz_on_axis_T: float = 0.0):
         super().__init__()
-        from IPython.display import display
         self.original = dist
         self.dist = dist
         self.bz = bz_on_axis_T
