@@ -80,7 +80,6 @@ def test_reduced_longitudinal_uncorrelated():
     import matplotlib.pyplot as plt
     rng = np.random.default_rng(0)
     n = 3000
-    z = np.linspace(-1e-3, 1e-3, n)
     pz = 1e6 + rng.normal(0, 1e3, n)
     fig = plot_reduced_longitudinal_emittance(_mk_dist(pz))
     try:

@@ -1,6 +1,5 @@
 """时间坐标 (手册 5.6: 纵向相空间/三视图的时间版本) 测试."""
 
-import warnings
 from pathlib import Path
 
 import numpy as np
@@ -44,7 +43,6 @@ def test_t_ps_scaling():
 def test_not_started_uses_clock():
     """未发射粒子 (status -1..-6) 用 clock (发射时间)."""
     dist = _gauss_bunch()
-    n = dist.n_particle
     st = dist.status.copy()
     st[:10] = -2
     dist.status = st

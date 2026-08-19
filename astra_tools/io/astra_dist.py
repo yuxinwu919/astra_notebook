@@ -29,6 +29,12 @@ ASCII:   no header line; the first particle row is the reference
          High_res writes 1P,8E20.12,2I4). Legacy project files with a
          5-value header line are also accepted.
 
+Record-stream layout verified against the gfortran-built macOS
+Apple-Silicon ASTRA binary (V3.2/V4.0; record marker = 4-byte i32,
+record len 72). Other compilers (e.g. ifort with 8-byte markers)
+fall back to the legacy path with an explicit error, never a silent
+misread.
+
 The 9/10-column ambiguity (N divisible by both 9 and 10) is resolved
 by column semantics, not by any running-index heuristic: a 10-column
 reading is accepted when the species column holds integers in [1..14]

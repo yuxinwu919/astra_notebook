@@ -143,7 +143,7 @@ def test_cathode_rings_behind_surface(tmp_path):
     fig = plot_curved_cathode_contour(str(CONTOUR), show_rings=True)
     try:
         data = np.loadtxt(CONTOUR)
-        z, r, tz, tr = data[:, 0], data[:, 1], data[:, 2], data[:, 3]
+        z, tr = data[:, 0], data[:, 3]
         off = 0.1 * float(np.ptp(z))
         zr = z + off * (-tr)
         # 环在阴极背面: 比对应表面点更靠 -z (tr>0 恒成立)
