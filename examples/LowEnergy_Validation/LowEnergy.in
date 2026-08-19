@@ -1,0 +1,18 @@
+ &NEWRUN
+  Head = 'Low energy drift validation (no solenoid, no space charge)',
+  Run =            1
+  Distribution = 'test.ini',
+  Track_All =  T ,  Auto_Phase =  F , Phase_Scan =  F
+  High_res=T
+  H_max =  0.1000E-02
+ /
+
+ &OUTPUT
+  ZStart =    0.0     , ZStop =    0.5
+  Zemit =    50, Zphase =    1
+  Local_emit=F
+  TrackS=F
+  EmitS = T,
+  PhaseS=T
+  RefS = T
+ /
