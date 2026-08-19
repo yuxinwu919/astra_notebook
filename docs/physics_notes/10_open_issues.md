@@ -1,11 +1,10 @@
 # 10 — 未解决的物理问题报告
 
-> 状态: 2026-08 更新。357 项测试、e2e 19 本通过; Sigma(问题1)已解决。
-> 2026-08 对抗性审计新增结论: 问题 2 (Cemit) 与问题 6 (BFF) 的 README
-> 交叉验证声称已限定 — Cemit 核心发射度实测偏离 +5/+10.5/+24.8%
-> (95/90/80), BFF 无 ASTRA 级对照 (见 README "物理约定"); 审计另发现
-> 二进制 9/10 列消歧前提错误 (第 9 列 = 粒子种类而非编号)、TM 展开
-> 公式错误、激光包络权重错误等, 已修复 (代码修复由并行任务进行)。
+> 状态: 2026-08-19 第三阶段完成后更新。507 项测试、e2e 19 本全绿。
+> 问题 1/2/4/8 已关闭; 问题 3 的第三方对照 (R6) 因 venv 无
+> pmd-beamphysics 延后; 问题 6 (BFF) 维持"无 ASTRA 级对照"限定
+> (ASTRA 不输出 BFF)。两轮对抗性审计的全部修复与第三阶段验证结论
+> 见 docs/dev_manual/codex_tasks.md 第三阶段路线。
 > 每条给出: 现象 / 已知证据 / 影响范围 / 建议实验 / 风险评级。
 
 ## 1. Sigma 矩阵 ~3.83 因子 — **已解决** (2026-08)
@@ -16,42 +15,40 @@ MeV 单位表象 (能量列不除以 mc^2)。read_sigma_file 现已换算到 SI 
 eigen-emittance, 与 Xemit eps_n 对照 < 8% (enz 与 Zemit eps_zn
 < 0.01%)。详见 physics_notes/06。
 
-## 2. Cemit 95/90/80 核心发射度算法未独立复现 ★高
+## 2. Cemit 95/90/80 核心发射度算法未独立复现 — **已关闭** (2026-08-19, R4 真跑破译)
 
-**现象**: Cemit 文件的 Cx95/Cx90/Cx80 列 (核心发射度) 目前只读、
-只显示, 未用粒子数据独立复现其"取核心"的算法。
+**结论**: C_EmitS=T 真跑生成 golden Cemit.001, 逐列对照后破译 ASTRA
+算法: 核心发射度 = 按单粒子振幅 J_i 升序取前 f·N 个粒子的**平均振幅**
+ΣJ/N (**不是**核心子集重算 rms 发射度 — 旧口径偏差 +5/+10.5/+25%);
+横向 J 为归一化振幅 (× βγ = p_ref/mc, 与 Cemit 文件列单位一致)。
+修正后与 golden 对照: z=1.5 位置三平面三分数 **max|dev| = 0.024%**;
+z 平面全线 499 位置 max 0.001%; 横向线圈区 (z∈[1.04,1.36] m)
+max 0.56% (ASCII 相位 dump 5 位有效数字舍入 + 正则动量重建噪声,
+测试按 1% 容差留 2× 余量)。k = round(f·N) 在 N=500 上与
+floor/ceil 不可区分 (f·N 恒整数), 保留 round 并注释。
+实现: analysis/core_emit.py; 测试: test/test_cemit_cv.py (17 项)。
 
-**已知证据**: 我们新写的核心机制 (analysis/core.py, 按纵向 |q| 分数
-取中心) 输出与全束团统计在 fraction=1.0 严格一致, 但与 ASTRA 的
-C80/90/95 尚无对照。
+## 3. slice 发射度与失配参数缺乏 ASTRA 级对照 ★中 (维持)
 
-**建议实验**: Manual_Example 加 C_EmitS=T 真跑 → golden Cemit.001;
-用 compute_central_charge_fraction_curves(f=0.8/0.9/0.95) 逐列对照, 若不吻合
-再试横向核心、相空间距离核心等定义。细节见 codex_tasks.md T3。
-**风险**: 中 — Cemit 仅展示用。
+**现象**: slice 发射度只有解析验证 (高斯束团 slice εn = σxσpx/mc²)
+与 ζ≥1 下界; ASTRA 自身不输出 slice 级发射度文件。
 
-## 3. slice 发射度与失配参数缺乏 ASTRA 级对照 ★中
-
-**现象**: slice 发射度 (analysis/slices.py) 只有解析验证 (高斯束团
-slice εn = σxσpx/mc²) 与 ζ≥1 下界 (失配参数); ASTRA 自身不输出
-slice 级发射度文件, 无法做逐 slice 交叉验证。
-
-**已知证据**: 批 A 已统一约定 (p_ref + 正则动量 + ddof=0); 解析
-高斯测试 rel<2%; ζ 图仅有数值下界检查。
-**建议实验**: 若需更强验证, 可在测试环境临时用 pmd-beamphysics 的
-slice_analysis 对同一相空间文件比对 (仅本地临时脚本, 不进入仓库,
-不成为运行时依赖)。见 codex_tasks.md T8。
+**2026-08-19 更新**: 计划的一次性第三方对照 (pmd-beamphysics) 因
+.venv 无此包而延后 (R6); 其余链 (统计/slice/核心分数/正电子)
+均已有真实运行或解析级验证。若需补: 一次性 pip install +
+/tmp 脚本, 不进仓库、不成为运行时依赖。见 codex_tasks.md M7。
 **风险**: 低-中 — slice 分析用于展示与失配诊断。
 
-## 4. Error 文件 (ErrorS) 无真实 golden ★中
+## 4. Error 文件 (ErrorS) 无真实 golden — **已关闭** (2026-08-19, R5)
 
-**现象**: read_error 读者已就绪但从未用真实 ErrorS 运行验证; 手册
-Table 4 列语义 (run#, z, FOM(1..10)) 仅靠格式推断。
-
-**建议实验**: Manual_Example 加 &ERROR Err_MaxB(1)=0.02 等 → 
-Error.001 golden, 与名义值运行 (Scan 或 Xemit) 对照。见
-codex_tasks.md T5。
-**风险**: 低 — Error 功能目前无用户入口。
+**结论**: &ERROR (ErrorS=T, Err_MaxB(1)=0.02) 真跑生成 golden
+Error.001; read_error 列语义与手册 Table 4 (run#, z, FOM(1..10))
+逐列验证; 与名义值运行 (Xemit) 一致性抽查通过。
+重要发现: 手册 6.5 的误差按高斯抽样且**无种子参数**, FOM(2) 列
+跨 run 不可复现 (三次实测不同), 其余 11 列跨 run 稳定。测试设计:
+冻结数值断言仅针对归档快照, 语义断言 (均值≈名义值、散布含名义值、
+能量/束长不受螺线管误差影响、FOM(4..10)=0) 对任意新 run 成立。
+测试: test/test_error_golden.py (5 项)。
 
 ## 5. PScan 与 ref 粒子的 0.38% 偏差 (已解释, 非缺陷) ★低
 
@@ -109,8 +106,24 @@ w0=50 μm):
 * 限制: DESY 官方算例说明 PDF 未给出期望末态能量数字, 故以手册
   公式为准 (0.2% 吻合)。详见 docs/dev_manual/codex_tasks.md M6。
 
+## 9. 二进制分布文件无真实 golden — **已关闭** (2026-08-19, R1)
+
+**结论**: Manual_Example 设 BINARY=T 真跑, 归档首个真实二进制分布
+文件 golden (examples/Manual_Example/golden/Example_binary.001)。
+**格式实测**: 真实 ASTRA 二进制 = Fortran sequential unformatted
+记录流 (每条粒子一个 [i32 记录长=72][8×f64 (x,y,z,px,py,pz,clock,
+charge) + 2×i32 (species,status)][i32 记录长] 记录; 首条=参考粒子
+绝对坐标, 其余 z/pz/clock 相对), **不是**此前假设的 5 值头明文流。
+读取器现支持双布局 (真实记录流 + 遗留流), 字节序/种类语义/头 Q=|Q|
+修复在新路径上全部生效; 与 ASCII dump 逐粒子对照 + Xemit/Zemit
+末行交叉验证通过。测试: test/test_binary_golden.py (5 项)。
+注记: 记录流参数 (80/72 字节、i32 记录标记) 已验证于 gfortran
+macOS 构建; 其他编译器 (如 ifort 8 字节标记) 回落到遗留路径并
+显式报错, 不静默误读 (astra_dist.py 模块 docstring)。
+
 ## 建议优先级
 
-T3 (Cemit) → T4 (Sigma 3.83) → T5 (Error) → T8 (slice 临时对照)。
-T9 (Plasma_2 激光物理) 已于 2026-08 关闭 (见上文问题 8)。
-详见 docs/dev_manual/codex_tasks.md。
+剩余开放项: 问题 3 的第三方对照 (R6, 延后, 见 M7)。
+其余问题 1/2/4/8/9 已全部关闭; 问题 5 已解释 (非缺陷); 问题 6
+(BFF) 无 ASTRA 对照属 ASTRA 不输出 BFF 的固有限制。
+详见 docs/dev_manual/codex_tasks.md 第三阶段路线。

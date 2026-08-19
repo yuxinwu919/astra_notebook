@@ -8,16 +8,18 @@
   结果以统计表格 + 现代散点图呈现, 支持 CSV/npz 数据导出。
 - **后端**: astra_tools , **复制整个文件夹即可使用**;
   统计主链 (Xemit/Yemit/Zemit/Sigma) 与 ASTRA 自身输出交叉验证 (误差
-  < 0.02%); Cemit 核心发射度 (f<1) 算法方向一致、数值 +5~25% 未对齐
-  (手册 4.13.5 排序算法未公开); BFF 仅有解析高斯与 FFT/直接法互证,
-  无 ASTRA 级对照。
+  < 0.02%); Cemit 核心发射度 (f<1) 算法已破译并对齐真实 Cemit 输出
+  (均值振幅口径, 偏差 0.024%, 2026-08-19); 能散 σE 经 90deg 大发散
+  探针束真跑确认与 ASTRA 同为全动量 |p| 口径; BFF 仅有解析高斯与
+  FFT/直接法互证 (ASTRA 不输出 BFF 文件, 无 ASTRA 级对照)。
 - **覆盖**: postpro/lineplot/fieldplot 三大图形程序的功能替代 — 相空间与切片、
   全部演化曲线 (z 或 t 轴)、发射度/能散/光学函数、场图 (1D/TWS/3D 截面/轴上
   剖面)、孔径叠加、阴极发射、激光与等离子体、核心电荷分数曲线、
   BFF (直接法 + FFT 快速路径)、PScan/Scan/Error 扫描图。
-- **验证**: 357 项测试 (五层, 见 docs/dev_manual/test_plan.md), 含真实 ASTRA
-  PScan/Scan 交叉验证; 官方 8 算例在 examples/ 示例 notebook 中逐例
-  复现与黄金比对。
+- **验证**: 507 项测试 (五层, 见 docs/dev_manual/test_plan.md), 含真实 ASTRA
+  golden 交叉验证 (统计主链 / 二进制分布 / 低能与大发散束 / Cemit /
+  Error / PScan/Scan / Aperture 护栏); 官方 8 算例在 examples/ 示例
+  notebook 中逐例复现与黄金比对; e2e 全套 19 本 notebook 通过。
 
 ## 快速开始
 
@@ -66,8 +68,10 @@ vs ASTRA 交叉验证) / lineplot_demo (lineplot 全菜单专题) / fieldplot_de
   语义), 与 ASTRA 打印值完全一致; 换算 SI = ×1e-6, 不乘 π。
 - 活跃粒子: status > 1 (手册 4.13); z/pz/clock 在文件中相对参考粒子, 读取时
   归一化为绝对坐标; 螺线管场中发射度用正则动量 p̃x = px + c·Bz·y/2。
-- **交叉验证范围**: 现有交叉验证 golden 均为 ~1 GeV、低发散、均匀宏电荷
-  电子束; 低能/大发散/混合电荷/正电子路径仅有内部解析验证。
+- **交叉验证范围**: 统计主链含 ~1 GeV、5 MeV 与 5.1 keV (γ≈1.01) 及
+  90deg 大发散探针束的真实 ASTRA golden 对照; 混合电荷/正电子路径为
+  内部解析验证 (test/test_positron_chain.py 五条消费者路径 + 判别力
+  断言)。
 
 ## 激光算例与 laser.dat 兼容性 (Plasma_Example_2)
 
