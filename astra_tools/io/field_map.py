@@ -413,10 +413,88 @@ def parse_field_map_file(path):
     return attrs, data
 
 
-# expand_tws_field_map REMOVED (2026-08 audit P2): it was dead code with
-# wrong n/m semantics (m is NOT the cell count; C_numb*n/m must be an
-# integer, n<0 backwards waves unsupported) and no 1st-order transverse
-# expansion. TWS plotting uses the raw table via parse_field_map_file.
+def expand_tws_field_map(z0, f0, z1, z2, m_cells_in_body, n_cell):
+    """把含 m 个单元的 TWS 周期段 (z1..z2) 周期展开到 C_numb=n_cell 个单元。
+
+    手册 6.9 (TWS): 场表头 4 值 (z1 z2 n m), z1..z2 为含 m 个单元的
+    周期段; 按单元平移拼接, 布局
+
+        | Entrance | Cells × (n_cell / m) | Exit |
+
+    入口段 (zmin..z1) 与出口段 (z2..zmax) 的原表采样原样保留 (不动),
+    仅周期段重复; 周期段在原表 [z1, z2) 内按原表密度重采样, 场值用
+    np.interp 从原表插值 (原表必须覆盖一个完整周期段)。
+
+    仅轴上场演示: 一阶横向展开不在本函数范围 (手册 6.9 要求
+    C_numb·n/m 为整数; 与 2026-08 审计结论一致 — 本函数是示例绘图
+    用的表级展开工具, 不是物理场展开的替代; n<0 返波不支持)。
+
+    Args:
+        z0: 原表 z [m], 严格递增, 覆盖完整周期段。
+        f0: 原表轴上场值 (与 z0 等长)。
+        z1, z2: 周期段起止 [m] (含 m_cells_in_body 个单元)。
+        m_cells_in_body: 周期段内单元数 (头文件第 4 值 m)。
+        n_cell: 总单元数 C_numb。
+
+    Returns:
+        (zfull, ffull) — 展开后的 (z, f) 表, 布局 |Entrance|
+        Cells×(n_cell/m) |Exit|。
+
+    Raises:
+        ValueError: n_cell % m_cells_in_body != 0 (手册整数条件,
+            不再静默截断), 或输入不合法 (z0 非递增 / 周期段越界 /
+            表未覆盖周期段 / z2 <= z1)。
+    """
+    z0 = np.asarray(z0, dtype=float)
+    f0 = np.asarray(f0, dtype=float)
+    if z0.ndim != 1 or f0.ndim != 1 or z0.shape != f0.shape or len(z0) < 2:
+        raise ValueError("z0/f0 必须为等长一维数组 (>= 2 点)")
+    if not np.all(np.diff(z0) > 0):
+        raise ValueError(
+            "z0 必须严格递增 (2026-08 审计: 非单调表经 np.interp 会静默出垃圾)")
+    if m_cells_in_body < 1:
+        raise ValueError("m_cells_in_body 必须 >= 1, 得到 %s"
+                         % (m_cells_in_body,))
+    if n_cell < 1:
+        raise ValueError("n_cell 必须 >= 1, 得到 %s" % (n_cell,))
+    if n_cell % m_cells_in_body != 0:
+        raise ValueError(
+            "n_cell=%s 必须能被 m_cells_in_body=%s 整除 (手册 6.9: "
+            "C_numb·n/m 需为整数); 不再静默截断"
+            % (n_cell, m_cells_in_body))
+    zmin, zmax = float(z0[0]), float(z0[-1])
+    if z2 <= z1:
+        raise ValueError("周期段长度 z2-z1 必须 > 0, 得到 %g" % (z2 - z1))
+    if not (zmin <= z1 and z2 <= zmax):
+        raise ValueError(
+            "周期段 z1..z2 = [%g, %g] 必须在场表范围 [%g, %g] 内"
+            % (z1, z2, zmin, zmax))
+    n_body_samples = int(np.count_nonzero((z0 >= z1) & (z0 < z2)))
+    if n_body_samples < 2:
+        raise ValueError("场表必须覆盖一个完整周期段 (z1..z2 内至少 2 个采样点)")
+
+    n_repeat = int(n_cell) // int(m_cells_in_body)
+    l_period = z2 - z1
+
+    # 入口/出口段原样保留 (手册 6.9: 仅周期段重复)
+    mask_entrance = z0 < z1
+    mask_exit = z0 >= z2
+    z_entrance, f_entrance = z0[mask_entrance], f0[mask_entrance]
+    z_exit, f_exit = z0[mask_exit], f0[mask_exit]
+
+    # 周期段: 按原表采样密度在 [z1, z2) 建均匀网格, 场值 np.interp
+    # 从原表取 (表格覆盖完整周期段, 展开才物理有效)
+    z_body = np.linspace(z1, z2, n_body_samples, endpoint=False)
+    f_body = np.interp(z_body, z0, f0)
+
+    ztot = [z_entrance]
+    ftot = [f_entrance]
+    for i in range(n_repeat):
+        ztot.append(z_body + i * l_period)
+        ftot.append(f_body)
+    ztot.append(z_exit + (n_repeat - 1) * l_period)
+    ftot.append(f_exit)
+    return np.concatenate(ztot), np.concatenate(ftot)
 
 
 def fix_laser_map_header(path):

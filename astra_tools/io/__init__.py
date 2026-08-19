@@ -16,7 +16,7 @@ from .astra_misc import (read_pscan, read_scan, read_error, read_lab_file,
 from .field_map import (read_cavity_field, read_solenoid_field,
                         read_wake_potential, read_3d_field_map,
                         read_3d_field_map_components, FieldMap3D,
-                        parse_field_map_file,
+                        parse_field_map_file, expand_tws_field_map,
                         fix_laser_map_header, CavityField, SolenoidField,
                         WakePotential, TEField, read_te_field)
 from .plot_steering import read_plot_steering, cp_index_colors
@@ -54,7 +54,7 @@ __all__ = [
     "read_track_file", "read_cathode_file", "read_xemit2", "read_tremit",
     "read_cr_emit", "read_larmor", "read_density", "read_tcheck",
     "read_cavity_field", "read_solenoid_field", "read_wake_potential",
-    "read_3d_field_map", "parse_field_map_file",
+    "read_3d_field_map", "parse_field_map_file", "expand_tws_field_map",
     "read_3d_field_map_components", "FieldMap3D",
     "fix_laser_map_header", "CavityField", "SolenoidField",
     "WakePotential", "TEField", "read_te_field",
