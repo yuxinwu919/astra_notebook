@@ -24,15 +24,19 @@ def _solenoid():
 
 
 def _write_gaussian_laser(path, sigma0=3e-4, zc=1.5e-3, zr=0.8e-3):
-    """写一个横向高斯、束腰在 zc 的合成 3D 激光场图 (紧凑头)."""
+    """写一个横向高斯、束腰在 zc 的合成 3D 激光场图 (紧凑头).
+
+    File_A0 语义: 存 a₀⊥² = exp(-2r²/w²), w(z) = w0·sqrt(1+((z-zc)/zr)²),
+    w0 = sigma0 为 1/e² 幅值半径。幅值 a₀ 分布 exp(-r²/w²) 的 rms = w/2。
+    """
     nx = ny = 21
     nz = 31
     x = np.linspace(-1.5e-3, 1.5e-3, nx)
     y = np.linspace(-1.5e-3, 1.5e-3, ny)
     z = np.linspace(0, 3e-3, nz)
     XX, YY, ZZ = np.meshgrid(x, y, z, indexing="ij")
-    sig = sigma0 * np.sqrt(1.0 + ((ZZ - zc) / zr) ** 2)
-    f = np.exp(-(XX ** 2 + YY ** 2) / (2 * sig ** 2))
+    w = sigma0 * np.sqrt(1.0 + ((ZZ - zc) / zr) ** 2)
+    f = np.exp(-2.0 * (XX ** 2 + YY ** 2) / w ** 2)
     lines = ["%d %g %g" % (nx, x[0], x[1] - x[0]),
              "%d %g %g" % (ny, y[0], y[1] - y[0]),
              "%d %g %g" % (nz, z[0], z[1] - z[0])]
@@ -106,7 +110,9 @@ def test_laser_envelope_gaussian_focus(tmp_path):
               if "y envelope" in ln.get_label()]
         assert len(xl) == 1 and len(yl) == 1
         np.testing.assert_allclose(xl[0], yl[0], rtol=1e-3)
-        # 包络在束腰 zc 处最小, 接近 sigma0
+        # 包络在束腰 zc 处最小; a₀ 分布 exp(-r²/w²) 的 rms = w/√2,
+        # 故 √(σx²+σy²) = w0 (1/e² 幅值半径)。旧 f² 权重得 w0/2,
+        # 系统性偏小 (2026-08 审计 P1)。
         sig = np.sqrt(xl[0] ** 2 + yl[0] ** 2)
         kmin = int(np.argmin(sig))
         assert abs(z[kmin] - zc) < (z[1] - z[0]) * 2

@@ -16,7 +16,7 @@
 
 &OUTPUT
   ZSTART=0,
-  ZSTOP=0.25,
+  ZSTOP=0.17,
   Zemit=500,
   Zphase=1,
   Step_width=0,

@@ -4,18 +4,24 @@ Formats per ASTRA Manual V3.2, Table 1:
 
 Binary:  5x float64 header (ref time [ns], ref momentum [eV/c], total
          charge [nC], x_ref [m], y_ref [m]) followed by N particles of
-         9 or 10 float64:
-             x, y, z, px, py, pz, clock, charge, [index,] status
+         10 float64 (manual Table 1 is always 10 columns):
+             x, y, z, px, py, pz, clock, charge, species, status
          Units: x/y/z [m], px/py/pz [eV/c], clock [ns], charge [nC].
+         species (col 9) = particle species index (1=e-, 2=e+, 3=p,
+         4=H+, 5..14=user defined; manual Table 1) - NOT a running
+         particle number. Legacy 9-column files (x..status, no species
+         column) are still readable with a warning.
 
-ASCII:   optional 5-value header line, then N rows of 10 columns
-         (Fortran format 1P,8E12.4,2I4; High_res writes 1P,8E20.12,2I4).
-         Generator output has NO header line; the first particle row is
-         the reference particle (absolute coordinates).
+ASCII:   no header line; the first particle row is the reference
+         particle in ABSOLUTE coordinates, the remaining rows have
+         z/pz/clock RELATIVE to it (Fortran format 1P,8E12.4,2I4;
+         High_res writes 1P,8E20.12,2I4). Legacy project files with a
+         5-value header line are also accepted.
 
-The 9/10-column ambiguity in binary files is resolved by inspecting the
-10th column: if it looks like sequential particle indices it is kept,
-otherwise the file is read as 9 columns.
+The 9/10-column ambiguity (N divisible by both 9 and 10) is resolved
+by column semantics, not by any running-index heuristic: a 10-column
+reading is accepted when the species column holds integers in [1..14]
+and the status column holds small integers.
 
 Units on output are canonical SI (clock converted ns -> s).
 """
@@ -75,11 +81,18 @@ class AstraDistributionReader:
         if b"\x00" not in head_bytes:
             # 文本: 只走 ASCII 探测
             ncols = self._probe_ascii_ncols(path)
-            if ncols is None:
-                return False
-            if ncols >= 9:
+            if ncols is not None:
+                if ncols >= 9:
+                    return True
+                if ncols == 5 and self._probe_ascii_second_line(path) in (9, 10):
+                    return True
+            # 内容不像 ASCII 数值表: 小二进制文件可能全无 0x00 字节
+            # (2026-08 审计 P3), 尝试二进制探测再放弃
+            try:
+                self._probe_binary(path)
                 return True
-            return ncols == 5 and self._probe_ascii_second_line(path) in (9, 10)
+            except Exception:
+                return False
         try:
             self._probe_binary(path)
             return True
@@ -112,11 +125,30 @@ class AstraDistributionReader:
 
     @staticmethod
     def _probe_binary(path: Path) -> None:
-        data = np.fromfile(path, dtype=np.float64, count=5)
+        data = np.fromfile(path, dtype=np.float64)
         if len(data) < 5:
             raise ValueError("file too small for ASTRA header")
-        if abs(data[0]) > 1e6 or data[1] < -1 or data[1] > 1e13:
-            raise ValueError("header values out of physical range")
+        if not AstraDistributionReader._binary_plausible(data):
+            swapped = np.ascontiguousarray(data.byteswap())
+            if not AstraDistributionReader._binary_plausible(swapped):
+                raise ValueError("binary header/body out of physical range")
+
+    @staticmethod
+    def _binary_plausible(data: np.ndarray) -> bool:
+        """二进制解释合理性: 头 5 值在物理范围内, 且 body 大部分是
+        正常浮点 (字节序错误时几乎全是 denormal/inf/nan)."""
+        if len(data) < 5:
+            return False
+        hdr = data[:5]
+        if not (np.all(np.isfinite(hdr)) and abs(hdr[0]) <= 1e6
+                and -1.0 <= hdr[1] <= 1e13 and abs(hdr[2]) <= 1e6):
+            return False
+        body = data[5:]
+        if len(body) == 0:
+            return True
+        with np.errstate(invalid="ignore", over="ignore"):
+            normal = np.isfinite(body) & (np.abs(body) >= 1e-300)
+        return float(np.mean(normal)) >= 0.5
 
     @staticmethod
     def _probe_ascii_ncols(path: Path):
@@ -136,9 +168,16 @@ class AstraDistributionReader:
         path = Path(path)
         with open(path, "rb") as f:
             head = f.read(4096)
-        is_ascii = b"\x00" not in head
-        if is_ascii:
-            return self._read_ascii(path)
+        if b"\x00" in head:
+            return self._read_binary(path)
+        # 无 0x00 字节: 内容必须真的像 ASCII 数值表才走 ASCII 路径;
+        # 小二进制文件可能全无 0x00 字节 (2026-08 审计 P3)。
+        try:
+            ncols = self._probe_ascii_ncols(path)
+            if ncols in (5, 9, 10):
+                return self._read_ascii(path)
+        except Exception:
+            pass
         return self._read_binary(path)
 
     # -- binary -------------------------------------------------------
@@ -151,25 +190,48 @@ class AstraDistributionReader:
                 + str(len(data)) + " values"
             )
 
+        # 字节序探测 (2026-08 审计 P3): 原生序不合理时试大端。
+        if not self._binary_plausible(data):
+            swapped = np.ascontiguousarray(data.byteswap())
+            if self._binary_plausible(swapped):
+                data = swapped
+                logger.warning("binary file %s read with swapped byte order", path.name)
+            else:
+                raise ValueError(
+                    "binary file " + str(path.name) + " has implausible header/body "
+                    "(not an ASTRA distribution, or corrupted)"
+                )
+
         header = data[:5].copy()
         body = data[5:]
 
         n9, r9 = divmod(len(body), 9)
         n10, r10 = divmod(len(body), 10)
 
-        if r9 == 0 and r10 == 0:
-            # Ambiguous: inspect column 8 (particle index; column 9 is
-            # status and is ~constant, so it can never look sequential)
+        # 手册 Table 1: 二进制恒为 10 列 (含 species)。9 列是遗留非标准
+        # 格式; 两者长度均可整除时按列语义判定 (species/status), 不用
+        # 任何"递增编号"启发式 (2026-08 审计 P1-1: 第 9 列是粒子种类,
+        # 电子束恒为 1)。
+        if r10 == 0:
             test = body[: n10 * 10].reshape(n10, 10)
-            if self._looks_like_index(test[:, 8]):
+            if self._species_status_plausible(test):
                 n_particles, n_cols = n10, 10
-            else:
+            elif r9 == 0:
                 n_particles, n_cols = n9, 9
+                logger.warning(
+                    "binary file %s read as legacy 9-column format "
+                    "(no species column; ASTRA writes 10 columns)", path.name)
+            else:
+                raise ValueError(
+                    "file " + str(path.name) + " has " + str(len(body))
+                    + " body values divisible by 10 but the species/status "
+                    "columns are implausible"
+                )
         elif r9 == 0:
             n_particles, n_cols = n9, 9
-        elif r10 == 0:
-            n_particles, n_cols = n10, 10
-            logger.warning("10-column format detected for %s (with particle index)", path.name)
+            logger.warning(
+                "binary file %s read as legacy 9-column format "
+                "(no species column; ASTRA writes 10 columns)", path.name)
         else:
             raise ValueError(
                 "file " + str(path.name) + " has ambiguous size: "
@@ -179,11 +241,17 @@ class AstraDistributionReader:
 
         p = body[: n_particles * n_cols].reshape(n_particles, n_cols)
 
-        # Column layout: x y z px py pz clock charge [index] status
+        # Column layout: x y z px py pz clock charge [species] status
         # Manual Table 1: z, pz and clock are RELATIVE to the reference
         # particle -> convert to absolute using the header values.
         status_col = 9 if n_cols == 10 else 8
         index = p[:, 8].astype(np.int32) if n_cols == 10 else None
+        status_f = p[:, status_col]
+        if np.any(np.abs(status_f) > 2.147e9):
+            raise ValueError(
+                "status values out of int32 range in " + str(path.name)
+                + " (corrupt file?)"
+            )
         pz_abs = p[:, 5] + float(header[1])
         clock_abs = (p[:, 6] + float(header[0])) * NS_TO_S
         # z offset of the reference particle is not stored in the binary
@@ -193,7 +261,7 @@ class AstraDistributionReader:
             px=p[:, 3], py=p[:, 4], pz=pz_abs,
             clock=clock_abs,          # [s]
             charge=p[:, 7],            # nC
-            status=p[:, status_col].astype(np.int32),
+            status=status_f.astype(np.int32),
             index=index,
             ref_time_ns=float(header[0]),
             ref_momentum_eVc=float(header[1]),
@@ -303,38 +371,59 @@ class AstraDistributionReader:
         return dist
 
     @staticmethod
-    def _looks_like_index(col: np.ndarray) -> bool:
-        """True if the column looks like sequential particle indices."""
-        if len(col) < 2:
-            return False
-        diffs = np.diff(col)
-        return bool(np.all(np.abs(diffs - 1.0) < 0.1))
+    def _species_status_plausible(p: np.ndarray) -> bool:
+        """10 列解释的列语义判定 (手册 Table 1).
+
+        第 9 列 (species) 必须是 [1..14] 内的整数 (1=电子, 2=正电子,
+        3=质子, 4=氢离子, 5-14=用户定义); 第 10 列 (status) 必须是
+        |v| <= 1e6 的整数。9 列遗留文件被误排成 10 列时, species 位置
+        是下一行粒子的 x (非整数), status 位置是 y (非整数) — 判定失败。
+        """
+        if p.shape[0] == 0:
+            return True
+        species = p[:, 8]
+        status = p[:, 9]
+        with np.errstate(invalid="ignore"):
+            spec_ok = (
+                bool(np.all(np.isfinite(species)))
+                and bool(np.all(species == np.round(species)))
+                and bool(np.all((species >= 1) & (species <= 14)))
+            )
+            stat_ok = (
+                bool(np.all(np.isfinite(status)))
+                and bool(np.all(status == np.round(status)))
+                and bool(np.all(np.abs(status) <= 1e6))
+            )
+        return spec_ok and stat_ok
 
 
 def write_distribution(
     dist: Distribution,
     path,
     format: str = "binary",
-    include_index: bool = False,
+    include_index: bool = True,
     ref_z_m: Optional[float] = None,
 ) -> str:
     """写 ASTRA 分布文件 (postpro 5.6.4 保存新分布供继续追踪).
 
     与 AstraDistributionReader 的读取约定互逆 (手册 Table 1):
-      * binary: 5-float64 头 (ref_time_ns, ref_momentum_eVc,
-        total_charge_nC, ref_x_m, ref_y_m) + 每粒子 9/10 列
+      * binary: 5-float64 头 (ref_time_ns, ref_momentum_eVc, |Q|,
+        ref_x_m, ref_y_m) + 每粒子 10 列
         x, y, z_rel, px, py, pz_rel, clock_rel_ns, charge_nC,
-        [index,] status。
-      * ascii: 无头行, 第一行是参考粒子绝对坐标 (10 列),
-        其余行 z/pz/clock 相对参考粒子。
+        species, status。头 Q 取 |Q| (手册: 电荷符号不相关)。
+      * ascii: 无头行, 第一行是参考粒子 (粒子 0) 绝对坐标 (10 列),
+        其余行 z/pz/clock 相对参考粒子 — 真实 ASTRA 格式。
 
     Args:
         dist: Distribution。
         path: 输出路径。
         format: 'binary' (默认, ASTRA 标准输入) 或 'ascii'。
-        include_index: 二进制是否写 10 列 (含粒子索引)。
-        ref_z_m: 参考粒子绝对 z [m]; 默认 dist.ref_z_m
-            (二进制读取时其为 0, z 即相对值, 原样写回)。
+        include_index: 是否写种类列 (手册 Table 1 第 9 列; 恒写 10 列
+            为 ASTRA 标准; 设 False 得到 9 列遗留格式, 仅供兼容)。
+            index 为 None 时种类默认写 1 (电子), 不伪造 1..N 编号。
+        ref_z_m: 二进制路径参考粒子绝对 z [m]; 默认 dist.ref_z_m
+            (二进制读取时其为 0, z 即相对值, 原样写回)。ASCII 路径
+            以粒子 0 为参考粒子 (真实 ASTRA 语义), 不使用此参数。
 
     Returns:
         写入的文件路径字符串。
@@ -343,6 +432,8 @@ def write_distribution(
     if ref_z_m is None:
         ref_z_m = dist.ref_z_m
     n = dist.n_particle
+    if n == 0:
+        raise ValueError("cannot write an empty distribution")
     p_ref = dist.ref_momentum_eVc or dist.mean_pz_eVc
     ref_time = dist.ref_time_ns
     z_rel = dist.z - ref_z_m
@@ -350,26 +441,32 @@ def write_distribution(
     clock_rel_ns = dist.clock * (1.0 / NS_TO_S) - ref_time
 
     if format == "ascii":
+        # 真实 ASTRA ASCII 格式: 无头行; 第一行 = 参考粒子 (粒子 0)
+        # 绝对坐标, 其余行 z/pz/clock 相对参考粒子 (手册 Table 1)。
+        # (2026-08 审计 P2-1: 旧的 5 值头形式 ASTRA 无法解析。)
+        idx0 = dist.index[0] if dist.index is not None else 1
+        ref_row = [dist.x[0], dist.y[0], dist.z[0],
+                   dist.px[0], dist.py[0], dist.pz[0],
+                   dist.clock[0] / NS_TO_S, dist.charge[0],
+                   idx0, dist.status[0]]
         with open(path, "w") as fh:
-            # 5 值头行 + N 行粒子 (pz/clock 相对参考值; z 相对 ref_z_m)。
-            # 与 reader 的 has_header 分支互逆 (N 对 N, 无多余参考行)。
-            head = [ref_time, p_ref, dist.total_charge_nC,
-                    dist.ref_x_m, dist.ref_y_m]
-            fh.write(" ".join("%.12g" % v for v in head) + "\n")
-            for i in range(n):
-                row = [dist.x[i], dist.y[i], z_rel[i],
-                       dist.px[i], dist.py[i], pz_rel[i],
-                       clock_rel_ns[i], dist.charge[i],
-                       0 if dist.index is None else dist.index[i],
-                       dist.status[i]]
+            fh.write(" ".join("%.12g" % v for v in ref_row) + "\n")
+            for i in range(1, n):
+                idx = dist.index[i] if dist.index is not None else 1
+                row = [dist.x[i], dist.y[i], dist.z[i] - dist.z[0],
+                       dist.px[i], dist.py[i], dist.pz[i] - dist.pz[0],
+                       dist.clock[i] / NS_TO_S - dist.clock[0] / NS_TO_S,
+                       dist.charge[i], idx, dist.status[i]]
                 fh.write(" ".join("%.12g" % v for v in row) + "\n")
     else:
-        header = np.array([ref_time, p_ref, dist.total_charge_nC,
+        # 头 Q 取 |Q| (2026-08 审计 P1-2: ASTRA 约定头电荷为正)。
+        q_abs = float(np.sum(np.abs(dist.charge)))
+        header = np.array([ref_time, p_ref, q_abs,
                            dist.ref_x_m, dist.ref_y_m], dtype=np.float64)
         cols = [dist.x, dist.y, z_rel, dist.px, dist.py, pz_rel,
                 clock_rel_ns, dist.charge]
         if include_index:
-            idx = (np.arange(n) + 1) if dist.index is None else dist.index
+            idx = dist.index if dist.index is not None else np.ones(n, dtype=np.int32)
             cols.append(idx.astype(np.float64))
         cols.append(dist.status.astype(np.float64))
         body = np.column_stack(cols).astype(np.float64).ravel()

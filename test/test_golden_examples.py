@@ -29,6 +29,9 @@ XEMIT_FILES = {
     "Plasma_Example_2": "examples/Plasma_Example_2/golden/plasma.Xemit.001",
     "Curved_Cathode_Example": "examples/Curved_Cathode_Example/golden/astra.Xemit.001",
     "Cavity_Example": "examples/Cavity_Example/golden/astra.Xemit.001",
+    # 二轮审计 R2-3-1: Aperture golden 从单行空洞样本重建为多行真实
+    # 追踪样本 (参考粒子回 z=0, ZSTOP=0.17 m, 圆孔刮削 3 探针)。
+    "Aperture": "examples/Aperture/golden/astra.Xemit.001",
 }
 PHASE_FILES = {
     "90deg_bend_Example_Section1": "examples/90deg_bend_Example/golden/Section1.0100.001",

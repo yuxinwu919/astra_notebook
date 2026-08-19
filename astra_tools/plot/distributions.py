@@ -70,12 +70,14 @@ def plot_energy_distribution(
 ) -> plt.Figure:
     """Kinetic-energy distribution [MeV] with Gaussian fit.
 
-    E_kin = sqrt(pz^2 + m^2 c^4) - m c^2 per particle (relativistic).
+    E_kin = sqrt((px^2+py^2+pz^2) + m^2 c^4) - m c^2 per particle (relativistic,
+    FULL momentum; 2026-08 audit P2-2).
     """
-    from ..constants import kinetic_energy_from_momentum
+    from ..constants import kinetic_energy_from_momentum_vector
 
     mask = dist.active
-    e_kin = kinetic_energy_from_momentum(dist.pz[mask]) * 1e-6  # MeV
+    e_kin = kinetic_energy_from_momentum_vector(
+        dist.px[mask], dist.py[mask], dist.pz[mask]) * 1e-6  # MeV
     fig, ax = plt.subplots(1, 1, figsize=figsize)
     inside, _ = _hist_with_outliers(ax, e_kin, bins, "#009988", "E")
     if len(inside) >= 2:

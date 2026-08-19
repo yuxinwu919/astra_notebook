@@ -7,7 +7,10 @@
   全部 13 个 namelist 与第 7 章 Generator 全部参数), 也可直接使用现成 .in 文本;
   结果以统计表格 + 现代散点图呈现, 支持 CSV/npz 数据导出。
 - **后端**: astra_tools , **复制整个文件夹即可使用**;
-  统计与绘图代码全部经物理审查, 与 ASTRA 自身输出交叉验证 (误差 < 0.02%)。
+  统计主链 (Xemit/Yemit/Zemit/Sigma) 与 ASTRA 自身输出交叉验证 (误差
+  < 0.02%); Cemit 核心发射度 (f<1) 算法方向一致、数值 +5~25% 未对齐
+  (手册 4.13.5 排序算法未公开); BFF 仅有解析高斯与 FFT/直接法互证,
+  无 ASTRA 级对照。
 - **覆盖**: postpro/lineplot/fieldplot 三大图形程序的功能替代 — 相空间与切片、
   全部演化曲线 (z 或 t 轴)、发射度/能散/光学函数、场图 (1D/TWS/3D 截面/轴上
   剖面)、孔径叠加、阴极发射、激光与等离子体、核心电荷分数曲线、
@@ -63,6 +66,23 @@ vs ASTRA 交叉验证) / lineplot_demo (lineplot 全菜单专题) / fieldplot_de
   语义), 与 ASTRA 打印值完全一致; 换算 SI = ×1e-6, 不乘 π。
 - 活跃粒子: status > 1 (手册 4.13); z/pz/clock 在文件中相对参考粒子, 读取时
   归一化为绝对坐标; 螺线管场中发射度用正则动量 p̃x = px + c·Bz·y/2。
+- **交叉验证范围**: 现有交叉验证 golden 均为 ~1 GeV、低发散、均匀宏电荷
+  电子束; 低能/大发散/混合电荷/正电子路径仅有内部解析验证。
+
+## 激光算例与 laser.dat 兼容性 (Plasma_Example_2)
+
+- 仓库内 `examples/Plasma_Example_2/laser.dat` 与 DESY 原版逐字节一致
+  (MD5 68d016175859b20c1e2ccee5057c2d46), **浮点计数头是 DESY 原版特征**
+  (头 3 行为 (n, min, spacing), 计数写成浮点如 8.1e+01); 这是归档策略,
+  不是 bug。
+- 本项目 macOS Apple Silicon 构建直接运行会报
+  "Error while reading file: laser.dat" (浮点计数头不兼容该构建)。
+- 运行前需要 **stage-time 头修复**: `examples/_examples_spec.py` 的
+  `laser_fix=True` 会调用 `astra_tools.io.field_map.fix_laser_map_header`
+  把头 3 行计数取整 (仅此, 数据体不动), 再交给 ASTRA。
+- 整数计数头重跑可字节复现 golden (Plasma_Example_2 的 Xemit/Yemit/Zemit/
+  Log/相空间 dump 均已归档); 绝对物理验证见 docs/physics_notes/10 问题 8
+  (2026-08 已关闭: 末态动能 422.7 MeV vs golden 421.8 MeV, 0.2% 吻合)。
 
 ## 测试
 

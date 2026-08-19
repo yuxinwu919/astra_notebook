@@ -15,6 +15,14 @@ import numpy as np
 from ..analysis.slices import SliceAnalysis
 
 
+def _x_axis(sa: SliceAnalysis):
+    """横轴: equi_energy 分箱时为动能 [MeV], 否则 z [mm]
+    (2026-08 审计 P1: equi_energy 的 z_centers 承载能量值)."""
+    if sa.binning_mode == "equi_energy":
+        return sa.z_centers * 1e-6, "$E_{kin}$ [MeV]"
+    return sa.z_centers * 1e3, "z [mm]"
+
+
 def plot_current_profile(
     sa: SliceAnalysis,
     ax=None,
@@ -30,12 +38,12 @@ def plot_current_profile(
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
-    z = sa.z_centers * 1e3
+    x, xlabel = _x_axis(sa)
     i_abs = np.abs(sa.current)
-    ax.fill_between(z, 0, i_abs, step="mid", alpha=0.5)
-    ax.plot(z, i_abs, lw=1)
+    ax.fill_between(x, 0, i_abs, step="mid", alpha=0.5)
+    ax.plot(x, i_abs, lw=1)
     i_peak = float(np.max(i_abs))
-    ax.set_xlabel("z [mm]")
+    ax.set_xlabel(xlabel)
     ax.set_ylabel("current |I| [A]")
     ax.set_title(title or "longitudinal current profile")
     ax.text(0.02, 0.96, "peak %.1f A, Q = %.3f nC" % (i_peak, abs(np.sum(sa.charge))),
@@ -55,10 +63,10 @@ def plot_slice_emittance(
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
-    z = sa.z_centers * 1e3
-    ax.plot(z, sa.emit_x_norm * 1e6, label="$\\varepsilon_{nx}$")
-    ax.plot(z, sa.emit_y_norm * 1e6, label="$\\varepsilon_{ny}$")
-    ax.set_xlabel("z [mm]")
+    x, xlabel = _x_axis(sa)
+    ax.plot(x, sa.emit_x_norm * 1e6, label="$\\varepsilon_{nx}$")
+    ax.plot(x, sa.emit_y_norm * 1e6, label="$\\varepsilon_{ny}$")
+    ax.set_xlabel(xlabel)
     ax.set_ylabel("slice emittance [$\\pi$ mm mrad]")
     ax.set_title(title or "slice emittance")
     ax.legend()
@@ -77,12 +85,12 @@ def plot_energy_chirp(
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
-    z = sa.z_centers * 1e3
-    ax.plot(z, sa.mean_kinetic_energy_eV * 1e-6, label="$E_{kin}$", color="C0")
-    ax.set_xlabel("z [mm]")
+    x, xlabel = _x_axis(sa)
+    ax.plot(x, sa.mean_kinetic_energy_eV * 1e-6, label="$E_{kin}$", color="C0")
+    ax.set_xlabel(xlabel)
     ax.set_ylabel("mean slice $E_{kin}$ [MeV]", color="C0")
     ax2 = ax.twinx()
-    ax2.plot(z, sa.sig_E_over_E * 100, label="$\\sigma_E/E$", color="C1", lw=1.2)
+    ax2.plot(x, sa.sig_E_over_E * 100, label="$\\sigma_E/E$", color="C1", lw=1.2)
     ax2.set_ylabel("$\\sigma_E/E$ [%]", color="C1")
     ax.set_title(title or "energy chirp")
     lines = ax.get_lines() + ax2.get_lines()
@@ -106,16 +114,16 @@ def plot_slice_sizes(
         fig, ax = plt.subplots(1, 1, figsize=figsize)
     else:
         fig = ax.figure
-    z = sa.z_centers * 1e3
-    ax.plot(z, sa.sig_x * 1e3, label="$\\sigma_x$")
-    ax.plot(z, sa.sig_y * 1e3, label="$\\sigma_y$")
-    ax.set_xlabel("z [mm]")
+    x, xlabel = _x_axis(sa)
+    ax.plot(x, sa.sig_x * 1e3, label="$\\sigma_x$")
+    ax.plot(x, sa.sig_y * 1e3, label="$\\sigma_y$")
+    ax.set_xlabel(xlabel)
     ax.set_ylabel("RMS size [mm]")
     if divergences:
         ax2 = ax.twinx()
-        ax2.plot(z, sa.sig_xp * 1e3, ls="--", color="C2",
+        ax2.plot(x, sa.sig_xp * 1e3, ls="--", color="C2",
                  label="$\\sigma_{x'}$")
-        ax2.plot(z, sa.sig_yp * 1e3, ls=":", color="C3",
+        ax2.plot(x, sa.sig_yp * 1e3, ls=":", color="C3",
                  label="$\\sigma_{y'}$")
         ax2.set_ylabel("RMS divergence [mrad]", color="0.3")
         h1, l1 = ax.get_legend_handles_labels()

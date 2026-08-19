@@ -5,7 +5,9 @@ Formatting rules (audited against the ASTRA Manual V3.2 examples):
   * strings are quoted automatically unless they already contain quotes
     (ASTRA requires quoted strings, e.g. FNAME='bunch.ini')
   * ints and floats -> plain values (12 significant digits for floats)
-  * lists/tuples/ndarrays -> comma-separated values
+  * complex -> Fortran literal (re, im)  (DIPOLE D1( , ) etc.)
+  * lists/tuples/ndarrays -> comma-separated values; 2-D arrays are
+    flattened column-major (Fortran order)
   * None and empty containers are skipped (optional parameters)
 """
 
@@ -15,6 +17,12 @@ from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
+
+
+def _format_complex(value) -> str:
+    """Fortran 复数字面量 (re, im) — 手册 D1( , ) 写法. """
+    return "(%s, %s)" % (format(float(value.real), ".12g"),
+                         format(float(value.imag), ".12g"))
 
 
 def _format_value(value: Any) -> str:
@@ -32,8 +40,20 @@ def _format_value(value: Any) -> str:
         return str(int(value))
     if isinstance(value, (float, np.floating)):
         return format(float(value), ".12g")
+    if isinstance(value, (complex, np.complexfloating)):
+        return _format_complex(value)
     if isinstance(value, (list, tuple, np.ndarray)):
-        arr = np.asarray(value).flatten()
+        # Fortran 是列主序: 二维数组按 order='F' 展平后整数组赋值
+        # (2026-08 审计 R2-1-5: Q_mult_a(6,2)/D_Gap(2,n) 等)。
+        # 不规则嵌套 (Module(, ) 字符二维数组) 用 object dtype 兜底。
+        try:
+            arr = np.asarray(value)
+        except ValueError:
+            arr = np.asarray(value, dtype=object)
+        if arr.ndim >= 2:
+            arr = arr.flatten(order="F")
+        else:
+            arr = arr.flatten()
         parts = []
         for v in arr:
             if isinstance(v, (bool, np.bool_)):
@@ -42,6 +62,8 @@ def _format_value(value: Any) -> str:
                 parts.append(_format_value(v))
             elif isinstance(v, (int, np.integer)):
                 parts.append(str(int(v)))
+            elif isinstance(v, (complex, np.complexfloating)):
+                parts.append(_format_complex(v))
             else:
                 parts.append(format(float(v), ".12g"))
         return ", ".join(parts)
@@ -105,6 +127,14 @@ def write_input_deck(
             for line in header.splitlines():
                 f.write("! " + line + "\n")
         for name, params in blocks.items():
-            f.write(write_namelist(name, params))
-            f.write("\n")
+            if isinstance(params, (list, tuple)):
+                # 重复 namelist 块 (手册第 3 章: INPUT 块重复 N_add 次)
+                # 逐块写出, 保证 parse->write->parse 往返不变
+                # (2026-08 审计 R2-1-3)。
+                for p in params:
+                    f.write(write_namelist(name, p))
+                    f.write("\n")
+            else:
+                f.write(write_namelist(name, params))
+                f.write("\n")
     return filepath

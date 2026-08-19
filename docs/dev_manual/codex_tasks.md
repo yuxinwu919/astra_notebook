@@ -37,7 +37,8 @@ golden Cemit.001; 用 analysis/core.py 的 0.8/0.9/0.95 核心分数曲线
 4.13.8); 结论写 physics_notes/10。
 
 ## M4: Sigma 3.83 因子 — **已解决** (2026-08)
-文件把动量列归一化到 mc、能量列归一化到 mc^2; 3.83 = 1/(mc[MeV])^2。
+文件把动量列与能量列都归一化到 mc (交叉项乘 mc 一次), 即
+scale=[1, mc, 1, mc, 1, mc]; 3.83 = 1/(mc[MeV])^2 仅是 MeV 单位表象。
 read_sigma_file 已换算 SI, 归一化 eigen-emittance 与 Xemit 对照 <8%,
 enz 与 Zemit <0.01% (physics_notes/06, test_cross_validation.py)。
 
@@ -45,10 +46,14 @@ enz 与 Zemit <0.01% (physics_notes/06, test_cross_validation.py)。
 physics_notes/10 问题 4。Manual_Example 加 &ERROR (ErrorS=T,
 Err_MaxB) 真跑 -> Error.001 golden; 与 Scan 名义值对照。
 
-## M6: Plasma_2 激光尾场物理量级验证 (中, 2-3h)
-physics_notes/10 问题 8。按手册第 8 章尾场公式估算 a0~0.8、
-1e17 cm^-3、800nm 的能增量级, 对照 golden 末态 421.8 MeV;
-检查 laser.dat 单位约定 (a0² vs a0)。
+## M6: Plasma_2 激光尾场物理量级验证 — **已完成** (2026-08, T9)
+physics_notes/10 问题 8 已关闭。按 Astra-Manual V3.2 §6.9 线性激光
+尾场公式独立积分 (a0=0.8, n=1e17 cm^-3, λ=800 nm, σz=6.4 μm,
+w0=50 μm): 末态动能 422.7 MeV vs golden 421.8 MeV, 吻合 0.2%;
+E_peak = 4.32 GV/m = 0.142·E_WB (线性区); 失相长度 1.84 m 与
+泵浦耗尽 ~1.7 m 均 >> 0.1 m 靶长; 激光 ~54 TW << 自聚焦临界
+~0.3 PW; 束加载可忽略; √(2π) 系数变体 (743.6 MeV) 被排除。
+限制: DESY 官方说明 PDF 无期望末态能量数字, 以手册公式为准。
 
 ## M7: slice 发射度临时第三方对照 (一次性, 不进仓库)
 physics_notes/10 问题 3。用 venv 里的 pmd-beamphysics 对

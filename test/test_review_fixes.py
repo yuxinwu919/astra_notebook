@@ -60,13 +60,19 @@ def test_ellipse_theta_is_major_axis():
         abs(abs(par["theta"] - main) - np.pi) < 0.02
 
 
-def test_bff_near_neutral_bunch_returns_zero():
-    """近中性束团 (|Σq| << Σ|q|) 的 BFF 归一化发散, 返回零而非爆炸。"""
+def test_bff_near_neutral_bunch_q_abs_fallback():
+    """近中性束团 (|Σq| << Σ|q|) 的 1/Q_total 归一化发散: 回退 |q| 归一化
+    结构因子 (F̃(0)=1, k≠0 有界) 并告警, 不再静默归零
+    (2026-08 审计 P3-1)。"""
     rng = np.random.default_rng(5)
     z = rng.normal(0, 1e-3, 3000)
     q = np.where(np.arange(3000) % 2 == 0, 1.0, -1.0)
-    b = compute_bff(z, q, kmin=1, kmax=1e4, nk=50)
-    assert np.all(b.bff == 0.0)
+    with pytest.warns(UserWarning):
+        b = compute_bff(z, q, kmin=0.0, kmax=1e4, nk=50, log_spaced=False)
+    assert b.bff[0] == pytest.approx(1.0, rel=1e-12)   # F̃(0) = 1
+    assert np.all(np.isfinite(b.bff))                  # 有界不爆炸
+    assert np.all(b.bff <= 1.0 + 1e-12)
+    assert b.bff[1] < 1.0                              # 保留结构信息
 
 
 def test_slice_emittance_unweighted_matches_statistics_convention():

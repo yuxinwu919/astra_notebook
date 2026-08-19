@@ -31,10 +31,11 @@ from typing import Optional
 
 import numpy as np
 
-from ..constants import kinetic_energy_from_momentum
+from ..constants import kinetic_energy_from_momentum_vector
 from ..distribution import Distribution
 from .emittance import (
     canonical_divergence,
+    canonical_signs,
     compute_geometric_emittance,
     compute_normalized_emittance,
     compute_twiss_parameters,
@@ -59,15 +60,18 @@ def _plane_coords(dist: Distribution, plane: str, bz_on_axis_T: float,
         return float(np.average(a, weights=w) if w is not None else np.mean(a))
 
     if plane == "x":
-        ptx = canonical_divergence(dist.px[m], y, bz_on_axis_T, +1.0)
+        s_can = canonical_signs(dist)[m]   # 种类感知符号 (2026-08 F4)
+        ptx = canonical_divergence(dist.px[m], y, bz_on_axis_T, s_can)
         u = x - _avg(x)
         up = (ptx - _avg(ptx)) / ref_momentum_eVc
     elif plane == "y":
-        pty = canonical_divergence(dist.py[m], x, bz_on_axis_T, -1.0)
+        s_can = canonical_signs(dist)[m]
+        pty = canonical_divergence(dist.py[m], x, bz_on_axis_T, -s_can)
         u = y - _avg(y)
         up = (pty - _avg(pty)) / ref_momentum_eVc
     elif plane == "z":
-        e = kinetic_energy_from_momentum(pz)
+        # 全动量动能 (2026-08 审计 P2-2)
+        e = kinetic_energy_from_momentum_vector(dist.px[m], dist.py[m], pz)
         u = dist.z[m] - _avg(dist.z[m])
         up = e - _avg(e)
     else:

@@ -2,7 +2,7 @@
  "namelist": "MODULES",
  "section": "6.4",
  "title": "The namelist MODULES",
- "n_params": 12,
+ "n_params": 13,
  "params": [
   {
    "name": "Loop",
@@ -17,6 +17,13 @@
    "unit": "",
    "default": "FALSE",
    "desc": "if false all module definitions will be ignored. specifies the elements of a module."
+  },
+  {
+   "name": "Module(,)",
+   "type": "Character*40 array",
+   "unit": "",
+   "default": null,
+   "desc": "specifies the elements of a module."
   },
   {
    "name": "Mod_Xoff( )",

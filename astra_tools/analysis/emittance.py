@@ -34,17 +34,37 @@ def canonical_divergence(
     u_momentum_eVc: np.ndarray,
     v_position_m: np.ndarray,
     bz_on_axis_T: float,
-    sign: float,
+    sign,
 ) -> np.ndarray:
     """Canonical transverse momentum [eV/c] for solenoid fields.
 
     p~_x = px + c*Bz*y/2   (sign=+1)
     p~_y = py - c*Bz*x/2   (sign=-1)
 
-    ASTRA Manual 4.13.1: the on-axis solenoid field at the bunch center
-    is used for all particles.
+    sign 可为数组 (每粒子符号, 见 canonical_signs)。ASTRA Manual 4.13.1:
+    the on-axis solenoid field at the bunch center is used for all particles.
     """
     return u_momentum_eVc + sign * 0.5 * C_LIGHT * bz_on_axis_T * v_position_m
+
+
+# 正电荷种类 (手册 Table 1: 2=正电子, 3=质子, 4=氢离子)
+POSITIVE_CHARGE_SPECIES = (2, 3, 4)
+
+
+def canonical_signs(dist) -> np.ndarray:
+    """每粒子的正则动量螺线管项符号 (手册 4.13.1 的电子约定).
+
+    p̃x = px + s·(c/2)·Bz·y,  p̃y = py − s·(c/2)·Bz·x
+    电子 (species 1 / index 缺失 / 用户自定义 5-14) s=+1;
+    正电荷种类 (2=正电子, 3=质子, 4=氢离子) s=−1。
+    (2026-08 审计 F4: 旧实现对所有粒子无条件用电子符号, 正电子束的
+    螺线管修正符号错误。用户自定义种类默认按电子, 正电荷自定义种类
+    请显式提供 index 或自行翻转。)
+    """
+    s = np.ones(dist.n_particle, dtype=float)
+    if dist.index is not None:
+        s[np.isin(dist.index, POSITIVE_CHARGE_SPECIES)] = -1.0
+    return s
 
 
 def compute_geometric_emittance(

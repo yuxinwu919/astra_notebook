@@ -258,11 +258,15 @@ class Test3DFieldMapViews:
         (tmp_path / "map.bz").unlink()
         f2 = read_3d_field_map_components(tmp_path / "map")
         assert np.all(f2.fz == 0.0)
-        # 网格不一致必须报错
+        # 网格不一致: 手册允许各分量网格不同 -> 插值到首分量网格 + 告警
+        # (2026-08 审计 P3: 旧实现直接报错)
         write("mx.bx", (0.0, 0.5, 1.0), 1.0)
         write("mx.by", (0.0, 1.0, 2.0), 2.0)
-        with pytest.raises(ValueError, match="网格不一致"):
-            read_3d_field_map_components(tmp_path / "mx")
+        with pytest.warns(UserWarning, match="网格"):
+            f3 = read_3d_field_map_components(tmp_path / "mx")
+        assert f3.fx.shape == (3, 3, 3)
+        assert f3.fy.shape == (3, 3, 3)
+        np.testing.assert_allclose(f3.fy, 2.0)   # 常值场插值不变
 
     def test_vector_slices_labels(self):
         """矢量剖面: auto 轴 (y) + mm 标签 + |B| [T] 色条。"""

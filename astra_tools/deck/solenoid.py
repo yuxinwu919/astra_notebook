@@ -12,7 +12,7 @@ from typing import Optional
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ..namelist.parse import parse_namelists
+from ..namelist.parse import get_ci, iter_namelist_blocks, parse_namelists
 
 
 def _as_list(v):
@@ -31,8 +31,10 @@ def solenoid_bz_at_z(
     逐个元素按场表插值: Bz_i(z) = interp(z - s_pos_i, table_i) *
     MaxB_i / max(|table_i|), 求和 (ASTRA 追踪时所有螺线管场叠加)。
     批 6: 此前只取第一个元素, 多螺线管束线会静默用错场。
+    负 MaxB = 反向极性 (手册 6.10: 场值 = 表值 × MaxB/峰值, 符号翻转),
+    按符号缩放并告警 (2026-08 审计 P2, 旧实现静默跳过)。
     deck 无螺线管 (LBField!=T)、任何解析失败、或某个已声明的螺线管
-    (非空 File_Bfield 且 MaxB>0) 场表缺失/不可读时返回 None (调用方
+    (非空 File_Bfield 且 MaxB!=0) 场表缺失/不可读时返回 None (调用方
     降级为告警, 不自动给错误数值、也不静默部分求和)。
     """
     deck = Path(deck_path)
@@ -42,12 +44,16 @@ def solenoid_bz_at_z(
         blocks = parse_namelists(deck)
     except Exception:
         return None
-    sol = blocks.get("SOLENOID")
-    if not sol or not sol.get("LBField", False):
+    sol_blocks = list(iter_namelist_blocks(blocks, "SOLENOID"))
+    if not sol_blocks:
         return None
-    fnames = _as_list(sol.get("File_Bfield", ""))
-    maxbs = _as_list(sol.get("MaxB", 0.0))
-    sposs = _as_list(sol.get("S_pos", 0.0))
+    # 重复块按 Fortran 读取语义取最后一块 (后块覆盖前块)
+    sol = sol_blocks[-1]
+    if not get_ci(sol, "LBfield", False):
+        return None
+    fnames = _as_list(get_ci(sol, "File_Bfield", ""))
+    maxbs = _as_list(get_ci(sol, "MaxB", 0.0))
+    sposs = _as_list(get_ci(sol, "S_pos", 0.0))
     n = max(len(fnames), len(maxbs), len(sposs))
     base = Path(field_dir) if field_dir else deck.parent
     total = 0.0
@@ -61,8 +67,15 @@ def solenoid_bz_at_z(
             s_pos = float(sposs[min(i, len(sposs) - 1)])
         except (TypeError, ValueError, IndexError):
             continue
-        if not fname or maxB <= 0:
+        if not fname or maxB == 0:
             continue
+        if maxB < 0:
+            # 负 MaxB = 反向极性螺线管 (手册 6.10: 场值 = 表值 × MaxB/峰值,
+            # 符号翻转即反向场)。旧实现静默跳过 (2026-08 审计 P2)。
+            import warnings as _warnings
+            _warnings.warn(
+                "SOLENOID %s: MaxB=%g < 0, 按反向极性场处理 (符号翻转)"
+                % (fname, maxB), UserWarning, stacklevel=2)
         fpath = base / fname
         if not fpath.exists():
             return None

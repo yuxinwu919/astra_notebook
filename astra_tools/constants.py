@@ -42,8 +42,26 @@ def _as_scalar_or_array(x):
 
 
 def kinetic_energy_from_momentum(momentum_eVc, mass_eV=M_E_C2_EV):
-    """Kinetic energy [eV] from momentum [eV/c]: E_kin = sqrt(p^2c^2 + m^2c^4) - mc^2."""
+    """Kinetic energy [eV] from momentum [eV/c]: E_kin = sqrt(p^2c^2 + m^2c^4) - mc^2.
+
+    Scalar / longitudinal-momentum convention (reference particle); for
+    per-particle kinetic energies use kinetic_energy_from_momentum_vector.
+    """
     return _as_scalar_or_array(np.sqrt(np.asarray(momentum_eVc) ** 2 + mass_eV**2) - mass_eV)
+
+
+def kinetic_energy_from_momentum_vector(px_eVc, py_eVc, pz_eVc,
+                                        mass_eV=M_E_C2_EV):
+    """Kinetic energy [eV] from the FULL momentum vector [eV/c]:
+    E_kin = sqrt((px^2 + py^2 + pz^2) + m^2c^4) - mc^2.
+
+    (2026-08 audit P2-2: pz-only underestimates E_kin for
+    large-divergence beams - mean E off by ~60% on the 90deg-bend
+    probe beam, px/py ~ 1.9 MeV/c.)
+    """
+    p2 = (np.asarray(px_eVc) ** 2 + np.asarray(py_eVc) ** 2
+          + np.asarray(pz_eVc) ** 2)
+    return _as_scalar_or_array(np.sqrt(p2 + mass_eV**2) - mass_eV)
 
 
 def momentum_from_kinetic_energy(kinetic_energy_eV, mass_eV=M_E_C2_EV):

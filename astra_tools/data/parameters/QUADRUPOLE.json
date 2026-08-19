@@ -2,7 +2,7 @@
  "namelist": "QUADRUPOLE",
  "section": "6.11",
  "title": "The namelist QUADRUPOLE",
- "n_params": 16,
+ "n_params": 18,
  "params": [
   {
    "name": "LOOP",
@@ -75,6 +75,20 @@
    "desc": "distance between magnets in case of doublets and triplets. skew multipole coefficients. normal multipole coefficients."
   },
   {
+   "name": "Q_mult_a(,)",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "skew multipole coefficients."
+  },
+  {
+   "name": "Q_mult_b(,)",
+   "type": "Real*8 array",
+   "unit": "",
+   "default": "0.0",
+   "desc": "normal multipole coefficients."
+  },
+  {
    "name": "Q_pos()",
    "type": "Real*8 array",
    "unit": "m",
@@ -85,14 +99,14 @@
    "name": "Q_xoff()",
    "type": "Real*8 array",
    "unit": "m",
-   "default": null,
+   "default": "0.0",
    "desc": "horizontal offset of the quadrupole, the doublet or the triplet."
   },
   {
    "name": "Q_yoff()",
    "type": "Real*8 array",
    "unit": "m",
-   "default": null,
+   "default": "0.0",
    "desc": "vertical offset of the quadrupole, the doublet or the triplet."
   },
   {

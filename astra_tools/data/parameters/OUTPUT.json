@@ -2,7 +2,7 @@
  "namelist": "OUTPUT",
  "section": "6.2",
  "title": "The namelist OUTPUT",
- "n_params": 33,
+ "n_params": 35,
  "params": [
   {
    "name": "ZSTART",
@@ -80,6 +80,20 @@
    "unit": "",
    "default": "FALSE",
    "desc": "if true, the transverse particle positions of all particles will be recorded when passing the output position plane prior to the calculation of the emittance, spot size etc. The longitudinal particle coordinates in output files are recalculated based on times and velocities and are only approximate. Hence distributions saved with this option should not be used as input distributions for further tracking! The distance between subsequent output positions has to be larger than the bunch length, or they will be skipped. See section 4.13.3."
+  },
+  {
+   "name": "Lmagnetized",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true, solenoid fields are neglected in the calculation of the beam emittance. See section 4.13.1."
+  },
+  {
+   "name": "Lsub_rot",
+   "type": "Logical",
+   "unit": "",
+   "default": "FALSE",
+   "desc": "if true Lmagnetized will be set true and the angular momentum of the bunch is subtracted for the emittance calculation based on the actual x-py and y-px correlation of the bunch rather than by the canonical momentum. See section 4.13.1."
   },
   {
    "name": "Lsub_Larmor",

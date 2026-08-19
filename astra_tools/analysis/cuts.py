@@ -11,7 +11,7 @@ from typing import Optional
 
 import numpy as np
 
-from ..constants import kinetic_energy_from_momentum
+from ..constants import kinetic_energy_from_momentum_vector
 from ..distribution import Distribution
 
 
@@ -45,7 +45,7 @@ def cut_distribution(
     if z_range is not None:
         cut |= (dist.z < z_range[0]) | (dist.z > z_range[1])
     if e_range is not None:
-        e = kinetic_energy_from_momentum(dist.pz)
+        e = kinetic_energy_from_momentum_vector(dist.px, dist.py, dist.pz)
         cut |= (e < e_range[0]) | (e > e_range[1])
     if r_aperture is not None:
         r = np.sqrt(dist.x**2 + dist.y**2)
@@ -161,7 +161,7 @@ def optimized_cut(dist: Distribution, width: float, param: str = "z"):
     elif param == "z":
         values, rng = dist.z, (None, None)
     elif param == "E":
-        values = kinetic_energy_from_momentum(dist.pz)
+        values = kinetic_energy_from_momentum_vector(dist.px, dist.py, dist.pz)
         rng = (None, None)
     else:
         raise ValueError("param 必须为 'x'/'y'/'z'/'E': %r" % (param,))

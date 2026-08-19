@@ -38,7 +38,9 @@ def bunch_time(dist: Distribution, warn_mixed: bool = True) -> np.ndarray:
     tracked = dist.tracked  # status >= 0
 
     # 束团平均纵向速度 (active 粒子, 手册 5.6 "average longitudinal
-    # velocity of the bunch")
+    # velocity of the bunch")。口径取 beta(mean(pz)) (v(<pz>) 而非
+    # <v>); 两者差异 O((σp/p)²) ~ 1e-6, 可忽略 (2026-08 审计 P3-4)。
+    # pz_avr <= 0 (反向束/静止) 时回退 beta=1, 时间轴仅作示意。
     beta_bar = 1.0
     if dist.n_active:
         pz_avr = float(np.mean(dist.pz[active]))
@@ -46,14 +48,15 @@ def bunch_time(dist: Distribution, warn_mixed: bool = True) -> np.ndarray:
             beta_bar = beta_from_gamma(gamma_from_momentum(pz_avr))
     z_avr = float(np.mean(dist.z[active])) if dist.n_active else 0.0
 
-    m_tracked = tracked & ~active  # passive probes also use velocity
+    # 手册 5.6 原文是 "status flag > 0"; 这里对 status 0/1 (被动探针)
+    # 也套用束团平均速度规则 — 探针是已发射粒子, 物理上更合理
+    # (2026-08 审计 P3-4 注记)。
     if np.any(tracked):
         t[tracked] = (dist.z[tracked] - z_avr) / (beta_bar * C_LIGHT)
-    # passive 粒子若 z 语义不同 (探针), 仍按同一平均速度; 保留上面统一处理
     if np.any(not_started):
         t[not_started] = dist.clock[not_started]
 
-    if warn_mixed and np.any(not_started) and np.any(m_tracked | active):
+    if warn_mixed and np.any(not_started) and np.any(tracked):
         warnings.warn(
             "混合分布: 同时存在未发射 (status -1..-6, 用 clock) 与已发射 "
             "粒子 (用束团平均速度), 时间坐标混用两种约定", UserWarning,

@@ -15,12 +15,18 @@ File formats (ASTRA Manual V3.2, sections 6.9 / 6.10):
   * Wake potential table (File_Wakefield, section 6.8):
         first line: N 0, then N lines: s [m], W [V/C]
 
-Off-axis field expansion (used by fieldplot, manual chapter 8):
-    Ez(r,z) = Ez0 - (r^2/4) Ez0'' + (r^4/64) Ez0''''
-    Er(r,z) = -(r/2) Ez0' + (r^3/16) Ez0'''
-    Bphi(r,z) = (r/(2 c^2)) dEz0/dt      (RF: dEz0/dt = omega * Ez0)
-    Br(r,z)  = -(r/2) Bz0'
-    Bz(r,z)  = Bz0 - (r^2/4) Bz0''
+Off-axis field expansion (manual V3.2, Appendix I; 3rd order like
+ASTRA's C_higher_order/S_higher_order=TRUE default):
+    TM (cavity, amplitude; sin(wt) factors omitted):
+        Ez(r,z)  = Ez0 - (r^2/4)(Ez0'' + w^2/c^2 Ez0)
+        Er(r,z)  = -(r/2) Ez0' + (r^3/16)(Ez0''' + w^2/c^2 Ez0')
+        Bphi(r,z)= [(r/2) Ez0 - (r^3/16)(Ez0'' + w^2/c^2 Ez0)] w/c^2
+    solenoid (3rd order):
+        Bz(r,z)  = Bz0 - (r^2/4) Bz0'' + (r^4/64) Bz0''''
+        Br(r,z)  = -(r/2) Bz0' + (r^3/16) Bz0'''
+    (2026-08 audit: the old TM branch used a static expansion without
+    the w^2/c^2 terms and with a spurious r^4 term - 19.6% Ez error at
+    r=2 cm on the real 3_cell_L-Band.dat.)
 """
 
 from __future__ import annotations
@@ -69,15 +75,19 @@ class CavityField:
         dez = np.gradient(self.ez0, self.z)
         d2ez = np.gradient(dez, self.z)
         d3ez = np.gradient(d2ez, self.z)
-        d4ez = np.gradient(d3ez, self.z)
         ez0p = np.interp(z, self.z, dez)
         ez0pp = np.interp(z, self.z, d2ez)
         ez0ppp = np.interp(z, self.z, d3ez)
-        ez0pppp = np.interp(z, self.z, d4ez)
-
-        ez = ez0 - (r**2 / 4.0) * ez0pp + (r**4 / 64.0) * ez0pppp
-        er = -(r / 2.0) * ez0p + (r**3 / 16.0) * ez0ppp
-        bphi = (r / (2.0 * C_LIGHT**2)) * (omega * ez0) if omega else np.zeros_like(r)
+        # 手册附录 I (TM 驻波, 3 阶; 2026-08 审计 P1: 旧式为静态展开,
+        # 缺 w²/c² 修正且多 r⁴ 项)。静场 (omega=0) 时 w²/c² 项自然为零。
+        w2c2 = (omega / C_LIGHT) ** 2 if omega else 0.0
+        ez = ez0 - (r**2 / 4.0) * (ez0pp + w2c2 * ez0)
+        er = -(r / 2.0) * ez0p + (r**3 / 16.0) * (ez0ppp + w2c2 * ez0p)
+        if omega:
+            bphi = ((r / 2.0) * ez0
+                    - (r**3 / 16.0) * (ez0pp + w2c2 * ez0)) * (omega / C_LIGHT**2)
+        else:
+            bphi = np.zeros_like(r)
         return ez, er, bphi
 
     def expansion_radius(self, omega: float = 0.0, smooth_window=None):
@@ -133,7 +143,8 @@ class SolenoidField:
         return out
 
     def field_at(self, r: np.ndarray, z: np.ndarray):
-        """Off-axis (Br, Bz) via the axis expansion.
+        """Off-axis (Br, Bz) via the axis expansion, 3rd order
+        (ASTRA S_higher_order=TRUE 默认; 手册附录 I).
 
         Args:
             r: radial positions [m].
@@ -147,10 +158,15 @@ class SolenoidField:
         bz0 = np.interp(z, self.z, self.bz0)
         dbz = np.gradient(self.bz0, self.z)
         d2bz = np.gradient(dbz, self.z)
+        d3bz = np.gradient(d2bz, self.z)
+        d4bz = np.gradient(d3bz, self.z)
         bz0p = np.interp(z, self.z, dbz)
         bz0pp = np.interp(z, self.z, d2bz)
-        br = -(r / 2.0) * bz0p
-        bz = bz0 - (r**2 / 4.0) * bz0pp
+        bz0ppp = np.interp(z, self.z, d3bz)
+        bz0pppp = np.interp(z, self.z, d4bz)
+        # 3 阶 (2026-08 审计 P3: 旧实现仅 1 阶, 与 ASTRA 默认不符)
+        br = -(r / 2.0) * bz0p + (r**3 / 16.0) * bz0ppp
+        bz = bz0 - (r**2 / 4.0) * bz0pp + (r**4 / 64.0) * bz0pppp
         return br, bz
 
     def expansion_radius(self, smooth_window=None):
@@ -186,12 +202,22 @@ class WakePotential:
 
 
 def read_cavity_field(path) -> CavityField:
-    """Read a two-column cavity field table (z [m], Ez [MV/m])."""
+    """Read a two-column cavity field table (z [m], Ez [arb. units]).
+
+    手册 6.9: 场表第 2 列为任意单位, 峰值按 deck 的 MaxE 缩放;
+    C_noscale=T 时数值才直接是 MV/m。z 必须严格单调递增。
+    """
     path = Path(path)
     data = np.loadtxt(path, ndmin=2)
     if data.shape[1] < 2:
         raise ValueError("cavity field file must have >= 2 columns: " + str(path))
-    return CavityField(z=data[:, 0].astype(float),
+    zcol = data[:, 0].astype(float)
+    if not np.all(np.diff(zcol) > 0):
+        raise ValueError(
+            "cavity field z must be strictly increasing: " + str(path)
+            + " (2026-08 audit: np.interp/gradient silently return garbage "
+            "on non-monotonic tables)")
+    return CavityField(z=zcol,
                        ez0=data[:, 1].astype(float),          # 原始任意单位 (手册 6.9)
                        source=str(path))
 
@@ -387,53 +413,14 @@ def parse_field_map_file(path):
     return attrs, data
 
 
-def expand_tws_field_map(z0, f0, z1, z2, m_cells_in_body, n_cell):
-    """Periodically expand a TWS field-map body over n_cell cells.
-
-    Layout: |Entrance| Cells | Exit | -> |Entrance| Cells |...|Cells| Exit |
-    (vendored from lume-astra's expand_tws_fmap).
-
-    Args:
-        z0: z positions of the raw table [m].
-        f0: field values of the raw table.
-        z1, z2: start/end of the periodic cell body [m].
-        m_cells_in_body: number of cells inside the raw body (attrs 'm').
-        n_cell: total number of cells requested (C_numb).
-
-    Returns:
-        (zfull, ffull) arrays.
-    """
-    z0 = np.asarray(z0, dtype=float)
-    f0 = np.asarray(f0, dtype=float)
-    zmin, zmax = float(z0.min()), float(z0.max())
-    dz = float(np.mean(np.diff(z0)))
-    l_entrance = z1 - zmin
-    l_exit = zmax - z2
-    l_cell = z2 - z1
-
-    n_repeat = int(n_cell / m_cells_in_body)
-
-    z_entrance = np.linspace(zmin, z1, int(round(l_entrance / dz + 1)))
-    z_cell = np.linspace(z1, z2, int(round(l_cell / dz + 1)))
-    z_exit = np.linspace(z2, zmax, int(round(l_exit / dz + 1)))
-
-    f_entrance = np.interp(z_entrance, z0, f0)
-    f_cell = np.interp(z_cell, z0, f0)
-    f_exit = np.interp(z_exit, z0, f0)
-
-    ztot = [z_entrance[:-1]]
-    ftot = [f_entrance[:-1]]
-    for i in range(n_repeat):
-        ztot.append(z_cell[:-1] + i * l_cell)
-        ftot.append(f_cell[:-1])
-    ztot.append(z_exit + (n_repeat - 1) * l_cell)
-    ftot.append(f_exit)
-
-    return np.concatenate(ztot), np.concatenate(ftot)
+# expand_tws_field_map REMOVED (2026-08 audit P2): it was dead code with
+# wrong n/m semantics (m is NOT the cell count; C_numb*n/m must be an
+# integer, n<0 backwards waves unsupported) and no 1st-order transverse
+# expansion. TWS plotting uses the raw table via parse_field_map_file.
 
 
 def fix_laser_map_header(path):
-    """修复 MATLAB 写的 laser.dat 3D 图头 (就地转换)。
+    """修复 MATLAB 写的 laser.dat 3D 图头 (就地转换, 仅头 3 行计数取整)。
 
     DESY Plasma_Example_2 的 laser.dat 头三行为 (n, min, spacing),
     但 n 写成浮点形式 (8.1e+01)。实测 (macOS Apple Silicon ASTRA
@@ -442,9 +429,14 @@ def fix_laser_map_header(path):
       * 逐值网格行 (n 后跟 n 个值)   -> 读取 3D 图时 SIGSEGV
       * 整数计数 + (n,min,spacing)  -> 正常 (本函数的输出)
 
-    因此只把计数转成整数, 其余原样保留。
+    只把计数转成整数, 网格与数据逐字节不动 (物理等价)。注意: 本函数
+    就地覆盖原文件 (2026-08 审计 P3), 调用前请自行备份。
     """
     path = Path(path)
+    warnings.warn(
+        "fix_laser_map_header 就地改写文件 %s (仅头 3 行计数取整, "
+        "数据不动); 原始 DESY 头形式将被覆盖, 请确认已有备份" % path,
+        UserWarning, stacklevel=2)
     with open(path, encoding="utf-8") as f:
         lines = f.readlines()
     if len(lines) < 4:
@@ -606,6 +598,7 @@ def read_3d_field_map_components(base):
             break
     grids = None
     comps = {}
+    other_family_seen = False
     for suffix, (key, u, q) in _FIELD_COMPONENT_SUFFIXES.items():
         p = base.with_name(base.name + suffix)
         if not p.exists():
@@ -617,16 +610,36 @@ def read_3d_field_map_components(base):
                 unit, quantity = u, q
                 explicit = True
         if q != family:
-            continue          # 电/磁并存: 只取首族 (电场优先)
+            other_family_seen = True   # 电/磁并存: 只取首族 (电场优先)
+            continue
         gx, gy, gz, f = read_3d_field_map(p)
         if grids is None:
             grids = (gx, gy, gz)
-        elif not (np.allclose(grids[0], gx) and np.allclose(grids[1], gy)
+        elif not (len(grids[0]) == len(gx) and len(grids[1]) == len(gy)
+                  and len(grids[2]) == len(gz)
+                  and np.allclose(grids[0], gx) and np.allclose(grids[1], gy)
                   and np.allclose(grids[2], gz)):
-            raise ValueError("3D 场图分量网格不一致: " + str(base))
+            # 手册允许各分量网格不同 (仅首末 z 平面一致); 插值到
+            # 首分量网格 (2026-08 审计 P3: 旧实现直接拒绝)
+            warnings.warn(
+                "3D 场图 %s: 分量 %s 网格与其余分量不一致 (手册允许), "
+                "已线性插值到公共网格" % (base, suffix), UserWarning,
+                stacklevel=2)
+            from scipy.interpolate import RegularGridInterpolator
+            interp = RegularGridInterpolator(
+                (gx, gy, gz), f, bounds_error=False, fill_value=0.0)
+            Xg, Yg, Zg = np.meshgrid(grids[0], grids[1], grids[2],
+                                     indexing="ij")
+            f = interp(np.column_stack([Xg.ravel(), Yg.ravel(), Zg.ravel()])
+                       ).reshape(Xg.shape)
         comps[key] = f
     if grids is None:
         raise ValueError("3D 场图分量文件缺失: " + str(base))
+    if other_family_seen:
+        warnings.warn(
+            "3D 场图 %s: 同时存在电场族与磁场族分量文件, 仅显示 %s 族 "
+            "(%s 族未显示)" % (base, quantity, "B" if quantity == "E" else "E"),
+            UserWarning, stacklevel=2)
     x, y, z = grids
     shape = (len(x), len(y), len(z))
     zeros = np.zeros(shape)

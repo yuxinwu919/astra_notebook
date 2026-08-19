@@ -2,7 +2,7 @@
  "namelist": "CHARGE",
  "section": "6.6",
  "title": "The namelist CHARGE",
- "n_params": 27,
+ "n_params": 37,
  "params": [
   {
    "name": "LOOP",
@@ -94,6 +94,76 @@
    "unit": "m",
    "default": "0.0",
    "desc": ""
+  },
+  {
+   "name": "Merge_1()",
+   "type": "Integer array",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to merge longitudinal cells. Only for cylindrical grid algorithm, see section 4.4.2."
+  },
+  {
+   "name": "Merge_2()",
+   "type": "Integer array",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to merge longitudinal cells. Only for cylindrical grid algorithm, see section 4.4.2."
+  },
+  {
+   "name": "Merge_3()",
+   "type": "Integer array",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to merge longitudinal cells. Only for cylindrical grid algorithm, see section 4.4.2."
+  },
+  {
+   "name": "Merge_4()",
+   "type": "Integer array",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to merge longitudinal cells. Only for cylindrical grid algorithm, see section 4.4.2."
+  },
+  {
+   "name": "Merge_5()",
+   "type": "Integer array",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to merge longitudinal cells. Only for cylindrical grid algorithm, see section 4.4.2."
+  },
+  {
+   "name": "Merge_6()",
+   "type": "Integer array",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to merge longitudinal cells. Only for cylindrical grid algorithm, see section 4.4.2."
+  },
+  {
+   "name": "Merge_7()",
+   "type": "Integer array",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to merge longitudinal cells. Only for cylindrical grid algorithm, see section 4.4.2."
+  },
+  {
+   "name": "Merge_8()",
+   "type": "Integer array",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to merge longitudinal cells. Only for cylindrical grid algorithm, see section 4.4.2."
+  },
+  {
+   "name": "Merge_9()",
+   "type": "Integer array",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to merge longitudinal cells. Only for cylindrical grid algorithm, see section 4.4.2."
+  },
+  {
+   "name": "Merge_10()",
+   "type": "Integer array",
+   "unit": "",
+   "default": null,
+   "desc": "parameter to merge longitudinal cells. Only for cylindrical grid algorithm, see section 4.4.2."
   },
   {
    "name": "z_trans",

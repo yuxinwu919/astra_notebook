@@ -28,6 +28,29 @@ def _split_comment(line: str):
     return line, ""
 
 
+def _find_terminator(line: str):
+    """在引号/括号外找第一个 '/' (namelist 行内终止符) 的位置.
+
+    2026-08 审计 R2-1-4: 'H_max=0.001, / ! end' 的 '/' 不得被当作
+    参数值保留 (否则回写 deck 时把 '/' 塞进参数数组)。
+    """
+    depth = 0
+    in_quote = None
+    for i, ch in enumerate(line):
+        if in_quote:
+            if ch == in_quote:
+                in_quote = None
+        elif ch in ("'", '"'):
+            in_quote = ch
+        elif ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth = max(0, depth - 1)
+        elif ch == "/" and depth == 0:
+            return i
+    return None
+
+
 def format_namelist_line(line: str) -> str:
     """Format one parameter line: 'key = value' -> 'key=value,'.
 
@@ -39,8 +62,15 @@ def format_namelist_line(line: str) -> str:
         return ""
     if stripped.startswith("!"):
         return "  " + stripped
-    if stripped.startswith("&") or stripped == "/":
+    if stripped.startswith("&"):
         return stripped
+    if _split_comment(stripped)[0].strip() == "/":
+        # 块终止行 (含尾注): '/ ! end' 保留注释
+        # (2026-08 审计 R2-1-4: 此前注释被丢弃)
+        _, term_comment = _split_comment(stripped)
+        if term_comment.strip():
+            return " / " + term_comment.strip()
+        return " /"
 
     content, comment = _split_comment(stripped)
     content = content.strip()
@@ -94,9 +124,21 @@ def format_input_text(content: str) -> str:
             prev_blank = False
             continue
         if in_namelist:
-            # 块终止行可为裸 '/' 或带尾注的 '/ ! comment'
-            if _split_comment(stripped)[0].strip() == "/":
-                result.append(" /")
+            # 块终止: 裸 '/'、带尾注 '/ ! comment'、或行内
+            # 'H_max=0.001, / ! end' (2026-08 审计 R2-1-4)。
+            content, comment = _split_comment(stripped)
+            term_idx = _find_terminator(content)
+            if term_idx is not None:
+                part = content[:term_idx].strip().rstrip(",").strip()
+                if part:
+                    formatted = format_namelist_line(part)
+                    if formatted:
+                        result.append(formatted)
+                        prev_blank = False
+                term = " /"
+                if comment.strip():
+                    term += " " + comment.strip()
+                result.append(term)
                 result.append("")
                 in_namelist = False
                 prev_blank = True

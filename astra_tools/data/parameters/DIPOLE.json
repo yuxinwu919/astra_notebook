@@ -2,7 +2,7 @@
  "namelist": "DIPOLE",
  "section": "6.13",
  "title": "The namelist DIPOLE",
- "n_params": 11,
+ "n_params": 16,
  "params": [
   {
    "name": "LOOP",
@@ -24,6 +24,41 @@
    "unit": "",
    "default": null,
    "desc": "besides horizontal dipoles which bend in the x-plane vertical dipoles can be specified to bend the beam in the y-plane. coordinates of the first corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The first number defines the horizontal or vertical (if D_type = ‘vertical’) coordinate, the second number defines the longitudinal coordinate. coordinates of the second corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The first number defines the horizontal or vertical (if D_type = ‘vertical’) coordinate, the second number defines the longitudinal coordinate. coordinates of the third corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The first number defines the horizontal or vertical (if D_type = ‘vertical’) coordinate, the second number defines the longitudinal coordinate. coordinates of the fourth corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The first number defines the horizontal or vertical (if D_type = ‘vertical’) coordinate, the second number defines the longitudinal coordinate. taper parameter for the dipole fringe field. The first index of the array is 1 or 2 for the first and second dipole edge, while the second index refers to the dipole number."
+  },
+  {
+   "name": "D1(,)",
+   "type": "Double Complex array",
+   "unit": "m",
+   "default": "(0.0,0.0)",
+   "desc": "coordinates of the first corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The first number defines the horizontal or vertical (if D_type = 'vertical') coordinate, the second number defines the longitudinal coordinate."
+  },
+  {
+   "name": "D2(,)",
+   "type": "Double Complex array",
+   "unit": "m",
+   "default": "(0.0,0.0)",
+   "desc": "coordinates of the second corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The second number defines the horizontal or vertical (if D_type = 'vertical') coordinate, the second number defines the longitudinal coordinate."
+  },
+  {
+   "name": "D3(,)",
+   "type": "Double Complex array",
+   "unit": "m",
+   "default": "(0.0,0.0)",
+   "desc": "coordinates of the third corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The third number defines the horizontal or vertical (if D_type = 'vertical') coordinate, the second number defines the longitudinal coordinate."
+  },
+  {
+   "name": "D4(,)",
+   "type": "Double Complex array",
+   "unit": "m",
+   "default": "(0.0,0.0)",
+   "desc": "coordinates of the fourth corner of a dipole. Two numbers, enclosed by brackets and separated by a comma, are to be given. The fourth number defines the horizontal or vertical (if D_type = 'vertical') coordinate, the second number defines the longitudinal coordinate."
+  },
+  {
+   "name": "D_Gap(,)",
+   "type": "Real*8 array",
+   "unit": "m",
+   "default": "0.05",
+   "desc": "taper parameter for the dipole fringe field. The first index of the array is 1 or 2 for the first and second dipole edge, while the second index refers to the dipole number."
   },
   {
    "name": "D_strength()",

@@ -41,13 +41,16 @@ def display_bz_warning(sim_dir) -> bool:
     """
     from pathlib import Path
     from IPython.display import display
-    from ..namelist.parse import parse_namelists
+    from ..namelist.parse import get_ci, iter_namelist_blocks, parse_namelists
     deck = Path(sim_dir) / "astra.in"
     if not deck.exists():
         return False
     blocks = parse_namelists(deck)
-    sol = blocks.get("SOLENOID")
-    if not sol or not sol.get("LBField", False):
+    sol_blocks = list(iter_namelist_blocks(blocks, "SOLENOID"))
+    if not sol_blocks:
+        return False
+    sol = sol_blocks[-1]  # 重复块取最后一块 (Fortran 读取语义)
+    if not get_ci(sol, "LBfield", False):
         return False
     display(HTML(
         "<div style='background:#fff8e1;border:1px solid #e0c36a;"

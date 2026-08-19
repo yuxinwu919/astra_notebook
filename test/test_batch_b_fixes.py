@@ -135,7 +135,9 @@ def test_bff_gaussian_analytic():
         b = compute_bff(z, q, kmin=1e2, kmax=2e4, nk=200,
                         log_spaced=True, method=method)
         mask = expected > 0.01
-        assert np.allclose(b.bff[mask], expected[mask], rtol=0.05, atol=0.02)
+        # 2026-08 审计 P3-6: atol 从 0.02 收紧到 1e-3 (实测偏差 ~1e-5,
+        # 旧容差允许 mask 边缘 ~200% 相对偏差, 鉴别力弱)
+        assert np.allclose(b.bff[mask], expected[mask], rtol=0.05, atol=1e-3)
 
 
 # ---------------------------------------------------------------

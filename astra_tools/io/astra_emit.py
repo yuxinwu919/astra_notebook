@@ -217,7 +217,8 @@ def read_sigma_file(rootname: str, run: str = "001") -> SigmaData:
         sigma_E^2 - 文件把动量列与能量列都归一化到 mc (方差元 mc^2);
         历史上"3.83 因子"即 1/mc^2 = 3.83 (见 physics_notes/06)
       * 由 Sigma 导出的归一化 eigen-emittance 与 Xemit 的 eps_n
-        逐行对照 < 2% (test/test_cross_validation.py)
+        逐行对照 < 10% (耦合束特征 vs 投影发射度固有差异;
+        2026-08 审计 F7 修正此前 "<2%" 表述)
     """
     base = _base_from_rootname(rootname)
     path = Path(base + ".Sigma." + run)
@@ -247,6 +248,8 @@ def read_sigma_file(rootname: str, run: str = "001") -> SigmaData:
     # Eigen-emittances: imaginary parts of eigenvalues of Sigma @ J
     # (4x4 transverse block, 单位 m.eV/c)。除以 mc 得到归一化
     # 发射度 [m.rad] (beta*gamma = p/mc 已含在换算中)。
+    # 平面标签由本征向量的横向分量判定 (2026-08 审计 F3: 旧实现按
+    # |imag| 模长排序, εnx < εny 时 x/y 标签互换)。
     enx = np.zeros(n)
     eny = np.zeros(n)
     enz = np.zeros(n)
@@ -256,15 +259,27 @@ def read_sigma_file(rootname: str, run: str = "001") -> SigmaData:
     J4[2, 3] = 1.0
     J4[3, 2] = -1.0
     for k in range(n):
-        ev = np.linalg.eigvals(matrix[k, :4, :4] @ J4)
-        imag = np.sort(np.abs(ev.imag))
-        imag = imag[imag > 1e-30]
-        if len(imag) >= 4:
-            enx[k] = imag[0] / mc
-            eny[k] = imag[2] / mc
-        elif len(imag) >= 2:
-            enx[k] = imag[0] / mc
-            eny[k] = imag[1] / mc
+        evals, evecs = np.linalg.eig(matrix[k, :4, :4] @ J4)
+        pos = evals.imag > 1e-30
+        eps_list = np.abs(evals.imag[pos])
+        if len(eps_list) == 0:
+            enx[k] = eny[k] = 0.0
+            continue
+        # x 型权重: 本征向量在 (x, p~x) 子空间的模方
+        wx = np.array([np.abs(v[0]) ** 2 + np.abs(v[1]) ** 2
+                       for v in evecs[:, pos].T])
+        order = np.argsort(eps_list)[::-1][:2]
+        if len(order) == 1:
+            # 数值退化 (仅一个正虚部特征值)
+            enx[k] = eps_list[order[0]] / mc
+            eny[k] = 0.0
+        else:
+            e1, e2 = eps_list[order[0]], eps_list[order[1]]
+            w1, w2 = wx[order[0]], wx[order[1]]
+            if w1 >= w2:
+                enx[k], eny[k] = e1 / mc, e2 / mc
+            else:
+                enx[k], eny[k] = e2 / mc, e1 / mc
         z2 = matrix[k, 4, 4]
         pz2 = matrix[k, 5, 5]
         zpz = matrix[k, 4, 5]

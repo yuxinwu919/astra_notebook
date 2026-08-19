@@ -73,15 +73,15 @@
  },
  "Aperture": {
   "final": {
-   "mean_z": 1.9,
-   "mean_t": 0.0,
-   "mean_x": 3.1742e-08,
-   "sigma_x": 7.9994e-05,
-   "sigma_xp": 2.55e-05,
-   "norm_emit_x": 1e-06,
-   "cov_x__xp": 3.3196710059999996e-14
+   "mean_z": 0.17,
+   "mean_t": 5.6687e-10,
+   "mean_x": -3.8647e-07,
+   "sigma_x": 8.5531e-05,
+   "sigma_xp": 2.0042e-05,
+   "norm_emit_x": 8.3887e-07,
+   "cov_x__xp": 1.023292884e-10
   },
-  "n_rows": 1
+  "n_rows": 500
  },
  "Wake": {
   "final": {

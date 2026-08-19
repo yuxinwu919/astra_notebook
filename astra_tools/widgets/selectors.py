@@ -6,6 +6,7 @@ ASTRA 输出命名: <stem>.<TYPE>.<run>, 相空间 <stem>.<NNNN>.<run>。
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 import ipywidgets as widgets
 import numpy as np
@@ -84,13 +85,36 @@ def phase_selector(phase_files):
     return sel
 
 
+def phase_file_z_m(path) -> Optional[float]:
+    """相空间文件名 -> 束团中心 z [m] (cm/mm 双约定, R2-2-1)。
+
+    ASTRA 按束团位置 (四舍五入到 cm) 命名相位文件: `0150` -> 1.5 m
+    (cm 约定, 3 位); `1500` -> 1.5 m (mm 约定, >=1000 除 1000)。
+
+    每个相位 dump 的束团位置由文件名编码 — 不要用 OUTPUT.ZSTOP 回退:
+    ZSTOP 只对最后一个 dump 正确, 中间 dump (如螺线管中心 z=1.2 m,
+    Bz(1.2)=0.35 T vs Bz(ZSTOP=1.5)=0.0104 T) 场强误差可达 34 倍。
+
+    解析失败返回 None (调用方显示告警, 不静默回退)。
+    """
+    path = Path(path)
+    try:
+        v = int(path.name.split(".")[1])
+    except (ValueError, IndexError):
+        return None
+    return v / 1000.0 if v >= 1000 else v / 100.0
+
+
 def _phase_label(f):
     """相空间文件 -> 显示标签 (z 位置)。
 
     批 6: 优先读文件首行绝对 z (ASCII 首行=参考粒子, 第 3 列);
     二进制回退文件名启发 (cm: 0150=1.5m 与 mm: 1500=1.5m 双约定,
     此前一律按 cm 除 100, mm 命名的 dump 会显示 10 倍大的 z)。
+    文件名解析逻辑与 phase_file_z_m 共用 (R2-2-1); str 输入先
+    Path() 转换 (P3)。
     """
+    f = Path(f)
     try:
         with open(f, "rb") as fh:
             head = fh.read(4096)
@@ -102,12 +126,10 @@ def _phase_label(f):
                 return "z = %.4f m  (%s)" % (z_m, f.name)
     except Exception:
         pass
-    try:
-        v = int(f.name.split(".")[1])
-        z_m = v / 1000.0 if v >= 1000 else v / 100.0
-        return "z = %.4f m  (%s)" % (z_m, f.name)
-    except (ValueError, IndexError):
+    z_m = phase_file_z_m(f)
+    if z_m is None:
         return f.name
+    return "z = %.4f m  (%s)" % (z_m, f.name)
 
 
 class PhaseStepper(widgets.VBox):
@@ -236,13 +258,17 @@ class CutControls(widgets.VBox):
 
     x/y/z/E 四组窗口滑块 + 应用/撤销。保留原分布副本用于撤销。
     属性: .dist (当前分布), .original。
+    bz_on_axis_T (R2-2-5): 切割窗口本身是 x/y/z/E 几何条件, 与
+    螺线管场无关, 但保存/下游复用的 cut 分布携带其场上下文 —
+    由 notebook 统一传入 (与 PhaseSpaceParamSelector 同源)。
     """
 
-    def __init__(self, dist):
+    def __init__(self, dist, bz_on_axis_T: float = 0.0):
         super().__init__()
         from IPython.display import display
         self.original = dist
         self.dist = dist
+        self.bz = bz_on_axis_T
         self._applied = False
 
         def _mk(param, label, lo, hi, unit, n=200):
@@ -296,8 +322,9 @@ class CutControls(widgets.VBox):
 
 
 def _e(dist):
-    """active 粒子动能 [eV] (CutControls 用)."""
-    from ..constants import kinetic_energy_from_momentum
+    """active 粒子动能 [eV] (CutControls 用; 全动量, 2026-08 P2-2)."""
+    from ..constants import kinetic_energy_from_momentum_vector
     m = dist.active
-    return np.asarray(kinetic_energy_from_momentum(dist.pz[m]), dtype=float)
+    return np.asarray(kinetic_energy_from_momentum_vector(
+        dist.px[m], dist.py[m], dist.pz[m]), dtype=float)
 

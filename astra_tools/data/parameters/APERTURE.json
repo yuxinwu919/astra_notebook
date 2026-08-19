@@ -2,7 +2,7 @@
  "namelist": "APERTURE",
  "section": "6.7",
  "title": "The namelist APERTURE",
- "n_params": 21,
+ "n_params": 22,
  "params": [
   {
    "name": "LOOP",
@@ -45,6 +45,13 @@
    "unit": "mm",
    "default": null,
    "desc": "keyword RAD: Radius of the aperture. If Ap_R( ) is negative a cylindrical plug rather than a hole is generated sponsor words Scr_X and Scr_Y: Distance of the scraper to the z-axis. If Ap_R( ) is positive particles with positions larger than Ap_R( ) are scrapped off. If Ap_R( ) is negative particles with position smaller than Ap_R( ) are scrapped offKeywords Col_X and Col_Y: Half gap of a double sided planar collimator. radii of grid elements in combination with keyword Cir. The first index is the element number, the second a radius. Odd indices define the lower radius and even indices define the upper radius of a grid element. The maximum number of grid elements is 20."
+  },
+  {
+   "name": "Ap_GR(,)",
+   "type": "Real*8 array",
+   "unit": "mm",
+   "default": null,
+   "desc": "radii of grid elements in combination with keyword Cir. The first index is the element number, the second a radius. Odd indices define the lower radius and even indices define the upper radius of a grid element. The maximum number of grid elements is 20."
   },
   {
    "name": "A_pos( )",

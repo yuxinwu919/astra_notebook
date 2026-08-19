@@ -11,7 +11,9 @@ and were validated against Example.Xemit.001 (agreement < 0.01%):
   * normalized emittance: eps_n = beta*gamma * eps_geom,
     gamma = sqrt(1 + (p_ref/mc)^2)
   * energy spread: computed from per-particle kinetic energies
-        E_kin = sqrt(pz^2 + m^2 c^4) - m c^2
+        E_kin = sqrt((px^2 + py^2 + pz^2) + m^2 c^4) - m c^2
+    (FULL momentum, 2026-08 audit: pz-only underestimates E_kin for
+    large-divergence beams)
     sigma_E/E = std(E_kin) / mean(E_kin)   (NOT sigma_p/p!)
 """
 
@@ -28,12 +30,14 @@ from ..constants import (
     EV_TO_MEV,
     M_TO_MM,
     kinetic_energy_from_momentum,
+    kinetic_energy_from_momentum_vector,
     gamma_from_momentum,
     beta_from_gamma,
 )
 from ..distribution import Distribution
 from .emittance import (
     canonical_divergence,
+    canonical_signs,
     compute_geometric_emittance,
     compute_twiss_parameters,
 )
@@ -232,8 +236,8 @@ def compute_statistics(
     sig_pz = _std(pz, mean_pz)
     sig_p_over_p = sig_pz / abs(mean_pz) if mean_pz != 0 else 0.0
 
-    # -- Energy (from momentum, relativistic) --
-    e_kin = kinetic_energy_from_momentum(pz)
+    # -- Energy (from FULL momentum, relativistic; 2026-08 audit P2-2) --
+    e_kin = kinetic_energy_from_momentum_vector(px, py, pz)
     mean_E_kin = _mean(e_kin)
     sig_E = _std(e_kin, mean_E_kin)
     sig_E_over_E = sig_E / mean_E_kin if mean_E_kin != 0 else 0.0
@@ -252,9 +256,10 @@ def compute_statistics(
         ze = float(np.mean(zc * ec))
     emit_z = float(np.sqrt(max(z2 * e2 - ze**2, 0.0)))
 
-    # -- Canonical divergences (manual 4.13.1) --
-    ptx = canonical_divergence(px, y, bz_on_axis_T, sign=+1.0)
-    pty = canonical_divergence(py, x, bz_on_axis_T, sign=-1.0)
+    # -- Canonical divergences (manual 4.13.1; 种类感知符号, 2026-08 F4) --
+    s_can = canonical_signs(dist)[mask]
+    ptx = canonical_divergence(px, y, bz_on_axis_T, sign=s_can)
+    pty = canonical_divergence(py, x, bz_on_axis_T, sign=-s_can)
     xp = (ptx - _mean(ptx)) / ref_momentum_eVc
     yp = (pty - _mean(pty)) / ref_momentum_eVc
     sig_xp = _std(xp, 0.0)

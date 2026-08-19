@@ -943,9 +943,12 @@ def plot_laser_on_axis(path, unit="a.u.", figsize=(11, 4), title=None):
 def plot_laser_envelope(path, figsize=(8, 5), title=None):
     """激光 3D 图 (File_A0 格式) 的 rms 横向束包络 + 焦点位置 (5.7.3).
 
-    每个 z 切片以光强 f² 为权重计算 rms 半径 σx(z), σy(z); 焦点 =
-    √(σx²+σy²) 最小处 (rms spot σ0), 图中竖线标注。激光场数值可正负
-    (相位), 用 f² 作强度权重。
+    每个 z 切片以幅值 a₀ = √f 为权重计算 rms 半径 σx(z), σy(z) ——
+    laser.dat 存的是归一化矢势平方 a₀⊥² (手册 File_A0 语义,
+    create_lasermap.m: asq = a0² w0²/w² exp(-2r²/w²)), 物理包络权重是
+    a₀ 而非 f² (2026-08 审计 P1: f² 权重使 rms 系统性偏小 1/√2 ≈ 29%)。
+    高斯束下每轴 rms = w/√2 (w = 1/e² 幅值半径), 焦点处
+    √(σx²+σy²) = w0; 图中竖线标注焦点。
     """
     from ..io.field_map import read_3d_field_map
     x, y, z, f = read_3d_field_map(path)
@@ -954,7 +957,7 @@ def plot_laser_envelope(path, figsize=(8, 5), title=None):
     X, Y = np.meshgrid(x, y, indexing="ij")
     for k in range(len(z)):
         sl = f[:, :, k]
-        w = sl ** 2
+        w = np.sqrt(np.abs(sl))     # a₀ 幅值权重 (File_A0 存 a₀²)
         wsum = float(w.sum())
         if wsum <= 0:
             sx[k] = sy[k] = np.nan

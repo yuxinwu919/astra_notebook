@@ -20,7 +20,7 @@ from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..constants import kinetic_energy_from_momentum
+from ..constants import kinetic_energy_from_momentum_vector
 from ..io.astra_emit import EmitSet, RefData, SigmaData
 
 
@@ -184,7 +184,7 @@ def plot_ref_trajectory(
 ) -> plt.Figure:
     """Reference particle: E_kin(z), dE/dz, transverse offsets, Larmor."""
     fig, axes = plt.subplots(1, 3, figsize=figsize)
-    e_kin = kinetic_energy_from_momentum(ref.pz)
+    e_kin = kinetic_energy_from_momentum_vector(ref.px, ref.py, ref.pz)
 
     ax = axes[0]
     ax.plot(ref.z, e_kin * 1e-6)

@@ -8,6 +8,8 @@ import json
 import shutil
 from pathlib import Path
 
+import numpy as np
+
 from astra_tools.run import run_program
 from astra_tools.io.astra_emit import parse_output_file
 from astra_tools.io.field_map import fix_laser_map_header
@@ -87,10 +89,19 @@ EXAMPLES = {
 
 
 def stage_files(name):
-    """复制官方算例输入到工作目录 (不运行), 返回 (work, spec)。"""
+    """复制官方算例输入到工作目录 (不运行), 返回 (work, spec)。
+
+    先清空工作目录: 上次运行的陈旧输出 (如 ZSTOP 改版前遗留的
+    相空间 dump) 会污染 phase_files/统计/比对 (二轮审计 R2-3-1
+    实测: 残留 astra.0190.001 使 ph[-1] 取到旧 dump, lost 误判为 0)。
+    跨步骤算例 (90deg_bend: Section1 -> Section2) 在同一目录内连续
+    运行, 清空只发生在 stage 时, 不影响步骤间产物。
+    """
     spec = EXAMPLES[name]
     src = EXAMPLES_DIR / spec.get("src_dir", name)
     work = SIM_DIR / name
+    if work.exists():
+        shutil.rmtree(work)
     work.mkdir(parents=True, exist_ok=True)
     for f in spec["copy"]:
         s = src / f
@@ -101,6 +112,10 @@ def stage_files(name):
         p = work / deck
         p.write_text(p.read_text().replace(old, new))
     if spec.get("laser_fix"):
+        # R2-3-2: 仓库 laser.dat = DESY 原版 (MD5 68d016175859b20c1e2ccee5057c2d46,
+        # 浮点计数头是原版特征); macOS Apple Silicon 构建直接运行会报
+        # "Error while reading file: laser.dat"。此处仅把头 3 行计数取整
+        # (数据体不动), 整数头重跑可字节复现 golden。
         fix_laser_map_header(work / "laser.dat")
         print("  laser.dat 图头计数已转为整数形式")
     return work, spec
@@ -128,27 +143,78 @@ def phase_files(work, stem):
                   if p.name.split(".")[1].lstrip("-").isdigit())
 
 
+def _deck_zstop(work, deck):
+    """从输入卡解析 OUTPUT/ZSTOP [m]; 解析不到返回 None。
+
+    compare_xemit 护栏用: 断言新运行末行 z 到达 ZSTOP, 防止
+    空跑算例 (参考粒子落后于 ZSTOP -> 0 迭代) 生成空洞 golden。
+    """
+    from astra_tools.namelist.parse import parse_namelists
+    try:
+        z = parse_namelists(str(work / deck))["OUTPUT"]["ZSTOP"]
+    except Exception:
+        return None
+    arr = np.asarray(z, dtype=float).ravel()
+    return None if arr.size == 0 else float(arr[0])
+
+
 def compare_xemit(name, work):
-    """新运行 vs 归档 golden 的末行比对 (rel < 0.5% 判 OK)。"""
+    """新运行 vs 归档 golden 的末行比对 (rel < 0.5% 判 OK)。
+
+    护栏 (二轮审计 R2-3-1): 空洞比对防护。Xemit 必须多行
+    (> 1 行, 新运行与归档 golden 都检查) 且新运行末行 z 到达
+    输入卡 ZSTOP (相对容差 0.5%), 否则判不通过 — 旧算例 0 迭代
+    时 Xemit 仅 1 行且数值 = 输入统计原样, rel=0.0000% 恒真。
+
+    Returns:
+        True 全部通过; False 任一护栏或末行比对不通过。
+    """
     spec = EXAMPLES[name]
     golden = spec["golden_xemit"]
     new_file = work / golden.name
     if not new_file.exists():
         print("  (无 %s 输出, 跳过比对)" % golden.name)
-        return
+        return False
     if spec.get("compare_mode") == "log":
         ok_new = "finished" in new_file.read_text()
         ok_ref = "finished" in golden.read_text()
         print("  末行比对 (new vs golden, log):")
         print("    finished        %-10s %-10s %s"
               % (ok_new, ok_ref, "OK" if ok_new and ok_ref else "MISMATCH"))
-        return
+        return ok_new and ok_ref
     new = parse_output_file(new_file)
     ref = parse_output_file(golden)
+    ok = True
+
+    # ---- 护栏 1: Xemit 行数 > 1 (新与 golden 都检查) ----
+    n_new = len(np.asarray(new["mean_z"]))
+    n_ref = len(np.asarray(ref["mean_z"]))
+    print("  护栏: Xemit 行数 new=%d golden=%d" % (n_new, n_ref))
+    if n_new <= 1 or n_ref <= 1:
+        print("  护栏失败: Xemit 行数必须 > 1 (空跑算例仅 1 行,"
+              " 数值=输入统计原样, 比对无意义)")
+        ok = False
+
+    # ---- 护栏 2: 新运行末行 z 到达输入卡 ZSTOP ----
+    zstop = _deck_zstop(work, spec["steps"][-1][1])
+    if zstop is not None:
+        z_last = float(np.asarray(new["mean_z"])[-1])
+        rel_z = abs(z_last - zstop) / zstop * 100
+        print("  护栏: 末行 z=%.6g vs ZSTOP=%.6g (rel=%.4f%%)"
+              % (z_last, zstop, rel_z))
+        if rel_z > 0.5:
+            print("  护栏失败: 末行 z 未到达 ZSTOP"
+                  " (束团可能在孔径/堵块处提前全部损失)")
+            ok = False
+
     print("  末行比对 (new vs golden):")
     for key in ("norm_emit_x", "sigma_x", "mean_z"):
-        a = float(__import__("numpy").asarray(new[key])[-1])
-        b = float(__import__("numpy").asarray(ref[key])[-1])
-        rel = abs(a - b) / abs(b) * 100
+        a = float(np.asarray(new[key])[-1])
+        b = float(np.asarray(ref[key])[-1])
+        rel = abs(a - b) / abs(b) * 100 if b else float("inf")
+        passed = rel < 0.5
+        ok = ok and passed
         print("    %-14s %-10.6g %-10.6g rel=%.4f%% %s"
-              % (key, a, b, rel, "OK" if rel < 0.5 else "MISMATCH"))
+              % (key, a, b, rel, "OK" if passed else "MISMATCH"))
+    print("  总体: %s" % ("OK" if ok else "不通过 (见上方护栏/比对标记)"))
+    return ok

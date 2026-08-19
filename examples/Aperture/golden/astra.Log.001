@@ -40,7 +40,7 @@
  Z_CATHODE=  1000000000000000.0     ,
  LPROMPT=T,
  ZSTART=  0.0000000000000000     ,
- ZSTOP= 0.25000000000000000     ,
+ ZSTOP= 0.17000000000000001     ,
  ZEMIT=500        ,
  ZPHASE=1          ,
  SCREEN= 500*-1000000000000000.0      ,
@@ -73,7 +73,7 @@
  /
 &OUTPUT
  ZSTART=  0.0000000000000000     ,
- ZSTOP= 0.25000000000000000     ,
+ ZSTOP= 0.17000000000000001     ,
  ZEMIT=500        ,
  ZPHASE=1          ,
  SCREEN= 500*-1000000000000000.0      ,
@@ -472,9 +472,9 @@
   198*T,
  /
  End of Input deck
-test.ini                        0.1900D+01  0.0000D+00  F
-astra.0190.001                  1.9000D+00  0.0000D+00  F
+test.ini                        0.6062D-04  0.0000D+00  F
+astra.0017.001                  1.7000D-01  0.0000D+00  F
 
-     execution started:   14. 8.2026     23:11
-     execution finished:  14. 8.2026     23:11
-     execution time:  0.01 sek                         
+     execution started:   19. 8.2026     17:20
+     execution finished:  19. 8.2026     17:20
+     execution time:  0.08 sek                         

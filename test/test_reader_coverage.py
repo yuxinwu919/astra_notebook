@@ -2,7 +2,7 @@
 
 覆盖: read_track_file / read_cathode_file / read_xemit2 / read_tremit /
 read_cr_emit / read_larmor / read_density / read_tcheck / read_cemit_file /
-parse_field_map_file / expand_tws_field_map / fix_laser_map_header /
+parse_field_map_file / fix_laser_map_header /
 format_input_file / backup_directory / get_version / output_file_type。
 
 每条断言列映射 + 单位换算 + 边界 (列数不足/空文件) 错误。
@@ -155,18 +155,11 @@ def test_parse_field_map_tws(tmp_path):
     assert data.shape == (2, 2)
 
 
-def test_expand_tws_field_map():
-    z0 = np.linspace(0, 1, 11)
-    f0 = np.sin(z0)
-    zf, ff = fm.expand_tws_field_map(z0, f0, 0.4, 0.6, 1, 3)
-    assert len(zf) == len(ff) and len(zf) > len(z0)
-    assert np.all(np.isfinite(ff)) and np.all(np.diff(zf) > 0)
-
-
 def test_fix_laser_map_header(tmp_path):
     p = _w(tmp_path, "laser.dat",
            "8.1e+01 0.0 1e-3\n9.0e+00 0.0 2e-3\n4.0e+01 0.0 3e-3\n0.1\n")
-    out = fm.fix_laser_map_header(p)
+    with pytest.warns(UserWarning):   # 就地改写告警 (2026-08 审计 P3)
+        out = fm.fix_laser_map_header(p)
     lines = p.read_text().splitlines()
     assert lines[0].split()[0] == "81"
     assert lines[1].split()[0] == "9"      # 中间头行同样取整
@@ -177,7 +170,7 @@ def test_fix_laser_map_header(tmp_path):
 
 def test_fix_laser_map_header_rejects_short(tmp_path):
     p = _w(tmp_path, "laser.dat", "1 0 1\n")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError), pytest.warns(UserWarning):
         fm.fix_laser_map_header(p)
 
 

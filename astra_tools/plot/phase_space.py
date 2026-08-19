@@ -20,7 +20,7 @@ from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..analysis.emittance import canonical_divergence
+from ..analysis.emittance import canonical_divergence, canonical_signs
 from ..analysis.time import bunch_time
 from ..distribution import Distribution
 from ._density import clip_percentile, outside_fraction
@@ -155,14 +155,19 @@ def plot_phase_space(
             "and nan<=0 is False so no error was raised)")
     p_ref = dist.ref_momentum_or_mean()
 
+    # 种类感知符号 (2026-08 R2-2-6): 旧实现固定电子符号 (+1/-1),
+    # 正电子束统计表与相空间图自相矛盾; 与 statistics.py 口径一致。
+    s_can = canonical_signs(dist)[mask]
     if plane == "x":
-        ptx = canonical_divergence(dist.px[mask], dist.y[mask], bz_on_axis_T, +1.0)
+        ptx = canonical_divergence(dist.px[mask], dist.y[mask],
+                                   bz_on_axis_T, s_can)
         x_data = dist.x[mask] * 1e3
         y_data = (ptx - np.mean(ptx)) / p_ref * 1e3
         xlabel, ylabel = "x [mm]", "x' [mrad]"
         default_title = "x-x' phase space"
     elif plane == "y":
-        pty = canonical_divergence(dist.py[mask], dist.x[mask], bz_on_axis_T, -1.0)
+        pty = canonical_divergence(dist.py[mask], dist.x[mask],
+                                   bz_on_axis_T, -s_can)
         x_data = dist.y[mask] * 1e3
         y_data = (pty - np.mean(pty)) / p_ref * 1e3
         xlabel, ylabel = "y [mm]", "y' [mrad]"

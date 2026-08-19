@@ -40,12 +40,22 @@ def params(namelist: str):
     return load(namelist)["params"]
 
 
+def _base(name: str) -> str:
+    """参数基名: 去掉 () 后缀, 含多维数组记法 '(,)' (如 'D1(,)' -> 'D1').
+
+    (2026-08 第二轮审计收尾: 旧实现 rstrip("() ") 会把 'D1(,)' 归一成
+    'D1(,' 而不是 'D1', 导致新增的 D1-D4/D_Gap/Ap_GR 等参数查不到。)
+    """
+    i = name.find("(")
+    return name[:i].strip() if i >= 0 else name.strip()
+
+
 def param_info(name: str):
     """按参数名查找 (name, entry, namelist); 跨 namelist 搜索."""
-    base = name.rstrip("() ")
+    base = _base(name)
     for nl in NAMELISTS:
         for p in params(nl):
-            if p["name"].rstrip("() ") == base:
+            if _base(p["name"]) == base:
                 return nl, p
     return None, None
 

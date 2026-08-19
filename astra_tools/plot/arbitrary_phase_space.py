@@ -15,33 +15,40 @@ from typing import Optional
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ..analysis.emittance import canonical_divergence
+from ..analysis.emittance import canonical_divergence, canonical_signs
 from ..analysis.time import bunch_time
-from ..constants import kinetic_energy_from_momentum
+from ..constants import kinetic_energy_from_momentum_vector
 from ..distribution import Distribution
 from .phase_space import scatter2d
 
 
-def param_columns(dist: Distribution, bz_on_axis_T: float = 0.0) -> dict:
-    """可用参数列: {name: (values[active], unit, axis_label)}.
+def param_columns(dist: Distribution, bz_on_axis_T: float = 0.0,
+                  mask=None) -> dict:
+    """可用参数列: {name: (values, unit, axis_label)}.
 
     values 为显示单位 (mm / mrad / % / MeV / ps)。
+    mask (R2-2-2): 抽列用的粒子掩码, 默认 active。状态着色时由
+    plot_arbitrary 传入 status>=-6 的同一 mask — mask 与数据列
+    必须同源, 否则 (passive/lost 粒子存在时) 布尔索引长度不匹配。
     """
-    m = dist.active
+    if mask is None:
+        mask = dist.active
     p_ref = dist.ref_momentum_or_mean()
-    ptx = canonical_divergence(dist.px[m], dist.y[m], bz_on_axis_T, +1.0)
-    pty = canonical_divergence(dist.py[m], dist.x[m], bz_on_axis_T, -1.0)
-    e = kinetic_energy_from_momentum(dist.pz[m]) * 1e-6  # MeV
-    dp = (dist.pz[m] - np.mean(dist.pz[m])) / abs(np.mean(dist.pz[m])) * 100
+    s_can = canonical_signs(dist)[mask]   # 种类感知符号 (2026-08 F4)
+    ptx = canonical_divergence(dist.px[mask], dist.y[mask], bz_on_axis_T, s_can)
+    pty = canonical_divergence(dist.py[mask], dist.x[mask], bz_on_axis_T, -s_can)
+    e = kinetic_energy_from_momentum_vector(
+        dist.px[mask], dist.py[mask], dist.pz[mask]) * 1e-6  # MeV (全动量, 2026-08 P2-2)
+    dp = (dist.pz[mask] - np.mean(dist.pz[mask])) / abs(np.mean(dist.pz[mask])) * 100
     return {
-        "x":     (dist.x[m] * 1e3, "mm", "x [mm]"),
-        "y":     (dist.y[m] * 1e3, "mm", "y [mm]"),
-        "z":     (dist.z[m] * 1e3, "mm", "z [mm]"),
-        "px":    (dist.px[m] * 1e-6, "MeV/c", "px [MeV/c]"),
-        "py":    (dist.py[m] * 1e-6, "MeV/c", "py [MeV/c]"),
-        "pz":    (dist.pz[m] * 1e-6, "MeV/c", "pz [MeV/c]"),
-        "clock": (dist.clock[m] * 1e12, "ps", "clock [ps]"),
-        "t":     (bunch_time(dist)[m] * 1e12, "ps", "t [ps]"),
+        "x":     (dist.x[mask] * 1e3, "mm", "x [mm]"),
+        "y":     (dist.y[mask] * 1e3, "mm", "y [mm]"),
+        "z":     (dist.z[mask] * 1e3, "mm", "z [mm]"),
+        "px":    (dist.px[mask] * 1e-6, "MeV/c", "px [MeV/c]"),
+        "py":    (dist.py[mask] * 1e-6, "MeV/c", "py [MeV/c]"),
+        "pz":    (dist.pz[mask] * 1e-6, "MeV/c", "pz [MeV/c]"),
+        "clock": (dist.clock[mask] * 1e12, "ps", "clock [ps]"),
+        "t":     (bunch_time(dist)[mask] * 1e12, "ps", "t [ps]"),
         "xp":    ((ptx - np.mean(ptx)) / p_ref * 1e3, "mrad", "x' [mrad]"),
         "yp":    ((pty - np.mean(pty)) / p_ref * 1e3, "mrad", "y' [mrad]"),
         "dp/p":  (dp, "%", "dp/p [%]"),
@@ -81,7 +88,14 @@ def plot_arbitrary(
         color_by_status: 按手册 Table 6 状态着色。
         bz_on_axis_T: 螺线管轴上场 (正则散角)。
     """
-    cols = param_columns(dist, bz_on_axis_T)
+    # R2-2-2: mask 与数据列同源 — 先定 mask, 再让 param_columns
+    # 按同一 mask 抽列 (旧实现列来自 active, mask 作用全粒子,
+    # passive/lost 存在时布尔索引长度不匹配 ValueError)。
+    if color_by_status:
+        mask = dist.status >= -6
+    else:
+        mask = dist.active
+    cols = param_columns(dist, bz_on_axis_T, mask=mask)
     if x_param not in cols or y_param not in cols:
         raise KeyError("未知参数 %r / %r, 可用: %s"
                        % (x_param, y_param, ", ".join(cols)))
@@ -92,13 +106,8 @@ def plot_arbitrary(
         ylab += " (lin. corr. removed)"
 
     fig, ax = plt.subplots(figsize=figsize)
-    status = dist.status if color_by_status else None
-    if color_by_status:
-        mask = dist.status >= -6
-    else:
-        mask = dist.active
     scatter2d(ax, x, y, clip_q=clip_q,
-              status=dist.status[mask] if status is not None else None)
+              status=dist.status[mask] if color_by_status else None)
     ax.axhline(0, color="0.6", lw=0.6, ls="--", alpha=0.7)
     ax.axvline(0, color="0.6", lw=0.6, ls="--", alpha=0.7)
     ax.set_xlabel(xlab)

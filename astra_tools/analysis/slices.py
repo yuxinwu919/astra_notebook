@@ -17,7 +17,8 @@ Physics notes (audited):
     same convention as the Xemit/Yemit files
   * current: I = Q/dt with dt = dz/(beta*c); the per-slice beta/gamma
     used for the current come from the slice mean momentum
-  * per-slice energy: E_kin = sqrt(pz^2 + m^2) - m (per particle)
+  * per-slice energy: E_kin = sqrt((px^2+py^2+pz^2) + m^2c^4) - mc^2
+    (FULL momentum per particle, 2026-08 audit P2-2)
   * equi_charge binning uses |q| (mixed-sign safe); slice charge stays
     signed internally (sign is conventional, |Q| at display)
 """
@@ -29,10 +30,10 @@ from typing import Optional
 
 import numpy as np
 
-from ..constants import C_LIGHT, NC_TO_C, kinetic_energy_from_momentum, \
-    gamma_from_momentum, beta_from_gamma
+from ..constants import C_LIGHT, M_E_C2_EV, NC_TO_C, \
+    kinetic_energy_from_momentum_vector, gamma_from_momentum
 from ..distribution import Distribution
-from .emittance import compute_geometric_emittance
+from .emittance import compute_geometric_emittance, canonical_signs
 
 
 @dataclass
@@ -42,8 +43,8 @@ class SliceAnalysis:
     n_slices: int
     binning_mode: str
 
-    z_centers: np.ndarray     # [m]
-    z_edges: np.ndarray       # [m] (n_slices+1)
+    z_centers: np.ndarray     # [m]; equi_energy 分箱时为动能 [eV]
+    z_edges: np.ndarray       # [m] (n_slices+1); equi_energy 时为 [eV]
     current: np.ndarray       # [A]
     charge: np.ndarray        # [nC]
     n_particles: np.ndarray   # int
@@ -110,6 +111,9 @@ def compute_slice_analysis(
             "slice divergences and normalized emittances are undefined")
 
     # -- Binning --
+    # 通用结构: bin_vals = 分箱变量, edges = 边界 (与 bin_vals 同单位)。
+    # equi_spaced/equi_charge 按 z 分箱; equi_energy 按动能 E 分箱
+    # (2026-08 审计 P1: 旧实现把 equi_energy 静默退化为 z 等宽)。
     if binning == "equi_charge":
         sort_idx = np.argsort(z)
         z_sorted = z[sort_idx]
@@ -118,15 +122,15 @@ def compute_slice_analysis(
         q_total = float(q_cumsum[-1])
         if q_total == 0:
             # degenerate: fall back to equi-spaced
-            z_edges = np.linspace(float(np.min(z)), float(np.max(z)), n_slices + 1)
+            edges = np.linspace(float(np.min(z)), float(np.max(z)), n_slices + 1)
         else:
             q_per_slice = q_total / n_slices
-            z_edges = np.empty(n_slices + 1)
-            z_edges[0] = z_sorted[0]
+            edges = np.empty(n_slices + 1)
+            edges[0] = z_sorted[0]
             for i in range(1, n_slices):
                 idx = min(np.searchsorted(q_cumsum, i * q_per_slice), n - 1)
-                z_edges[i] = float(z_sorted[idx])
-            z_edges[-1] = z_sorted[-1]
+                edges[i] = float(z_sorted[idx])
+            edges[-1] = z_sorted[-1]
             # 重复 z 值会使边界塌缩 (尤其最后一条边); 用"平均箱宽
             # 的 1%" 修复全部 n_slices+1 条边并保持严格递增。delta 函数
             # 式电荷的真实峰值电流为无穷大, 这里用箱宽正则化给出有界
@@ -134,13 +138,40 @@ def compute_slice_analysis(
             span = float(z_sorted[-1] - z_sorted[0])
             eps = max(span / (100.0 * n_slices), 1e-12)
             for i in range(1, n_slices + 1):
-                if z_edges[i] <= z_edges[i - 1]:
-                    z_edges[i] = z_edges[i - 1] + eps
+                if edges[i] <= edges[i - 1]:
+                    edges[i] = edges[i - 1] + eps
+        bin_vals = z
+    elif binning == "equi_energy":
+        e_all = kinetic_energy_from_momentum_vector(d.px, d.py, d.pz)
+        sort_idx = np.argsort(e_all)
+        e_sorted = e_all[sort_idx]
+        q_sorted = q[sort_idx]
+        q_cumsum = np.cumsum(np.abs(q_sorted))
+        q_total = float(q_cumsum[-1])
+        if q_total == 0:
+            edges = np.linspace(float(e_sorted[0]), float(e_sorted[-1]),
+                                n_slices + 1)
+        else:
+            q_per_slice = q_total / n_slices
+            edges = np.empty(n_slices + 1)
+            edges[0] = e_sorted[0]
+            for i in range(1, n_slices):
+                idx = min(np.searchsorted(q_cumsum, i * q_per_slice), n - 1)
+                edges[i] = float(e_sorted[idx])
+            edges[-1] = e_sorted[-1]
+            # 同上: 修复塌缩边界
+            span = float(e_sorted[-1] - e_sorted[0])
+            eps = max(span / (100.0 * n_slices), 1e-6)
+            for i in range(1, n_slices + 1):
+                if edges[i] <= edges[i - 1]:
+                    edges[i] = edges[i - 1] + eps
+        bin_vals = e_all
     else:
-        z_edges = np.linspace(float(np.min(z)), float(np.max(z)), n_slices + 1)
+        edges = np.linspace(float(np.min(z)), float(np.max(z)), n_slices + 1)
+        bin_vals = z
 
-    z_centers = 0.5 * (z_edges[:-1] + z_edges[1:])
-    dz = np.diff(z_edges)
+    z_centers = 0.5 * (edges[:-1] + edges[1:])   # equi_energy 时为能量中心
+    dz = np.diff(edges)
 
     # -- Pre-allocate --
     n_part = np.zeros(n_slices, dtype=int)
@@ -160,12 +191,14 @@ def compute_slice_analysis(
     emit_yn = np.zeros(n_slices)
     gamma_s = np.ones(n_slices)
     beta_s = np.zeros(n_slices)
+    zspan = np.zeros(n_slices)     # equi_energy 电流用 (真实 z 跨度)
 
+    s_can_all = canonical_signs(d)
     for i in range(n_slices):
         if i == n_slices - 1:
-            mask = (z >= z_edges[i]) & (z <= z_edges[i + 1])
+            mask = (bin_vals >= edges[i]) & (bin_vals <= edges[i + 1])
         else:
-            mask = (z >= z_edges[i]) & (z < z_edges[i + 1])
+            mask = (bin_vals >= edges[i]) & (bin_vals < edges[i + 1])
         idx = np.where(mask)[0]
         n_part[i] = len(idx)
         if n_part[i] < 3:
@@ -174,6 +207,8 @@ def compute_slice_analysis(
         xi, yi = d.x[idx], d.y[idx]
         pxi, pyi, pzi = d.px[idx], d.py[idx], d.pz[idx]
         qi = q[idx]
+        s_i = s_can_all[idx]
+        zspan[i] = float(np.max(d.z[idx]) - np.min(d.z[idx]))
 
         charge_s[i] = float(np.sum(qi))   # signed (internal); display uses |Q|
         mean_x[i] = float(np.mean(xi))
@@ -181,14 +216,16 @@ def compute_slice_analysis(
         sig_x[i] = float(np.std(xi - mean_x[i]))   # ddof=0, matches ASTRA
         sig_y[i] = float(np.std(yi - mean_y[i]))
         mean_pz[i] = float(np.mean(pzi))
-        e_i = kinetic_energy_from_momentum(pzi)
+        # 全动量动能 (2026-08 审计 P2-2: pz-only 对大发散束低估 ~60%)
+        e_i = kinetic_energy_from_momentum_vector(pxi, pyi, pzi)
         mean_e[i] = float(np.mean(e_i))
         sig_ee[i] = float(np.std(e_i) / mean_e[i]) if mean_e[i] else 0.0
 
         # Canonical momentum (manual 4.13.1), centered per slice, divided
         # by the global reference momentum - the Xemit convention.
-        ptx = pxi + 0.5 * C_LIGHT * bz_on_axis_T * yi
-        pty = pyi - 0.5 * C_LIGHT * bz_on_axis_T * xi
+        # 种类感知符号 (2026-08 审计 F4): 正电荷种类 s=-1。
+        ptx = pxi + s_i * 0.5 * C_LIGHT * bz_on_axis_T * yi
+        pty = pyi - s_i * 0.5 * C_LIGHT * bz_on_axis_T * xi
         xp = (ptx - np.mean(ptx)) / ref_momentum_eVc
         yp = (pty - np.mean(pty)) / ref_momentum_eVc
         # slice 发散角统计 (手册 5.6.3 项 5: px/pz rms 与 avr vs z)
@@ -208,20 +245,27 @@ def compute_slice_analysis(
         emit_xn[i] = bg * ex
         emit_yn[i] = bg * ey
 
-        g_i = gamma_from_momentum(mean_pz[i])
-        gamma_s[i] = g_i
-        beta_s[i] = beta_from_gamma(g_i)
+        # slice 纵向速度: v_z/c = pz / sqrt(|p|^2 + m^2c^4) 的平均
+        # (2026-08: 大发散束下不能用 beta(gamma(mean pz)) 近似)
+        p2_i = pxi**2 + pyi**2 + pzi**2
+        e_tot_i = np.sqrt(p2_i + M_E_C2_EV**2)
+        beta_s[i] = float(np.mean(pzi / e_tot_i))
+        p_rms = float(np.sqrt(np.mean(p2_i)))
+        gamma_s[i] = gamma_from_momentum(p_rms)
 
     # -- Current: I = Q/dt, dt = dz/(beta c) --
+    # equi_energy 分箱时边界单位是 eV, 电流用箱内粒子的真实 z 跨度
+    # (2026-08: dz 为能量宽度时不可直接当长度用)。
+    dz_use = zspan if binning == "equi_energy" else dz
     current = np.zeros(n_slices)
     for i in range(n_slices):
         v = beta_s[i] * C_LIGHT if beta_s[i] > 0 else C_LIGHT
-        dt = dz[i] / v if v > 0 and dz[i] > 0 else 1.0
+        dt = dz_use[i] / v if v > 0 and dz_use[i] > 0 else 1.0
         current[i] = charge_s[i] * NC_TO_C / dt
 
     return SliceAnalysis(
         n_slices=n_slices, binning_mode=binning,
-        z_centers=z_centers, z_edges=z_edges,
+        z_centers=z_centers, z_edges=edges,
         current=current, charge=charge_s, n_particles=n_part,
         mean_x=mean_x, mean_y=mean_y,
         mean_pz=mean_pz, mean_kinetic_energy_eV=mean_e,
