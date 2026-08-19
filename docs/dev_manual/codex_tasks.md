@@ -23,6 +23,56 @@ stats_validation_demo / lineplot_demo / fieldplot_demo / postpro_demo)。
 
 ---
 
+# 第三阶段路线 (2026-08-19, 两轮对抗性审计+修复后)
+
+> 两轮审计已修复 18 个 P1 与 ~30 个 P2/P3, 测试 357→441 全绿
+> (commit 87e7e96)。本节规划补齐审计暴露的**验证空缺**, 按优先级:
+
+## R1 (P0 级验证缺口) 真实二进制分布 golden — 2h
+ASTRA 默认输出即 binary, 但仓库仍无真实二进制文件对照。Manual_Example
+设 BINARY=T 真跑 -> 归档 golden (首个二进制分布文件); 与
+AstraDistributionReader 逐字节对照 (消歧/字节序/相对坐标/头 Q=|Q|),
+并把 golden 挂进 test_cross_validation。验证 2026-08 重写的 9/10 列
+语义判定与种类列解析在真实文件上成立。
+
+## R2 (P0 级验证缺口) 低能/大发散交叉验证 — 3h
+现有 golden 全部 ~1 GeV 低发散均匀电荷; 动能全动量 (|p|)、γβ 口径
+等因子类修复在低能区未与 ASTRA 对照。做两个真跑:
+  (a) 低能束 (generator 发射段或 ~MeV deck) -> Xemit/Zemit 对照;
+  (b) 90deg 大发散探针束 -> Zemit 对照 (直接验证 pz-only→|p| 修复
+      与 ASTRA 的口径一致; 若 ASTRA 自身用 pz-only 需在笔记 07 记录)。
+结论写 physics_notes/07 与 10。
+
+## R3 正电子/离子全链验证 — 2h
+构造 species=2 分布 (index 列), 验证 canonical_signs 在统计/slice/
+核心分数/任意相空间/相空间图 5 条路径的口径一致 (仓库无正电子算例);
+纯内部解析验证即可 (无 ASTRA 正电子对照需求), 加回归测试。
+
+## R4 Cemit 核心发射度真实对照 — 3-4h (原 M3, 高)
+见 M3。README 已限定 +5~25% 未对齐; 真跑 C_EmitS=T 逐列对照,
+不吻合则试横向核心/相空间距离核心定义 (手册 4.13.5)。
+
+## R5 Error 文件真实 golden — 2-3h (原 M5)
+ErrorS=T 真跑 -> Error.001 golden, 验证 read_error 列语义。
+
+## R6 slice 第三方一次性对照 — 1h (原 M7, 不进仓库)
+pmd-beamphysics 临时脚本对照 compute_slice_analysis。
+
+## R7 e2e 全套终跑 — 2h
+19 本 notebook (5 任务式 + 14 examples) 用本地 ASTRA 二进制执行
+test/e2e_notebooks.sh, 确认两轮改动后全链 (含 postpro 的
+_bunch_center_z/_bz_t 传播、lineplot 的 run_key) 无回归。
+
+## R8 收尾卫生 — 1h
+pyflakes 历史遗留 (~10 条未用导入/变量) 清理; C1 (Codex/PyCharm
+交互 UX 审阅) 视人力安排; 完成后更新 physics_notes/README 状态表。
+
+**执行纪律** (沿用 M8): 红测试先行 -> pyflakes 清 -> 全量 pytest ->
+涉及 notebook 重跑 e2e; 改物理约定必须先改测试并给手册依据。
+**预计总量**: ~16-18h 主代理工作量, 无外部阻塞 (ASTRA 二进制本地已有)。
+
+---
+
 # 第一部分: 主代理自留任务 (物理/工程验证, 按优先级)
 
 ## M1: read_error 合成单元测试 — **已完成** (test/test_misc_readers.py)
